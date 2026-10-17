@@ -13,7 +13,7 @@ const als = new AsyncLocalStorage();
 const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
 const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
 const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
-  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger']);
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches']);
 
 // Tradução mínima de construções herdadas do SQLite + placeholders
 function translate(sql) {
@@ -181,6 +181,21 @@ DO $$ DECLARE t text; BEGIN
   END LOOP;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated'; END IF;
+END $$;
+` }
+, { v: 2, name: 'v2-sugestoes-play-e-buscas-salvas', sql: `
+CREATE TABLE IF NOT EXISTS play_suggestions (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, topic TEXT NOT NULL, outcome TEXT,
+  status TEXT NOT NULL DEFAULT 'novo', created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_play_sug_user ON play_suggestions(user_id, created_at);
+CREATE TABLE IF NOT EXISTS prospect_searches (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, query TEXT, location TEXT, areas TEXT NOT NULL DEFAULT '[]',
+  radius_km REAL, only_no_site INTEGER NOT NULL DEFAULT 0, min_rating REAL NOT NULL DEFAULT 0, found INTEGER NOT NULL DEFAULT 0, qualified INTEGER NOT NULL DEFAULT 0,
+  delivered INTEGER NOT NULL DEFAULT 0, no_site INTEGER NOT NULL DEFAULT 0, potential INTEGER, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_prospect_user ON prospect_searches(user_id, id);
+ALTER TABLE public.play_suggestions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.prospect_searches ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.play_suggestions, public.prospect_searches FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.play_suggestions, public.prospect_searches FROM authenticated'; END IF;
 END $$;
 ` }];
 

@@ -30,10 +30,10 @@ async function itemForm(rec, reload, kindDefault) {
 export const design = {
   async render(box, ctx) {
     const isAdmin = ctx.user.role === 'admin';
-    const st = { q: '', niche: '', style: '', site_type: '', sort: 'title' };
+    const st = { q: '', niche: '', style: '', site_type: '', sort: 'title' }; const PLURAL = { niche: 'nichos', style: 'estilos', site_type: 'tipos' };
     const grid = h('div', { class: 'cards' }); const count = h('b'); const filtersBox = h('div', { class: 'dfilters' }); const shortcuts = h('div', { class: 'shortcuts' });
     let meta = { niches: [], styles: [], siteTypes: [] };
-    const sel = (key, label, ic, opts) => h('label', { class: 'dfield' }, icon(ic), h('span', label), h('select', { 'aria-label': label, onchange: (e) => { st[key] = e.target.value; load(); } }, h('option', { value: '' }, 'Todos'), opts.map((o) => h('option', { value: o, selected: st[key] === o }, o))));
+    const sel = (key, label, ic, opts) => h('label', { class: 'dfield' }, icon(ic), h('span', label), h('select', { 'aria-label': label, onchange: (e) => { st[key] = e.target.value; load(); } }, h('option', { value: '' }, `Todos os ${PLURAL[key]}`), opts.map((o) => h('option', { value: o, selected: st[key] === o }, o))));
     function drawShortcuts() {
       const quick = meta.niches.slice(0, 6);
       mount(shortcuts, h('span', { class: 'k' }, 'Atalhos'), pills({ items: [['', 'Tudo'], ...quick.map((n) => [n, n])], value: st.niche, onChange: (v) => { st.niche = v; load(); } }),

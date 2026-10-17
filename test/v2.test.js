@@ -28,7 +28,7 @@ before(async () => {
 after(() => { server.close(); fs.rmSync(dir, { recursive: true, force: true }); });
 
 test('esquema Postgres aplicado, com seed de planos, etapas e biblioteca', async () => {
-  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '1');
+  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '2');
   assert.equal((await A('GET', '/api/pipeline/stages')).body.length, 6);
   assert.deepEqual((await A('GET', '/api/me')).body.plans.map((p) => p.key), ['member', 'creator', 'elite']);
   assert.ok((await A('GET', '/api/library?kind=prompt')).body.total >= 3);
@@ -192,4 +192,31 @@ test('busca global, créditos de prospecção e histórico de IA sem chave', asy
   assert.equal((await A('POST', '/api/integrations/prospect/search', { areas: [{ lat: -23.5, lng: -46.6, radius_km: 10 }] })).body.code, 'places_not_configured');
   assert.equal((await A('GET', '/api/integrations/prospect/credits')).body.credits, 100);
   assert.equal((await A('GET', '/api/integrations/ai/history?projectId=999')).status, 404);
+});
+
+test('Play: sugestões de aula com limite semanal, painel do admin e notificação', async () => {
+  let s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.limit, 3); assert.equal(s.remaining, 3); assert.equal(s.items.length, 0);
+  assert.equal((await M('POST', '/api/play/suggestions', { topic: 'x' })).status, 400);
+  const ok = await M('POST', '/api/play/suggestions', { topic: 'Como precificar sites', outcome: 'Fechar 3 clientes' }); assert.equal(ok.status, 201); assert.equal(ok.body.remaining, 2);
+  await M('POST', '/api/play/suggestions', { topic: 'Prospecção no Instagram' }); await M('POST', '/api/play/suggestions', { topic: 'Pós-venda' });
+  const blocked = await M('POST', '/api/play/suggestions', { topic: 'Mais uma' }); assert.equal(blocked.status, 429); assert.equal(blocked.body.code, 'suggestion_limit');
+  s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.remaining, 0); assert.equal(s.items.length, 3);
+  // admin vê todos, o membro só os seus; só admin altera situação
+  assert.equal((await A('GET', '/api/play/suggestions?all=1')).body.items.length, 3);
+  assert.equal((await A('GET', '/api/play/suggestions')).body.items.length, 0);
+  assert.equal((await M('PUT', `/api/play/suggestions/${s.items[0].id}`, { status: 'publicado' })).status, 403);
+  assert.equal((await A('PUT', `/api/play/suggestions/${s.items[0].id}`, { status: 'inexistente' })).status, 400);
+  assert.equal((await A('PUT', `/api/play/suggestions/${s.items[0].id}`, { status: 'em_analise' })).status, 200);
+  assert.equal((await A('GET', '/api/me/notifications')).body.items.some((n) => /sugeriu uma aula/.test(n.text)), true);
+  assert.equal((await A('DELETE', `/api/play/suggestions/${s.items[0].id}`)).status, 200);
+});
+
+test('Prospecção: histórico de buscas é por usuário e pode ser apagado', async () => {
+  const me = (await dbGet("SELECT id FROM users WHERE email='m@x.com'")).id;
+  const { run: dbRun } = require('../server/lib/db');
+  await dbRun("INSERT INTO prospect_searches(user_id,query,location,areas,radius_km,found,qualified,delivered,no_site,potential) VALUES (?,?,?,?,?,?,?,?,?,?)", me, 'clínicas', 'Curitiba', '[{"lat":-25.4,"lng":-49.2,"radius_km":10}]', 10, 20, 8, 8, 5, 40);
+  const mine = (await M('GET', '/api/integrations/prospect/searches')).body.items; assert.equal(mine.length, 1); assert.equal(mine[0].areas[0].lat, -25.4); assert.equal(mine[0].potential, 40);
+  assert.equal((await A('GET', '/api/integrations/prospect/searches')).body.items.length, 0);
+  await A('DELETE', `/api/integrations/prospect/searches/${mine[0].id}`); assert.equal((await M('GET', '/api/integrations/prospect/searches')).body.items.length, 1);
+  await M('DELETE', `/api/integrations/prospect/searches/${mine[0].id}`); assert.equal((await M('GET', '/api/integrations/prospect/searches')).body.items.length, 0);
 });

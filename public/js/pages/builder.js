@@ -28,18 +28,20 @@ export default {
       btnOpt.disabled = true; btnOpt.textContent = 'Otimizando…';
       try { const r = await api.post('/projects/optimize-prompt', { brief: brief.value }); brief.value = r.brief; toast('Prompt otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar prompt'; } } }, 'Otimizar prompt');
     const name = () => form.name.value.trim();
-    const btnAi = h('button', { type: 'button', class: 'btn', disabled: !aiOn || !canWrite, onclick: async () => {
-      if (!form.reportValidity()) return;
-      btnAi.disabled = true; btnAi.textContent = 'Gerando… (pode levar 1–2 min)';
+    // um único botão, como no original: com IA configurada gera pelo pedido; sem IA cria a partir do modelo escolhido
+    const btnCreate = h('button', { type: 'button', class: 'btn', disabled: !canWrite, title: aiOn ? 'Gera o projeto com IA a partir da sua descrição' : 'IA não configurada: cria a partir do modelo selecionado', onclick: async () => {
+      if (!form.reportValidity()) { details.classList.remove('hide'); form.reportValidity(); return; }
+      btnCreate.disabled = true; const old = btnCreate.textContent; btnCreate.textContent = aiOn ? 'Gerando… (1–2 min)' : 'Criando…';
       try {
-        let reference; if (form.reference.value) reference = (await api.get('/library/' + form.reference.value)).content;
-        const p = await api.post('/projects/generate-ai', { name: name(), kind: form.kind.value, brief: brief.value, style: form.style.value, color: form.color.value, reference });
-        toast('Projeto gerado. Revise o código na IDE.', 'ok'); location.hash = '#/ide/' + p.id;
-      } catch (e) { fail(e); btnAi.disabled = false; btnAi.textContent = '✦ Criar com IA'; } } }, '✦ Criar com IA');
-    const btnTpl = h('button', { type: 'button', class: 'btn ghost', disabled: !canWrite, onclick: async () => {
-      if (!form.reportValidity()) return;
-      try { const p = await api.post('/projects', { name: name(), kind: tpl.kind, color: form.color.value, sections: tpl.sections, tagline: brief.value.trim().split('\n')[0].slice(0, 90) || name(), description: brief.value.slice(0, 300) });
-        location.hash = '#/ide/' + p.id; } catch (e) { fail(e); } } }, 'Criar a partir do modelo');
+        if (aiOn) {
+          let reference; if (form.reference.value) reference = (await api.get('/library/' + form.reference.value)).content;
+          const p = await api.post('/projects/generate-ai', { name: name(), kind: form.kind.value, brief: brief.value, style: form.style.value, color: form.color.value, reference });
+          toast('Projeto gerado. Revise o código na IDE.', 'ok'); location.hash = '#/ide/' + p.id;
+        } else {
+          const p = await api.post('/projects', { name: name(), kind: tpl.kind, color: form.color.value, sections: tpl.sections, tagline: brief.value.trim().split('\n')[0].slice(0, 90) || name(), description: brief.value.slice(0, 300) });
+          location.hash = '#/ide/' + p.id;
+        }
+      } catch (e) { fail(e); btnCreate.disabled = false; btnCreate.textContent = old; } } }, 'Criar site →');
     // detalhes do projeto (nome, tipo, cor, estilo, referência) ficam recolhidos sob o botão "+"
     const details = h('div', { class: 'bdetails hide' }, form);
     const toggleDetails = () => details.classList.toggle('hide');
@@ -61,7 +63,7 @@ export default {
         h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`),
         !aiOn && h('div', { class: 'notice' }, `Geração com IA indisponível: defina ${st.ai.envVar} no servidor. Os modelos prontos abaixo funcionam sem IA.`),
         h('div', { class: 'composer' },
-          h('div', { class: 'cleft' }, brief, details, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnTpl, btnAi)),
+          h('div', { class: 'cleft' }, brief, details, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
           h('div', { class: 'cright' }, models, pager)),
         quota),
       h('h2', { id: 'allmodels' }, 'Modelos iniciais'), gal, h('p', { class: 'sm mut' }, 'Os modelos são originais da Neva Growth e geram HTML/CSS/JS editáveis na IDE.')));

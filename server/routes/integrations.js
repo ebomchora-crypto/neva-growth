@@ -51,6 +51,9 @@ const km = (a, b) => { const t = (x) => (x * Math.PI) / 180; const dLat = t(b.la
 
 r.get('/prospect/credits', async (req, res) => res.json({ credits: (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits }));
 
+r.get('/prospect/searches', async (req, res) => res.json({ items: (await all('SELECT * FROM prospect_searches WHERE user_id=? ORDER BY id DESC LIMIT 30', req.user.id)).map((x) => ({ ...x, areas: JSON.parse(x.areas || '[]') })) }));
+r.delete('/prospect/searches/:id', async (req, res) => { await run('DELETE FROM prospect_searches WHERE id=? AND user_id=?', Number(req.params.id), req.user.id); res.json({ ok: true }); });
+
 r.post('/prospect/search', async (req, res) => {
   const key = process.env.GOOGLE_PLACES_API_KEY;
   if (!key) throw new HttpError(503, 'Prospecção não configurada. Defina GOOGLE_PLACES_API_KEY no servidor.', 'places_not_configured');
@@ -88,7 +91,8 @@ r.post('/prospect/search', async (req, res) => {
   const qualified = items.filter(qualifies);
   items = qualified.slice(0, credits);                          // 1 crédito por resultado entregue
   if (items.length) { await run('UPDATE users SET credits=credits-? WHERE id=?', items.length, req.user.id); await run('INSERT INTO credit_ledger(user_id,delta,reason) VALUES (?,?,?)', req.user.id, -items.length, `busca: ${query || location}`.slice(0, 120)); }
-  res.json({ items, found: found.length, qualified: qualified.length, charged: items.length, truncated: qualified.length > items.length,
+  await run('INSERT INTO prospect_searches(user_id,query,location,areas,radius_km,only_no_site,min_rating,found,qualified,delivered,no_site,potential) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', req.user.id, query || null, location || null, JSON.stringify(areas), areas[0]?.radius_km ?? null, onlyNoSite ? 1 : 0, minRating, found.length, qualified.length, items.length, found.filter((p) => !p.websiteUri).length, found.length ? Math.round((qualified.length / found.length) * 100) : 0);
+  res.json({ items, found: found.length, qualified: qualified.length, noSite: found.filter((p) => !p.websiteUri).length, charged: items.length, truncated: qualified.length > items.length,
     potential: found.length ? Math.round((qualified.length / found.length) * 100) : 0, credits: (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits });
 });
 

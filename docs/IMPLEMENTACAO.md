@@ -77,6 +77,17 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 
 Licença: o GSAP é gratuito para uso comercial (licença padrão da GreenSock/Webflow); o pacote npm `gsap` traz o texto da licença.
 
+## Play, Prospecção, Design e Builder (capturas 27–31)
+| Item | Estado |
+|---|---|
+| Trilho: brilho e leve aumento (1,08×) ao passar o mouse, indicador deslizante, emblema "N" nas ferramentas (Prospecção, Design, Acervo, Prompts, Play) | Testado (e2e: navegação) |
+| Play: pôsteres grandes por vídeo, faixa de progresso, "O que você quer aprender?" com limite de 3 sugestões por semana (servidor), painel editorial para admin (situação, exclusão) e aviso ao admin | Testado (API + e2e) |
+| Prospecção: faixa "Oportunidades capturadas" (mapeados / alta aderência / sem website), "Buscas salvas" com histórico por usuário (reusar parâmetros, excluir), estado "O radar está pronto." | Histórico: Testado (API). Busca real: **bloqueado por dependência externa** (`GOOGLE_PLACES_API_KEY`) |
+| Design: filtros em linha com rótulos, atalhos em abas, ordenação | Testado (e2e) |
+| Builder: botão único "Criar site →" (com IA gera pelo pedido; sem IA cria do modelo escolhido), "+" abre os detalhes, paleta escolhe a cor, modelos paginados | Testado (e2e). Geração com IA: bloqueado (`ANTHROPIC_API_KEY`) |
+
+Não copiados do original: seletor de modelo "Syre / Medium" e botão de microfone (sem função real aqui); miniaturas de sites de terceiros.
+
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
 ## Deploy

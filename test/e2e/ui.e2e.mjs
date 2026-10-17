@@ -138,8 +138,8 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
 });
 await step('Builder: IA não configurada, criar de modelo', async () => {
-  await nav('builder'); await page.waitForSelector('text=Geração com IA indisponível'); await page.waitForSelector('button:has-text("Criar com IA")[disabled]'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
-  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('.tpl:has-text("Aplicação de tarefas")'); await page.click('button:has-text("Criar a partir do modelo")'); await page.waitForURL(/#\/ide\/\d+/);
+  await nav('builder'); await page.waitForSelector('text=Geração com IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
+  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('.tpl:has-text("Aplicação de tarefas")'); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
   await nav('design'); await page.waitForSelector('.refcard:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');
@@ -156,6 +156,8 @@ await step('Play: cadastrar vídeo e marcar como visto', async () => {
   await nav('play'); await page.click('button:has-text("Novo conteúdo")'); await page.fill('.modal input[name=title]', 'Como vender sites'); await page.fill('.modal input[name=video_url]', 'https://youtu.be/dQw4w9WgXcQ'); await page.fill('.modal input[name=category]', 'Vendas');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("Como vender sites")'); await page.click('article:has-text("Como vender sites") >> button:has-text("Assistir")');
   await page.waitForSelector('.modal iframe'); await page.click('.modal button:has-text("Marcar como visto")'); await page.waitForSelector('.stat:has-text("Conteúdos vistos") b:text-is("100%")'); await page.waitForSelector('.badge:has-text("visto")');
+  await page.waitForSelector('.askband:has-text("3")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
+  await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("2")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
 });
 await step('Gerador de prompts: IA não configurada + Meus prompts', async () => {
   await nav('prompts'); await page.waitForSelector('text=IA não configurada'); await page.waitForSelector('button:has-text("Gerar prompt")[disabled]'); await page.click('.seg button:has-text("JSON")');

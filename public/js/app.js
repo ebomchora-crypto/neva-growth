@@ -11,7 +11,7 @@ const ROUTES = [
   { sec: 'Visão geral' },
   { path: 'dashboard', search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
   { sec: 'Comercial' },
-  { path: 'prospeccao', label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
+  { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
   { path: 'clientes', search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
   { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'cart', page: lazy('./pages/resources.js', 'sales') },
@@ -21,11 +21,11 @@ const ROUTES = [
   { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'globe', page: lazy('./pages/sites.js') },
   { path: 'builder', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'sparkle', page: lazy('./pages/builder.js') },
   { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
-  { path: 'design', search: 'Buscar referência, estilo ou categoria', label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
-  { path: 'acervo', search: 'Buscar recurso, prompt ou animação', label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
-  { path: 'prompts', label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
+  { path: 'design', tool: true, search: 'Buscar referência, estilo ou categoria', label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
+  { path: 'acervo', tool: true, search: 'Buscar recurso, prompt ou animação', label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
+  { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
   { sec: 'Aprender' },
-  { path: 'play', search: 'Buscar conteúdo', label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
+  { path: 'play', tool: true, search: 'Buscar conteúdo', label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
   { path: 'cursos', label: 'Academia', icon: 'book', page: lazy('./pages/courses.js') },
   { sec: 'Conta' },
   { path: 'associacao', label: 'Associação', icon: 'card', page: lazy('./pages/membership.js') },
@@ -143,7 +143,7 @@ function shell() {
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) :
-      h('a', { href: '#/' + r.path, dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label)))),
+      h('a', { href: '#/' + r.path, class: r.tool ? 'tool' : '', dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label)))),
     h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair')));
   const hidden = () => state.me?.settings.hide_values === '1';
   const eye = h('button', { class: 'iconbtn', title: 'Ocultar/mostrar valores', 'aria-label': 'Ocultar ou mostrar valores', onclick: async () => {
