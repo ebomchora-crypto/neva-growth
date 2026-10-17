@@ -28,7 +28,7 @@ export const clients = crudPage({
 });
 
 export const tasks = crudPage({
-  api: '/tasks', singular: 'tarefa', title_page: 'Tarefas', subtitle: 'Acompanhamentos e próximos passos da equipe.',
+  api: '/tasks', singular: 'tarefa', title_page: 'Tarefas', subtitle: 'Acompanhamentos e próximos passos da equipe.', hero: { kicker: 'Neva Growth / Rotina', title: 'Tarefas que andam.', art: 'tasks' },
   title: (t) => t.title, filters: [{ k: 'done', l: 'Situação', opts: [['0', 'Abertas'], ['1', 'Concluídas']] }, { k: 'priority', l: 'Prioridade', opts: ['baixa', 'media', 'alta'] }],
   fields: [
     { k: 'title', l: 'Título', req: true, wide: true }, { k: 'due_date', l: 'Prazo', type: 'date' },
@@ -51,7 +51,7 @@ export const tasks = crudPage({
 });
 
 export const products = crudPage({
-  api: '/products', singular: 'produto', title_page: 'Produtos e serviços', subtitle: 'Catálogo usado nas vendas.',
+  api: '/products', singular: 'produto', title_page: 'Produtos e serviços', subtitle: 'Catálogo usado nas vendas.', hero: { kicker: 'Neva Growth / Catálogo', title: 'Produtos e serviços.', art: 'products' },
   title: (p) => p.name, filters: [{ k: 'type', l: 'Tipo', opts: [['servico', 'Serviço'], ['produto', 'Produto'], ['assinatura', 'Assinatura'], ['curso', 'Curso']] }],
   fields: [
     { k: 'name', l: 'Nome', req: true }, { k: 'type', l: 'Tipo', type: 'select', opts: [['servico', 'Serviço'], ['produto', 'Produto'], ['assinatura', 'Assinatura'], ['curso', 'Curso']] },
@@ -100,7 +100,7 @@ export const sales = crudPage({
 });
 
 export const users = crudPage({
-  api: '/users', singular: 'usuário', title_page: 'Usuários', subtitle: 'Gerencie acessos e perfis da equipe.', csv: false,
+  api: '/users', singular: 'usuário', title_page: 'Usuários', subtitle: 'Gerencie acessos e perfis da equipe.', csv: false, hero: { kicker: 'Neva Growth / Equipe', title: 'Quem faz a Neva acontecer.', art: 'users' },
   title: (u) => u.email, canDelete: (u, me) => u.id !== me.id,
   fields: [
     { k: 'name', l: 'Nome', req: true }, { k: 'email', l: 'E-mail', type: 'email', req: true, createOnly: true },

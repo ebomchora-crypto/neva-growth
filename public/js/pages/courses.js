@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail } from '../ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, hero } from '../ui.js';
 
 const LEVELS = [['iniciante', 'Iniciante'], ['intermediario', 'Intermediário'], ['avancado', 'Avançado']];
 
@@ -67,8 +67,8 @@ export default {
       return src ? h('iframe', { src, style: 'width:100%;aspect-ratio:16/9;border:0;border-radius:10px', allowfullscreen: true, referrerpolicy: 'no-referrer', title: 'Vídeo da aula' })
         : h('a', { href: /^https?:\/\//.test(url) ? url : '#', target: '_blank', rel: 'noopener noreferrer' }, 'Abrir vídeo');
     }
-    mount(box, h('div', { class: 'pagehead' }, h('div', h('h1', 'Academia'), h('p', 'Cursos e trilhas de aprendizado com acompanhamento de progresso.')),
-      canWrite && h('button', { class: 'btn', onclick: () => edit(null) }, '+ Novo curso')), grid);
+    mount(box, hero({ kicker: 'Neva Growth / Academia', title: 'Aprenda no seu ritmo.', art: 'courses', subtitle: 'Cursos e trilhas de aprendizado com acompanhamento de progresso.',
+      actions: [canWrite && h('button', { class: 'btn', onclick: () => edit(null) }, '+ Novo curso')] }), h('div', { style: 'height:14px' }), grid);
     await load();
   }
 };

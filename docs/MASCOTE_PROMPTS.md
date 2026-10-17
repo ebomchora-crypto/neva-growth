@@ -112,3 +112,5 @@ Ao receber cada arquivo, eu recorto o fundo, coloco na abertura da tela correspo
 
 ## Estado da segunda leva
 Recebidos e em uso (fixos): 11 play, 12 acervo, 13 design, 14 prospeccao, 15 prompts. Faltam 16 configuracoes, 17 associacao, 18 tarefas, 19 produtos, 20 usuarios, 21 academia.
+
+Recebidos e em uso (fixos): 16 configuracoes, 17 associacao, 18 tarefas, 19 produtos, 20 usuarios. Falta apenas 21 academia (a imagem enviada por último não chegou ao servidor; a tela já usa a ilustração geométrica até ela ser reenviada).

@@ -11,7 +11,7 @@ export default {
       const f = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((d) => fieldEl(d, p[d.k])));
       modal({ title: `Editar plano ${p.name}`, size: 'lg', body: f, actions: [{ label: 'Cancelar', kind: 'ghost' }, { label: 'Salvar', keepOpen: true, onClick: async (close) => { if (!f.reportValidity()) return false; await api.put('/me/plans/' + p.key, readForm(f, defs)); toast('Plano atualizado.', 'ok'); close(); this.render(box, ctx); } }] });
     }
-    mount(box, hero({ kicker: 'Neva Growth / Associação', title: 'Seu lugar dentro da Neva Growth.', subtitle: 'Planos definem limites de uso e o acesso a recursos da biblioteca. O plano é atribuído por um administrador.' }),
+    mount(box, hero({ kicker: 'Neva Growth / Associação', title: 'Seu lugar dentro da Neva Growth.', art: 'membership', subtitle: 'Planos definem limites de uso e o acesso a recursos da biblioteca. O plano é atribuído por um administrador.' }),
       h('div', { class: 'grid g2', style: 'margin-bottom:14px' },
         h('section', { class: 'card pad stack' }, h('div', { class: 'row' }, h('span', { class: 'badge ok' }, 'Associação ativa'), h('b', `Seu plano: ${cur.name}`)), h('div', { class: 'sm mut' }, cur.tagline), h('h3', 'Uso de IA'), bar(usage.ai), h('h3', 'Builder com IA'), bar(usage.builder)),
         h('section', { class: 'card pad stack' }, h('h3', 'Créditos de prospecção'), h('b', { style: 'font-size:1.8rem' }, me.user.credits), h('div', { class: 'sm mut' }, 'Cada empresa entregue em uma busca da Prospecção consome 1 crédito. Peça a um administrador para ampliar o saldo.'))),
