@@ -100,7 +100,7 @@ export default {
       if (S.areas.length) map.setView([S.areas[0].lat, S.areas[0].lng], 11); toast('Parâmetros carregados. Ajuste e busque quando quiser.', 'ok');
     }
 
-    mount(box, hero({ kicker: 'Neva Growth / Prospecção', title: 'Encontre empresas pelo mapa.', subtitle: 'Marque até 3 áreas, defina o raio e filtre por empresas sem site. Resultados vão direto para o CRM. Cada empresa entregue consome 1 crédito.', actions: [credBox] }),
+    mount(box, hero({ kicker: 'Neva Growth / Prospecção', title: 'Encontre empresas pelo mapa.', art: 'prospect', subtitle: 'Marque até 3 áreas, defina o raio e filtre por empresas sem site. Resultados vão direto para o CRM. Cada empresa entregue consome 1 crédito.', actions: [credBox] }),
       !st.places.configured && h('div', { class: 'notice', style: 'margin-bottom:14px' }, h('b', 'Busca de empresas não configurada. '), `Defina ${st.places.envVar} (Google Places API) no servidor e reinicie. O mapa já permite marcar as áreas.`),
       h('div', { class: 'hunter' }, h('div', { class: 'stack' },
         h('div', { class: 'step stack' }, h('div', { class: 'n' }, '01 · Defina o alvo'), h('label', { class: 'field' }, h('span', 'Segmento (opcional com áreas marcadas)'), seg), h('label', { class: 'field' }, h('span', 'Localidade'), loc), h('div', { class: 'sm mut' }, 'Com áreas no mapa, a busca considera somente os pins; sem áreas, usa a localidade.')),

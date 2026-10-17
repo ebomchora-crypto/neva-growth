@@ -109,3 +109,6 @@ Mesmo bloco fixo e mesmo formato de saída da primeira leva. Anexe a folha do pe
 `[Bloco fixo] Full body, wearing a small graduation cap over the ears, holding an open book in one hand and a rolled diploma in the other, proud and bright smile.`
 
 Ao receber cada arquivo, eu recorto o fundo, coloco na abertura da tela correspondente (já no visual novo, com o resto da tela redesenhada) e publico.
+
+## Estado da segunda leva
+Recebidos e em uso (fixos): 11 play, 12 acervo, 13 design, 14 prospeccao, 15 prompts. Faltam 16 configuracoes, 17 associacao, 18 tarefas, 19 produtos, 20 usuarios, 21 academia.

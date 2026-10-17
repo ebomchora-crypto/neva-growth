@@ -39,7 +39,7 @@ export default {
     }
     const tabs = h('div', { class: 'tabs' });
     function draw() { mount(tabs, [['criar', 'Criar prompt'], ['meus', 'Meus prompts']].map(([k, l]) => h('button', { class: tab === k ? 'on' : '', onclick: () => { tab = k; draw(); } }, l)), h('span', { class: 'grow' }), h('span', { class: 'sm mut', style: 'align-self:center' }, 'Salvos na sua conta')); tab === 'criar' ? drawCreate() : drawMine(); }
-    mount(box, hero({ kicker: 'Neva Growth / Prompts', title: 'Gerador de Prompts.', subtitle: 'Descreva uma ideia ou cole seu prompt. A IA prepara uma versão pronta para usar.' }), tabs, body);
+    mount(box, hero({ kicker: 'Neva Growth / Prompts', title: 'Gerador de Prompts.', art: 'prompts', subtitle: 'Descreva uma ideia ou cole seu prompt. A IA prepara uma versão pronta para usar.' }), tabs, body);
     draw();
   }
 };
