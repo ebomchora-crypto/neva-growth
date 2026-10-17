@@ -11,9 +11,9 @@
 - **Navegação por trilho lateral de ícones** (sem rótulos de texto), item ativo destacado. **[Evidente]**
   Ordem, de cima para baixo: logo · cartão de contato · início/dashboard · clientes · carteira (vendas) · navegador (sites) ·
   quadro/kanban (CRM) · grade com "+" (apps/ferramentas?) · separador · **5 ícones circulares com selo** · engrenagem · sair.
-  - **Mapa do menu (atualizado com as capturas 6–10):** grupo superior = cartão de contato (**ainda desconhecido**) · Dashboard · Clientes · Vendas ·
+  - **Mapa do menu (atualizado com as capturas 6–13):** grupo superior = **Associação/plano (cartão de contato, cap. 11)** · Dashboard · Clientes · Vendas ·
     Sites · CRM Kanban · **Builder de Sites** (grade "+", cap. 6). Grupo inferior (ícones com selo) = **Design Makers** (paleta, cap. 7) ·
-    **Acervo** (prompts/skills/animações, cap. 8) · **Play** (vídeos, cap. 9) · **Prospecção "Code Hunter"** (alvo, cap. 10) · 5º ícone (varinha) **ainda desconhecido**.
+    **Acervo** (prompts/skills/animações, cap. 8) · **Play** (vídeos, cap. 9) · **Prospecção "Code Hunter"** (alvo, cap. 10) · **Gerador de Prompts** (varinha, cap. 12). Engrenagem = **Configurações** (cap. 13).
 - **Barra superior**: busca contextual (o placeholder muda por página: "Buscar cliente ou projeto", "Buscar cliente, empresa ou telefone",
   "Buscar venda, projeto ou cliente", "Buscar site, domínio ou cliente") + atalho **⌘ + Espaço** (paleta de comandos / busca global **[Hipótese]**) +
   botão de alerta (triângulo) + [só no dashboard] botão amarelo (ícone de cupom/ingresso, função desconhecida).
@@ -161,6 +161,38 @@ busca "por objetivo, área ou palavra-chave"; categorias (Todos / "Design e prod
 **Ausente**: **mapa interativo**; áreas por **raio** (até 3); filtro **"sem site"** e **nota mínima**; **sistema de créditos/limite por busca**; indicador de potencial do território; resultados sobre o mapa.
 **Dúvidas / limitações**: provedor do mapa e das empresas não identificável pela imagem; como "créditos" são consumidos (por resultado? por busca?). A API oficial Google Places permite restringir por círculo e retorna site/nota, então os filtros são viáveis **com chave**; mapa exige biblioteca de mapas (ex.: Leaflet/MapLibre com tiles autorizados).
 
+## Captura 11 — Associação / planos ("Seu lugar dentro da Code Makers") — **primeira na ordem do menu**
+
+> Observação: as capturas 11–13 chegaram só como imagem na conversa e **não foram gravadas como arquivo** em `docs/referencias/` (limitação do meu ambiente); a análise abaixo é a única cópia.
+
+**Componentes [Evidente]**: "← Voltar à central"; faixa **"ASSOCIAÇÃO ATIVA — Acesso concedido pela Code Makers"** com "SEU CARTÃO: Code Member";
+três cartões de nível: **01 Code Member (porta de entrada — "seu cartão")**, **02 Code Creator (círculo de criação — "acesso reservado")**, **03 Code Elite (círculo elite — "acesso reservado")**.
+**Leitura**: sistema de **planos/níveis de acesso**; níveis superiores aparecem bloqueados ("reservado"). O texto "concedido pela Code Makers" sugere que o nível é **atribuído pelo administrador** (**[Hipótese]**), não comprado na tela.
+Relações: "Meu plano — acesso e benefícios" em Configurações (cap. 13); selos "VIP" (cap. 8) e "Code Elite" (cap. 12) indicam recursos **condicionados ao plano**. Na cap. 12 o usuário Code Member abre uma tela marcada "Code Elite" — **não dá para saber** se o bloqueio é só visual ou se há limites (ex.: créditos).
+**Já existe na Neva**: apenas perfis de permissão (admin/membro/leitura), sem planos/níveis nem benefícios.
+**Ausente**: entidade **plano/nível** com benefícios, atribuição por admin, bloqueio de recursos por nível (no servidor), tela de associação.
+**Dúvidas**: preços/pagamento existem? o que cada nível libera? (a parte inferior dos cartões, com benefícios, está cortada).
+
+## Captura 12 — Gerador de Prompts ("Code Elite")
+
+**Componentes [Evidente]**: hero "Gerador de Prompts." ("Descreva uma ideia ou cole seu prompt. A IA prepara uma versão pronta para usar."); abas **Criar prompt · Meus prompts** ("Salvos na sua conta");
+modo **Criar a partir de uma ideia** / **Melhorar meu prompt** (colar um prompt existente); **Formato do prompt final: Texto | JSON** (aviso: "JSON organiza as instruções, mas não garante uma resposta melhor da IA");
+campo "Qual é a sua ideia?" com exemplo; painel direito **PROMPT FINAL** com estado vazio ("Sua ideia entra aqui. O prompt sai pronto.").
+**Interações [Hipótese]**: enviar a ideia à IA → prompt estruturado no painel; copiar/salvar em "Meus prompts" (histórico por conta).
+**Já existe na Neva**: nada (a IDE tem chat de IA, mas não gerador/otimizador de prompts nem biblioteca pessoal). Parte da lógica serve ao "Otimizar prompt" do Builder (cap. 6).
+**Ausente**: gerador/otimizador de prompts via IA (real, exige chave), formato texto/JSON, "Meus prompts" (CRUD por usuário), copiar/baixar.
+**Dúvidas**: modelo usado e limites de uso; botão de ação abaixo do campo (cortado).
+
+## Captura 13 — Configurações ("Central da conta")
+
+**Componentes [Evidente]**: painel/modal com botão fechar; navegação lateral com **8 seções** ("01 de 08"), 6 visíveis:
+**Meu perfil** (identidade e contato) · **Segurança** (senha e sessões) · **Notificações** (alertas de vendas) · **Privacidade** (valores no painel) · **CRM** (Code Hunter e funil) · **Meu plano** (acesso e benefícios) · +2 não visíveis.
+Seção Perfil: **Nome completo**, **Nome de usuário** (@handle, "identifica sua conta no painel"), botão **Salvar perfil**.
+**Relações [Hipótese]**: *Privacidade* controla o botão "olho" que oculta valores (cap. 1); *CRM* configura **etapas do funil** ("Editar funil", cap. 5) e **parâmetros do Code Hunter** (cap. 10: créditos, raio, qualificação); *Notificações* = alertas de vendas; *Segurança* = senha e **lista/encerramento de sessões**.
+**Já existe na Neva**: perfil (nome), troca de senha, status de integrações.
+**Ausente**: nome de usuário (@), contato (telefone etc.), sessões ativas com encerrar, preferências de notificação (e o que as dispararia), preferência de privacidade persistente, configurações de CRM/prospecção, tela Meu plano, 2 seções desconhecidas.
+**Dúvidas**: seções 7 e 8 (talvez Integrações/Aparência/Dados — não há como saber); canais de notificação (e-mail, push, WhatsApp?).
+
 ## Relações entre módulos (hipótese de modelo)
 
 ```
@@ -169,9 +201,10 @@ Prospecção (mapa) → Empresa/Lead ──(estágio)──▶ CRM Kanban ──
 ```
 
 ## Pendências para a próxima rodada de capturas
-Formulários (Novo cliente, Nova venda, Nova oportunidade, Adicionar site), **ícone 1 do trilho (cartão de contato) e 5º ícone inferior (varinha)**, botão amarelo/alerta do dashboard,
+Formulários (Novo cliente, Nova venda, Nova oportunidade, Adicionar site), botão amarelo/alerta do dashboard, seções 7–8 de Configurações, benefícios de cada plano,
 detalhe de um item de Design Makers / Prompt Lab / Skill Vault / Animações / Play, tela "Gerar com IA (VIP)", Configurações, menu do usuário, estados **com dados**, versão mobile.
 
 ## Índice das capturas salvas (`docs/referencias/`)
+11 Associação/planos (1ª do menu) · 12 Gerador de Prompts · 13 Configurações *(11–13 sem arquivo salvo)*
 01 Dashboard · 02 Clientes · 03 Vendas · 04 Sites · 05 CRM Kanban · 06 Builder de Sites · 07 Design Makers · 08 Acervo/Prompt Lab · 09 Play · 10 Prospecção Code Hunter.
 > São imagens de um produto de terceiros, usadas só como referência interna de análise.

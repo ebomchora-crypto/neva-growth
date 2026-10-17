@@ -29,6 +29,9 @@ Só marco "Testado" após executar teste. **Fase atual: análise de referências
 | 12 | Biblioteca de referências de design com DESIGN.md (acervo próprio) | Cap. 7 | Não iniciado |
 | 13 | Acervo: Prompt Lab / Skill Vault / Animações (CRUD, copiar/baixar, acesso por plano) | Cap. 8 | Não iniciado |
 | 14 | Play: conteúdos avulsos, tempo assistido, continuar de onde parou | Cap. 9 | Não iniciado |
+| 15 | Planos/níveis de acesso (Member/Creator/Elite), atribuição por admin, bloqueio no servidor | Cap. 11–13 | Não iniciado |
+| 16 | Gerador/otimizador de prompts + "Meus prompts" | Cap. 12 | Não iniciado (IA dependeria de chave) |
+| 17 | Central de Configurações (perfil com @usuário, sessões, notificações, privacidade, CRM/funil, plano) | Cap. 13 | Não iniciado |
 | 8 | IDE: substituir em arquivos, histórico/versões, autosave, importação, execução isolada | Briefing | Não iniciado |
 | 9 | IA com edição de arquivos, diff, desfazer, histórico, limites de uso | Briefing | Não iniciado (dependeria de chave de IA) |
 
