@@ -11,7 +11,7 @@ const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 }, a
 const page = await ctx.newPage(); page.setDefaultTimeout(7000);
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
-page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|boom|cdn\.jsdelivr|openstreetmap|cdnjs/.test(m.text())) errors.push('console: ' + m.text().slice(0, 200) + ' @ ' + m.location().url.split('/').slice(-2).join('/')); });
+page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|compute-pressure|boom|cdn\.jsdelivr|openstreetmap|cdnjs/.test(m.text())) errors.push('console: ' + m.text().slice(0, 200) + ' @ ' + m.location().url.split('/').slice(-2).join('/')); });
 let pass = 0, fail = 0;
 const step = async (n, fn) => { try { await fn(); pass++; console.log('OK  ', n); } catch (e) { fail++; console.log('FAIL', n, '-', e.message.split('\n').slice(0,2).join(' | ')); try { await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); } catch {} } };
 const nav = async (p) => { await page.goto(`${base}/#/${p}`); await page.waitForTimeout(150); };

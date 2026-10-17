@@ -606,3 +606,12 @@ html:not(.motion) .navind{display:none}
   .railfoot{width:44px;gap:4px;padding-top:8px}
   .tbadge{width:15px;height:15px;font-size:.5rem;right:0;bottom:0}
 }
+/* Builder: nunca corta o compositor em janelas baixas; a página rola se faltar altura */
+.content.fill{height:auto;min-height:calc(100vh - 70px)}
+.content.fill .builder{min-height:calc(100vh - 96px)}
+.bstage{justify-content:flex-end;gap:14px}
+.bhero{margin-top:auto;padding-top:8px}
+.composer{height:auto;min-height:0;flex:none}
+.cleft textarea{min-height:110px;flex:1 1 auto}
+.cright{min-height:0}.bmodels{grid-auto-rows:minmax(96px,1fr)}
+@media(max-height:760px) and (min-width:861px){.bhero .mascot-img{max-height:110px}.bhero h1{font-size:clamp(1.5rem,3vw,2.1rem)}.bmodels{grid-auto-rows:92px}}
