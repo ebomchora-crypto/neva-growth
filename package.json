@@ -1,0 +1,14 @@
+{
+  "name": "neva-growth",
+  "version": "1.0.0",
+  "description": "Neva Growth — plataforma de CRM, vendas, cursos, criação de sites e IDE com IA.",
+  "private": true,
+  "type": "commonjs",
+  "engines": { "node": ">=22.13" },
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server/index.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+  },
+  "dependencies": { "express": "^4.21.2" }
+}

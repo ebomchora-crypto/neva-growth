@@ -1,0 +1,48 @@
+const express = require('express');
+const { get, run, all } = require('../lib/db');
+const A = require('../lib/auth');
+const { HttpError, bad, wrap } = require('../lib/http');
+
+const r = express.Router();
+// Lista básica (para selects de responsável) — qualquer usuário autenticado
+r.get('/options', (_req, res) => res.json(all('SELECT id,name FROM users WHERE active=1 ORDER BY name')));
+
+r.use(A.requireRole('admin'));
+r.get('/', (_req, res) => { const items = all('SELECT id,name,email,role,active,created_at FROM users ORDER BY id'); res.json({ items, total: items.length, page: 1, limit: items.length || 1 }); });
+
+r.post('/', wrap((req, res) => {
+  const { name, password, role = 'member' } = req.body || {};
+  const email = A.validateEmail(req.body?.email);
+  if (!name || String(name).trim().length < 2) throw bad('Informe o nome.');
+  if (!A.ROLES.includes(role)) throw bad('Perfil inválido.');
+  A.validatePassword(password);
+  if (get('SELECT id FROM users WHERE email=?', email)) throw bad('Já existe um usuário com este e-mail.');
+  const info = run('INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role);
+  res.status(201).json(get('SELECT id,name,email,role,active,created_at FROM users WHERE id=?', Number(info.lastInsertRowid)));
+}));
+
+r.put('/:id', wrap((req, res) => {
+  const id = Number(req.params.id);
+  const u = get('SELECT * FROM users WHERE id=?', id);
+  if (!u) throw new HttpError(404, 'Usuário não encontrado.');
+  const b = req.body || {};
+  const role = b.role ?? u.role;
+  const active = b.active === undefined ? u.active : (b.active ? 1 : 0);
+  if (!A.ROLES.includes(role)) throw bad('Perfil inválido.');
+  if (id === req.user.id && (role !== 'admin' || !active)) throw bad('Você não pode rebaixar ou desativar a si mesmo.');
+  const name = b.name !== undefined ? String(b.name).trim() : u.name;
+  if (name.length < 2) throw bad('Informe o nome.');
+  run('UPDATE users SET name=?, role=?, active=? WHERE id=?', name, role, active, id);
+  if (b.password) { A.validatePassword(b.password); run('UPDATE users SET password_hash=? WHERE id=?', A.hashPassword(b.password), id); }
+  if (!active) run('DELETE FROM sessions WHERE user_id=?', id);
+  res.json(get('SELECT id,name,email,role,active,created_at FROM users WHERE id=?', id));
+}));
+
+r.delete('/:id', wrap((req, res) => {
+  const id = Number(req.params.id);
+  if (id === req.user.id) throw bad('Você não pode excluir a si mesmo.');
+  const info = run('DELETE FROM users WHERE id=?', id);
+  if (!info.changes) throw new HttpError(404, 'Usuário não encontrado.');
+  res.json({ ok: true });
+}));
+module.exports = r;
