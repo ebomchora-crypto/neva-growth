@@ -1,21 +1,30 @@
 import { crudPage } from '../crud-page.js';
 import { api } from '../api.js';
-import { h, brl, dt, fail, toast } from '../ui.js';
+import { h, brl, dt, fail, toast, money, statCard } from '../ui.js';
 
 const badge = (text, kind = '') => h('span', { class: 'badge ' + kind }, text);
 
+const CSTAGES = [['lead', 'Lead'], ['negociacao', 'Negociação'], ['proposta', 'Proposta enviada'], ['cliente', 'Cliente']];
 export const clients = crudPage({
-  api: '/clients', singular: 'cliente', title_page: 'Clientes', subtitle: 'Base de clientes e histórico de compras.',
-  title: (c) => c.name, searchPlaceholder: 'Buscar por nome, empresa, e-mail, telefone…',
+  api: '/clients', singular: 'cliente', title_page: 'Clientes', subtitle: 'Acompanhe relações, avance negociações e veja o resultado de cada cliente.',
+  hero: { kicker: 'Neva Growth / Relacionamento', title: 'Clientes que viram resultado.' },
+  title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
+  stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira'), statCard('Em negociação', s.emNegociacao, 'negociação + proposta'),
+    statCard('Clientes ativos', s.fechados, `${s.conversao}% de conversão`), statCard('Receita gerada', money(s.receita), `${s.vendasPagas} venda(s) paga(s)`)]; },
+  pills: { param: 'stage', default: '', items: [['', 'Todos'], ...CSTAGES], counts: async () => { const s = await api.get('/clients/summary'); return { '': s.total, ...s.byStage }; } },
   fields: [
     { k: 'name', l: 'Nome', req: true }, { k: 'company', l: 'Empresa' }, { k: 'email', l: 'E-mail', type: 'email' },
-    { k: 'phone', l: 'Telefone' }, { k: 'document', l: 'CPF/CNPJ' }, { k: 'address', l: 'Endereço' }, { k: 'notes', l: 'Observações', type: 'textarea', wide: true }
+    { k: 'phone', l: 'Telefone' }, { k: 'stage', l: 'Estágio', type: 'select', opts: CSTAGES, default: 'lead' }, { k: 'document', l: 'CPF/CNPJ' },
+    { k: 'address', l: 'Endereço', wide: true }, { k: 'notes', l: 'Observações', type: 'textarea', wide: true }
   ],
   columns: [
-    { k: 'name', l: 'Nome', render: (c) => h('div', h('b', c.name), c.company && h('div', { class: 'sm mut' }, c.company)) },
-    { k: 'email', l: 'E-mail' }, { k: 'phone', l: 'Telefone' },
-    { k: 'sales_count', l: 'Vendas', right: true }, { k: 'total_paid', l: 'Total pago', right: true, render: (c) => brl(c.total_paid) }
-  ]
+    { k: 'name', l: 'Empresa', render: (c) => h('div', h('b', c.name), c.company && h('div', { class: 'sm mut' }, c.company)) },
+    { l: 'Contato', render: (c) => h('div', c.email || '—', h('div', { class: 'sm mut' }, c.phone || '')) },
+    { k: 'stage', l: 'Estágio', render: (c) => badge(CSTAGES.find((x) => x[0] === c.stage)?.[1] || c.stage, c.stage === 'cliente' ? 'ok' : '') },
+    { l: 'Entrega digital', render: (c) => c.projects_count ? h('a', { href: '#/sites' }, `${c.projects_count} site(s)`, h('div', { class: 'sm mut' }, c.project_names)) : h('span', { class: 'mut' }, '—') },
+    { l: 'Resultado', right: true, render: (c) => h('div', money(c.total_profit), h('div', { class: 'sm mut' }, `${c.sales_count} venda(s)`)) }
+  ],
+  exportCols: [['name', 'nome'], ['company', 'empresa'], ['email', 'email'], ['phone', 'telefone'], ['stage', 'estagio'], ['total_paid', 'total_pago'], ['total_profit', 'lucro']].map(([k, l]) => ({ k, l }))
 });
 
 export const tasks = crudPage({
@@ -49,26 +58,45 @@ export const products = crudPage({
     { k: 'price', l: 'Preço (R$)', type: 'number', req: true, default: 0 }, { k: 'active', l: 'Ativo', type: 'checkbox', default: 1 },
     { k: 'description', l: 'Descrição', type: 'textarea', wide: true }
   ],
-  columns: [{ k: 'name', l: 'Nome' }, { k: 'type', l: 'Tipo', render: (p) => badge(p.type) }, { k: 'price', l: 'Preço', right: true, render: (p) => brl(p.price) },
+  columns: [{ k: 'name', l: 'Nome' }, { k: 'type', l: 'Tipo', render: (p) => badge(p.type) }, { k: 'price', l: 'Preço', right: true, render: (p) => money(p.price) },
     { k: 'active', l: 'Situação', render: (p) => badge(p.active ? 'ativo' : 'inativo', p.active ? 'ok' : '') }]
 });
 
+const today = () => new Date().toISOString().slice(0, 10);
+const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
 export const sales = crudPage({
-  api: '/sales', singular: 'venda', title_page: 'Vendas', subtitle: 'Receita registrada e pendências de pagamento.',
-  title: (s) => s.description, filters: [{ k: 'status', l: 'Status', opts: ['pendente', 'pago', 'cancelado'] }],
+  api: '/sales', singular: 'venda', title_page: 'Vendas', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue. Indicadores consideram vendas pagas.',
+  hero: { kicker: 'Neva Growth / Resultados', title: 'Projetos que viraram resultado.' },
+  title: (s) => s.description, filters: [{ k: 'status', l: 'Pagamento', opts: ['pendente', 'pago', 'cancelado'] }],
+  stats: async (st) => { const s = await api.get('/sales/summary', { view: st.pill, q: st.q }); return [statCard('Faturamento', money(s.faturamento), [money(s.pendente), ' a receber']), statCard('Lucro líquido', money(s.lucro)),
+    statCard('Margem média', s.margem + '%'), statCard('Ticket médio', money(s.ticket), `${s.pagas} paga(s)`)]; },
+  pills: { param: 'view', default: 'todas', items: SVIEWS, counts: async (st) => (await api.get('/sales/summary', { q: st.q })).counts },
   fields: [
-    { k: 'description', l: 'Descrição', req: true, wide: true },
+    { k: 'description', l: 'Descrição / projeto', req: true, wide: true },
     { k: 'client_id', l: 'Cliente', lookup: { url: '/clients', label: (c) => c.name } },
     { k: 'product_id', l: 'Produto', lookup: { url: '/products', label: (p) => `${p.name} — ${brl(p.price)}` } },
-    { k: 'amount', l: 'Valor (R$)', type: 'number', req: true }, { k: 'sold_at', l: 'Data', type: 'date', default: new Date().toISOString().slice(0, 10) },
-    { k: 'status', l: 'Status', type: 'select', opts: ['pendente', 'pago', 'cancelado'], default: 'pendente' }
+    { k: 'amount', l: 'Valor (R$)', type: 'number', req: true }, { k: 'cost', l: 'Custo (R$)', type: 'number', default: 0 },
+    { k: 'sold_at', l: 'Data da venda', type: 'date', default: today() }, { k: 'delivery_date', l: 'Prazo de entrega', type: 'date' },
+    { k: 'status', l: 'Pagamento', type: 'select', opts: ['pendente', 'pago', 'cancelado'], default: 'pendente' },
+    { k: 'delivery_status', l: 'Entrega', type: 'select', opts: [['pendente', 'Pendente'], ['entregue', 'Entregue']], default: 'pendente' }
   ],
   columns: [
-    { k: 'sold_at', l: 'Data', render: (s) => dt(s.sold_at) }, { k: 'description', l: 'Descrição' }, { k: 'client_name', l: 'Cliente' },
-    { k: 'amount', l: 'Valor', right: true, render: (s) => brl(s.amount) },
-    { k: 'status', l: 'Status', render: (s) => badge(s.status, { pago: 'ok', pendente: 'warn', cancelado: 'bad' }[s.status]) }
+    { k: 'sold_at', l: 'Data', render: (s) => dt(s.sold_at) },
+    { k: 'description', l: 'Projeto', render: (s) => h('div', h('b', s.description), h('div', { class: 'sm mut' }, s.client_name || 'sem cliente')) },
+    { k: 'amount', l: 'Valor', right: true, render: (s) => money(s.amount) },
+    { k: 'profit', l: 'Lucro', right: true, render: (s) => h('div', money(s.profit), h('div', { class: 'sm mut' }, `${s.margin}%`)) },
+    { k: 'delivery_status', l: 'Entrega', render: (s) => {
+      if (s.delivery_status === 'entregue') return badge('entregue', 'ok');
+      const late = s.delivery_date && s.delivery_date < today();
+      return s.delivery_date ? h('span', { class: late ? 'late' : '' }, dt(s.delivery_date), late ? ' · atrasada' : '') : h('span', { class: 'mut' }, 'sem prazo');
+    } },
+    { k: 'status', l: 'Pagamento', render: (s) => badge(s.status, { pago: 'ok', pendente: 'warn', cancelado: 'bad' }[s.status]) }
   ],
-  rowActions: [{ l: 'Marcar pago', show: (s) => s.status === 'pendente', run: async (s, reload) => { await api.put('/sales/' + s.id, { status: 'pago' }); toast('Venda marcada como paga.', 'ok'); reload(); } }]
+  exportCols: [['sold_at', 'data'], ['description', 'projeto'], ['client_name', 'cliente'], ['amount', 'valor'], ['cost', 'custo'], ['profit', 'lucro'], ['margin', 'margem_pct'], ['status', 'pagamento'], ['delivery_date', 'prazo'], ['delivery_status', 'entrega']].map(([k, l]) => ({ k, l })),
+  rowActions: [
+    { l: 'Marcar pago', show: (s) => s.status === 'pendente', run: async (s, reload) => { await api.put('/sales/' + s.id, { status: 'pago' }); toast('Venda marcada como paga.', 'ok'); reload(); } },
+    { l: 'Entregue', show: (s) => s.delivery_status !== 'entregue' && s.status !== 'cancelado', run: async (s, reload) => { await api.put('/sales/' + s.id, { delivery_status: 'entregue' }); toast('Entrega registrada.', 'ok'); reload(); } }
+  ]
 });
 
 export const users = crudPage({
@@ -78,8 +106,10 @@ export const users = crudPage({
     { k: 'name', l: 'Nome', req: true }, { k: 'email', l: 'E-mail', type: 'email', req: true, createOnly: true },
     { k: 'password', l: 'Senha (mín. 8) — em branco mantém', type: 'password', reqCreate: true },
     { k: 'role', l: 'Perfil', type: 'select', opts: [['admin', 'Administrador'], ['member', 'Membro'], ['viewer', 'Somente leitura']], default: 'member' },
+    { k: 'plan', l: 'Plano', type: 'select', opts: [['member', 'Member'], ['creator', 'Creator'], ['elite', 'Elite']], default: 'member' },
+    { k: 'credits', l: 'Créditos de prospecção', type: 'number', default: 100 },
     { k: 'active', l: 'Ativo', type: 'checkbox', default: 1 }
   ],
-  columns: [{ k: 'name', l: 'Nome' }, { k: 'email', l: 'E-mail' }, { k: 'role', l: 'Perfil', render: (u) => badge({ admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[u.role]) },
+  columns: [{ k: 'name', l: 'Nome' }, { k: 'email', l: 'E-mail' }, { k: 'plan', l: 'Plano', render: (u) => badge(u.plan) }, { k: 'credits', l: 'Créditos', right: true }, { k: 'role', l: 'Perfil', render: (u) => badge({ admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[u.role]) },
     { k: 'active', l: 'Situação', render: (u) => badge(u.active ? 'ativo' : 'desativado', u.active ? 'ok' : 'bad') }]
 });

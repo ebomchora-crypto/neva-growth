@@ -122,6 +122,13 @@ test('planos: bloqueio de recursos no servidor, limites e créditos', async () =
   assert.equal((await A('GET', '/api/library?q=landing')).body.total >= 1, true);
 });
 
+test('criação de usuário aceita plano e créditos, com validação', async () => {
+  const u = (await A('POST', '/api/users', { name: 'Eli', email: 'eli@x.com', password: 'senha-forte-9', role: 'member', plan: 'elite', credits: 7 })).body;
+  assert.deepEqual([u.plan, u.credits], ['elite', 7]);
+  assert.equal((await A('POST', '/api/users', { name: 'Zed', email: 'z@x.com', password: 'senha-forte-9', plan: 'xx' })).status, 400);
+  assert.equal((await A('POST', '/api/users', { name: 'Zed', email: 'z@x.com', password: 'senha-forte-9', credits: -3 })).status, 400);
+});
+
 test('Play e prompts salvos', async () => {
   const p = (await A('POST', '/api/play', { title: 'Aula 1', video_url: 'https://youtu.be/abc123XYZ', category: 'Vendas' })).body;
   assert.equal((await A('POST', '/api/play', { title: 'x', video_url: 'javascript:alert(1)' })).status, 400);

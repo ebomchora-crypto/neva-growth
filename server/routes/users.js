@@ -18,7 +18,10 @@ r.post('/', wrap((req, res) => {
   if (!A.ROLES.includes(role)) throw bad('Perfil inválido.');
   A.validatePassword(password);
   if (get('SELECT id FROM users WHERE email=?', email)) throw bad('Já existe um usuário com este e-mail.');
-  const info = run('INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role);
+  const plan = req.body?.plan ?? 'member'; if (!get('SELECT 1 x FROM plans WHERE key=?', plan)) throw bad('Plano inválido.');
+  const credits = req.body?.credits === undefined || req.body.credits === null || req.body.credits === '' ? 100 : Number(req.body.credits);
+  if (!Number.isInteger(credits) || credits < 0 || credits > 1000000) throw bad('Créditos devem ser um inteiro ≥ 0.');
+  const info = run('INSERT INTO users(name,email,password_hash,role,plan,credits) VALUES (?,?,?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role, plan, credits);
   res.status(201).json(get(`SELECT ${COLS} FROM users WHERE id=?`, Number(info.lastInsertRowid)));
 }));
 

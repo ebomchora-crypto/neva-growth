@@ -2,7 +2,7 @@
 
 Plataforma web completa: CRM (leads, funil, clientes, tarefas), vendas e produtos, academia (cursos),
 prospecção, criação de sites/aplicações/sistemas e **IDE com IA** — identidade azul-gelo, branca e minimalista.
-Veja `docs/INVENTARIO.md` para o mapa de funcionalidades e as limitações.
+Documentos: `docs/IMPLEMENTACAO.md` (estado real de cada recurso), `docs/REFERENCIAS_VISUAIS.md` (análise das capturas), `docs/EXECUCAO_ISOLADA.md` (arquitetura proposta para terminal/back-end), `docs/INVENTARIO.md` (inventário inicial).
 
 ## Stack
 - **Backend:** Node.js ≥ 22.13 + Express. **Banco:** SQLite (`node:sqlite`, arquivo em `data/neva.db`) — sem dependências nativas.
@@ -23,7 +23,11 @@ Variáveis: `PORT`, `DATA_DIR`, `COOKIE_SECURE=1` (atrás de HTTPS), `ANTHROPIC_
 
 ## Testes
 ```bash
-npm test   # 8 testes de API (auth, CSRF, CRUD, permissões, projetos/arquivos/zip/preview/publicação, integrações)
+npm test            # 18 testes de API (auth, CRUD, planos, funil, vendas, dashboard, projetos, versões, permissões…)
+
+# Interface (Chromium via playwright-core). Suba o servidor com banco VAZIO e rode:
+DATA_DIR=$(mktemp -d) PORT=3111 npm start &
+npm run test:e2e   # 31 verificações; CHROMIUM_PATH, BASE_URL e E2E_OUT opcionais
 ```
 
 ## Arquitetura

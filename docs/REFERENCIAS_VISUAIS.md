@@ -4,7 +4,8 @@
 > o que está marcado como **[Evidente]** aparece na imagem; **[Hipótese]** é inferência minha e **não** é comportamento
 > confirmado do sistema de referência. Todas as telas estão **vazias (R$ 0, 0 registros)**, então não se vê como os dados
 > preenchidos aparecem.
-> Status: fase de **análise**. Nenhuma implementação foi iniciada (aguardando "FINALIZEI AS PRINTS").
+> Status: análise **consolidada** (13 capturas) e implementação feita — o estado real de cada recurso (implementado/testado/bloqueado) está em `docs/IMPLEMENTACAO.md`.
+> Onde a imagem não bastava, a implementação seguiu a hipótese registrada aqui e **não** afirma ser o comportamento do sistema de referência.
 
 ## Estrutura global observada (comum às 5 capturas)
 

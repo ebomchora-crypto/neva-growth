@@ -4,11 +4,19 @@
   "description": "Neva Growth — plataforma de CRM, vendas, cursos, criação de sites e IDE com IA.",
   "private": true,
   "type": "commonjs",
-  "engines": { "node": ">=22.13" },
+  "engines": {
+    "node": ">=22.13"
+  },
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server/index.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch server/index.js",
-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js"
+    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.js",
+    "test:e2e": "node test/e2e/ui.e2e.mjs"
   },
-  "dependencies": { "express": "^4.21.2" }
+  "dependencies": {
+    "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "playwright-core": "^1.49.0"
+  }
 }
