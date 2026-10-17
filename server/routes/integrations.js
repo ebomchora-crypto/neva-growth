@@ -6,7 +6,7 @@ const ai = require('../lib/ai');
 
 const r = express.Router();
 r.get('/status', async (_req, res) => res.json({
-  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODEL() : null, models: ai.publicModels(), defaultModel: ai.MODEL(), envVar: 'ANTHROPIC_API_KEY' },
+  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODELS.find((m) => m.id === ai.DEFAULT_ID()).name : null, models: ai.publicModels(), defaultModel: ai.DEFAULT_ID(), envVar: 'ANTHROPIC_API_KEY' },
   places: { configured: Boolean(process.env.GOOGLE_PLACES_API_KEY), envVar: 'GOOGLE_PLACES_API_KEY' }
 }));
 

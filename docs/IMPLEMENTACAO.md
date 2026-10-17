@@ -94,7 +94,7 @@ Componentes de IA (KokonutUI/21st.dev, portados para JavaScript puro porque o pr
 | Item | Estado |
 |---|---|
 | Builder: orbe "Neva Studio" no lugar do mascote; fundo Dot Field (meio-tom com esteira ao passar o mouse e onda de choque no clique) | Testado (e2e) |
-| Seletor de modelo e esforço (Opus/Sonnet/Haiku; Baixo/Médio/Alto/Máximo conforme o modelo; arrastável e por teclado) no Builder e no chat da IDE. O servidor valida modelo e esforço numa lista fixa e usa o esforço para escolher o limite de saída e as instruções | Lista/validação: Testado (API). Efeito na resposta real: bloqueado (`ANTHROPIC_API_KEY`) |
+| Seletor de modelo e esforço (Neva 1.0 / 1.2 / 1.5, que o servidor traduz para o modelo real; o navegador nunca vê o id real; Baixo/Médio/Alto/Máximo conforme o modelo; arrastável e por teclado) no Builder e no chat da IDE. O servidor valida modelo e esforço numa lista fixa e usa o esforço para escolher o limite de saída e as instruções | Lista/validação: Testado (API). Efeito na resposta real: bloqueado (`ANTHROPIC_API_KEY`) |
 | Carregamento da IA em etapas (Builder e chat da IDE): etapas e tempos refletem estados reais (salvar, aguardar a IA, concluir) | Testado (e2e: Builder; componente isolado) |
 | Revisão de diff por arquivo (aceitar/rejeitar/desfazer, blocos expansíveis, aplicar só as aceitas) na IDE | Componente verificado isolado; fluxo completo depende da IA |
 | Mascote da Academia | Em uso |

@@ -150,12 +150,12 @@ await step('Builder: IA não configurada, criar de modelo', async () => {
   if (await page.locator('.mascot-img').count() !== 0) throw new Error('mascote ainda aparece no Builder');
   // seletor de modelo + esforço: abre, troca o modelo (o trilho se ajusta) e arrasta o esforço
   await page.click('.ms-trigger'); await page.waitForSelector('.ms-panel:not(.hide)');
-  await page.click('.ms-opt:has-text("Opus")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 4);
+  await page.click('.ms-opt:has-text("Neva 1.5")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 4);
   const tb = await page.locator('.ms-track').boundingBox();
   await page.mouse.move(tb.x + tb.width * 0.12, tb.y + tb.height / 2); await page.mouse.down(); await page.mouse.move(tb.x + tb.width * 0.62, tb.y + tb.height / 2, { steps: 6 }); await page.mouse.move(tb.x + tb.width * 0.95, tb.y + tb.height / 2, { steps: 4 }); await page.mouse.up();
   await page.waitForSelector('.ms-trigger:has-text("Máximo")');
-  await page.click('.ms-opt:has-text("Haiku")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 2); await page.waitForSelector('.ms-trigger:has-text("Médio")');
-  await page.click('.ms-opt:has-text("Sonnet")'); await page.focus('.ms-track'); await page.keyboard.press('ArrowLeft'); await page.waitForSelector('.ms-trigger:has-text("Baixo")');
+  await page.click('.ms-opt:has-text("Neva 1.0")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 2); await page.waitForSelector('.ms-trigger:has-text("Médio")');
+  await page.click('.ms-opt:has-text("Neva 1.2")'); await page.focus('.ms-track'); await page.keyboard.press('ArrowLeft'); await page.waitForSelector('.ms-trigger:has-text("Baixo")');
   await page.mouse.click(5, 300); await page.waitForSelector('.ms-panel.hide', { state: 'attached' });
   await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('button:has-text("Ver todos os modelos")'); await page.click('.modal .tpl:has-text("Aplicação de tarefas")'); await page.waitForFunction(() => !document.querySelector('.modal-back')); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
 });
