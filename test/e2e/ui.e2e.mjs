@@ -139,6 +139,7 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
 });
 await step('Builder: IA não configurada, criar de modelo', async () => {
   await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
+  await page.click('.effchip'); await page.waitForSelector('.effpop:not(.hide)'); await page.fill('.effpop input[type=range]', '2'); await page.waitForSelector('.effchip .lv:text-is("Alto")'); await page.click('.effpop .erst'); await page.waitForSelector('.effchip .lv:text-is("Médio")'); await page.mouse.click(5, 300); await page.waitForSelector('.effpop.hide', { state: 'attached' });
   await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('button:has-text("Ver todos os modelos")'); await page.click('.modal .tpl:has-text("Aplicação de tarefas")'); await page.waitForFunction(() => !document.querySelector('.modal-back')); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {

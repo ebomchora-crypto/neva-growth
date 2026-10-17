@@ -32,7 +32,7 @@ export default {
       try {
         if (aiOn) {
           let reference; if (form.reference.value) reference = (await api.get('/library/' + form.reference.value)).content;
-          const p = await api.post('/projects/generate-ai', { name: name(), kind: form.kind.value, brief: brief.value, style: form.style.value, color: form.color.value, reference });
+          const p = await api.post('/projects/generate-ai', { name: name(), kind: form.kind.value, brief: brief.value, style: form.style.value, color: form.color.value, effort: effort.k, reference });
           toast('Projeto gerado. Revise o código na IDE.', 'ok'); location.hash = '#/ide/' + p.id;
         } else {
           const p = await api.post('/projects', { name: name(), kind: tpl.kind, color: form.color.value, sections: tpl.sections, tagline: brief.value.trim().split('\n')[0].slice(0, 90) || name(), description: brief.value.slice(0, 300) });
@@ -58,13 +58,29 @@ export default {
       const m = modal({ title: 'Todos os modelos', size: 'lg', body: list, actions: [{ label: 'Fechar', kind: 'ghost' }] });
     }
     drawModels();
+    // nível de esforço da IA (de verdade: muda o limite de saída e as instruções enviadas ao gerar)
+    const LEVELS = [{ k: 'low', l: 'Rápido', d: 'Projeto enxuto, mais veloz' }, { k: 'medium', l: 'Médio', d: 'Equilíbrio entre prazo e acabamento' }, { k: 'high', l: 'Alto', d: 'Acabamento caprichado, leva mais tempo' }];
+    const effort = { k: (() => { try { return localStorage.getItem('neva-effort') || 'medium'; } catch { return 'medium'; } })() }; if (!LEVELS.some((x) => x.k === effort.k)) effort.k = 'medium';
+    const modelName = st.ai.model || 'Neva IA';
+    const chip = h('button', { type: 'button', class: 'effchip', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Nível de esforço da IA' }); const pop = h('div', { class: 'effpop hide', role: 'dialog', 'aria-label': 'Nível de esforço' });
+    const idx = () => LEVELS.findIndex((x) => x.k === effort.k);
+    const drawEff = () => {
+      const cur = LEVELS[idx()];
+      mount(chip, h('i', { class: 'slash' }), h('b', modelName.replace(/^claude-/i, '').replace(/-/g, ' ')), h('span', { class: 'sep' }, '/'), h('span', { class: 'lv' }, cur.l), h('span', { class: 'car' }, '⌃'));
+      const range = h('input', { type: 'range', min: 0, max: LEVELS.length - 1, step: 1, value: idx(), 'aria-label': 'Nível de esforço', style: `--p:${(idx() / (LEVELS.length - 1)) * 100}%`, oninput: (e) => { effort.k = LEVELS[Number(e.target.value)].k; try { localStorage.setItem('neva-effort', effort.k); } catch { /* ok */ } drawEff(); pop.classList.remove('hide'); pop.querySelector('input')?.focus(); } });
+      mount(pop, h('div', { class: 'eh' }, h('span'), h('b', cur.l), h('button', { type: 'button', class: 'erst', title: 'Voltar ao padrão (Médio)', 'aria-label': 'Voltar ao padrão', onclick: () => { effort.k = 'medium'; try { localStorage.setItem('neva-effort', 'medium'); } catch { /* ok */ } drawEff(); pop.classList.remove('hide'); } }, icon('refresh'))),
+        h('div', { class: 'em' }, modelName.replace(/^claude-/i, '').replace(/-/g, ' '), ' ›'), range, h('div', { class: 'ed' }, cur.d), !aiOn && h('div', { class: 'ed' }, 'Vale quando a IA estiver configurada.'));
+    };
+    drawEff();
+    chip.addEventListener('click', () => { const open = pop.classList.toggle('hide') === false; chip.setAttribute('aria-expanded', String(open)); });
+    document.addEventListener('mousedown', (e) => { if (!pop.classList.contains('hide') && !pop.contains(e.target) && !chip.contains(e.target)) { pop.classList.add('hide'); chip.setAttribute('aria-expanded', 'false'); } });
     const status = aiOn ? h('span', { class: 'bstatus ok' }, h('i'), quota.textContent) : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: defina ', h('code', st.ai.envVar), ' no servidor. Os modelos funcionam sem IA.');
     box.classList.add('fill');
     mount(box, h('div', { class: 'bstage' },
       h('div', { class: 'btop' }, h('a', { href: '#/sites' }, '← Voltar aos sites'), h('span', { class: 'k' }, h('i', '●'), ' Builder de sites')),
       h('div', { class: 'bhero' }, mascotImg('dashboard'), h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`)),
       h('div', { class: 'composer' },
-        h('div', { class: 'cleft' }, brief, details, status, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
+        h('div', { class: 'cleft' }, brief, details, status, h('div', { class: 'effwrap' }, pop, chip), h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
         h('div', { class: 'cright' }, models, pager))));
   }
 };

@@ -113,11 +113,13 @@ r.post('/generate-ai', async (req, res) => {
   const kind = ['site', 'app', 'system'].includes(b.kind) ? b.kind : 'site';
   await S.checkAiQuota(req.user, 'builder');
   const style = String(b.style || '').slice(0, 200); const color = /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null;
+  const EFFORT = { low: [6000, ' Nível rápido: projeto enxuto, no máximo 3 arquivos e poucas seções, código curto e direto.'], medium: [12000, ''], high: [16000, ' Nível alto: acabamento caprichado, mais seções e estados (hover, foco, vazio), microinterações em CSS, copy cuidadosa e até 8 arquivos bem organizados.'] };
+  const [maxTokens, extra] = EFFORT[b.effort] || EFFORT.medium;
   const text = await ai.complete({
-    maxTokens: 12000,
+    maxTokens,
     system: 'Você gera projetos web estáticos completos (HTML, CSS e JavaScript puros, sem build, sem dependências externas). ' +
       'Responda APENAS com um objeto JSON: {"files":{"index.html":"...","style.css":"...","main.js":"..."}}. ' +
-      'Código original, responsivo, acessível, em português do Brasil, paleta azul-gelo e branca minimalista. Máximo de 8 arquivos. Não use localStorage além de try/catch.',
+      'Código original, responsivo, acessível, em português do Brasil, paleta azul-gelo e branca minimalista. Máximo de 8 arquivos. Não use localStorage além de try/catch.' + extra,
     messages: [{ role: 'user', content: `Tipo: ${kind}\nNome: ${name}\nPedido: ${brief}${style ? `\nEstilo visual: ${style}` : ''}${color ? `\nCor principal: ${color}` : ''}${b.reference ? `\nReferência de design (DESIGN.md):\n${String(b.reference).slice(0, 8000)}` : ''}` }]
   });
   await S.recordAiUse(req.user, 'builder');

@@ -141,10 +141,11 @@ function shell() {
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
+  const navLink = (r) => h('a', { href: '#/' + r.path, class: r.tool ? 'tool' : '', dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
+  const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
-    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) :
-      h('a', { href: '#/' + r.path, class: r.tool ? 'tool' : '', dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label)))),
-    h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair')));
+    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),
+    h('div', { class: 'railfoot' }, cfg && navLink(cfg), h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair'))));
   const hidden = () => state.me?.settings.hide_values === '1';
   const eye = h('button', { class: 'iconbtn', title: 'Ocultar/mostrar valores', 'aria-label': 'Ocultar ou mostrar valores', onclick: async () => {
     const on = !hidden(); try { await api.put('/me/settings', { hide_values: on }); state.me.settings.hide_values = on ? '1' : '0'; applyPrivacy(on); eye.replaceChildren(icon(on ? 'eyeoff' : 'eye')); } catch (e) { fail(e); } } }, icon(hidden() ? 'eyeoff' : 'eye'));
@@ -169,7 +170,7 @@ async function route() {
   const { route: r, params } = match();
   if (!r) { location.hash = '#/dashboard'; return; }
   if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
-  document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
+  document.querySelectorAll('.side a[data-path]').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
   navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on'));
   const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';
   state.cleanup?.(); state.cleanup = null;

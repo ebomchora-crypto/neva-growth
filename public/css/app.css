@@ -559,3 +559,36 @@ html:not(.motion) .navind{display:none}
 }
 .bmodel .th i:nth-child(n+3){display:none}.bmodel .th i{background:rgba(255,255,255,.55)}
 .bstatus{display:block;line-height:1.5}.bstatus i{display:inline-block;margin-right:8px;vertical-align:middle}
+/* ===== trilho v4: blocos quadrados maiores, como o original ===== */
+@media(min-width:861px){
+  .shell{grid-template-columns:104px minmax(0,1fr)}
+  .side{width:80px;padding:14px 0 12px;margin:12px 0 12px 14px;gap:0;justify-content:flex-start}
+  .side .brand{margin-bottom:8px}.side .brand i{width:50px;height:50px;border-radius:15px;font-size:1.25rem}
+  .side .nav{flex:1;min-height:0;gap:8px;padding:6px 0;mask-image:linear-gradient(180deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%);-webkit-mask-image:linear-gradient(180deg,transparent 0,#000 12px,#000 calc(100% - 12px),transparent 100%)}
+  .nav a,.railbtn{width:50px;height:50px;border-radius:15px;background:rgba(255,255,255,.1);flex:none}
+  .nav a svg,.railbtn svg{width:23px;height:23px}
+  .nav-sec{width:34px;margin:2px 0}
+  .railfoot{display:flex;flex-direction:column;align-items:center;gap:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,.3);width:54px}
+  .railfoot a{position:relative;display:flex;align-items:center;justify-content:center;width:50px;height:50px;border-radius:15px;background:rgba(255,255,255,.1);color:rgba(255,255,255,.9);text-decoration:none}
+  .navind{border-radius:15px}
+  .nav a.on,.railfoot a.on{background:#fff;color:var(--ice-700);box-shadow:0 8px 20px rgba(10,40,70,.35)}
+  .motion .nav a.on{background:transparent;box-shadow:none}
+  .nav a.tool{opacity:.9}
+  .tbadge{right:2px;bottom:2px;width:19px;height:19px;font-size:.6rem}
+}
+@media(hover:hover) and (min-width:861px){.railfoot a:hover{transform:scale(1.08);box-shadow:0 0 0 1px rgba(255,255,255,.4),0 0 18px 2px rgba(255,255,255,.55)}}
+@media(max-width:860px){.railfoot{display:flex;flex-direction:column;gap:6px;margin-top:6px}.railfoot a{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;color:rgba(255,255,255,.9);text-decoration:none}.railfoot a.on{background:#fff;color:var(--ice-700)}.railfoot .lbl{display:inline}}
+@media(min-width:861px){.railfoot .lbl{display:none}.railfoot a svg{width:23px;height:23px;flex:none}}
+/* seletor de esforço da IA */
+.effwrap{position:relative;align-self:flex-start}
+.effchip{display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;border-radius:12px;padding:7px 12px;cursor:pointer;font-weight:600;text-transform:capitalize}
+.effchip:hover{background:rgba(255,255,255,.16)}.effchip .slash{width:3px;height:16px;background:#7fe0f0;transform:skewX(-18deg);border-radius:2px}
+.effchip .sep,.effchip .car{opacity:.6}.effchip .lv{color:#bfe9f5}.effchip .car{font-size:.8rem}
+.effpop{position:absolute;left:0;bottom:calc(100% + 8px);width:min(360px,calc(100vw - 48px));background:rgba(8,20,34,.96);border:1px solid rgba(255,255,255,.25);border-radius:16px;padding:14px 16px;box-shadow:0 18px 44px rgba(0,0,0,.5);z-index:20}
+.effpop .eh{display:grid;grid-template-columns:28px 1fr 28px;align-items:center;text-align:center}.effpop .eh b{color:#7fe0f0;font-size:1.05rem}
+.effpop .erst{width:28px;height:28px;border:0;background:none;color:rgba(255,255,255,.75);cursor:pointer;border-radius:8px;display:grid;place-items:center}.effpop .erst:hover{background:rgba(255,255,255,.14)}
+.effpop .em{text-align:center;color:rgba(255,255,255,.75);font-size:.85rem;margin:2px 0 12px;text-transform:capitalize}
+.effpop input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:30px;border-radius:999px;padding:0;border:1px solid rgba(255,255,255,.2);background:linear-gradient(90deg,#2f7bbd 0,#7fe0f0 var(--p),rgba(255,255,255,.1) var(--p));box-shadow:none}
+.effpop input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;border-radius:50%;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.45);cursor:pointer}
+.effpop input[type=range]::-moz-range-thumb{width:30px;height:30px;border:0;border-radius:50%;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.45);cursor:pointer}
+.effpop .ed{margin-top:10px;text-align:center;color:rgba(255,255,255,.7);font-size:.78rem}

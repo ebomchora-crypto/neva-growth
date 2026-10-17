@@ -145,10 +145,12 @@ export function routeEnd() {
 
 // ---------- indicador deslizante do menu
 export function navIndicator(nav, link) {
-  if (!nav || !link) return;
+  if (!nav) return;
+  if (!link) { const o = nav.querySelector('.navind'); if (o) o.style.opacity = '0'; return; }
   let ind = nav.querySelector('.navind');
   if (!ind) { ind = document.createElement('i'); ind.className = 'navind'; nav.prepend(ind); G.set(ind, { opacity: 0 }); }
   const go = (animate) => {
+    if (ind.style.opacity === '0') ind.style.opacity = '';
     const props = { x: link.offsetLeft, y: link.offsetTop, width: link.offsetWidth, height: link.offsetHeight, opacity: 1 };
     if (animate && motionEnabled()) G.to(ind, { ...props, duration: 0.5, ease: 'back.out(1.5)' }); else G.set(ind, props);
   };
