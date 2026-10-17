@@ -43,6 +43,7 @@ function pgDriver(url) {
   types.setTypeParser(20, (v) => Number(v));    // int8 (COUNT, bigint)
   types.setTypeParser(1700, (v) => Number(v));  // numeric (ROUND, AVG)
   const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: Number(process.env.PG_POOL_MAX) || (process.env.VERCEL ? 3 : 10), idleTimeoutMillis: 10000 });
+  pool.on('error', (e) => console.error('[db] erro em conexão ociosa:', e.message));   // sem isto, um erro ocioso derruba o processo
   return {
     name: 'postgres',
     query: async (sql, params, client) => { const r = await (client || pool).query(sql, params); return { rows: r.rows, count: r.rowCount ?? 0 }; },
@@ -206,6 +207,8 @@ function ready() {
     await migrate();
     return driver.name;
   })();
+  // Se a inicialização falhar (ex.: DATABASE_URL ausente/inválida), não guarda a falha para sempre: a próxima requisição tenta de novo.
+  readyPromise.catch((e) => { console.error('[db] falha na inicialização:', e.message); readyPromise = null; driver = null; });
   return readyPromise;
 }
 const close = async () => { /* pool é encerrado pelo processo */ };

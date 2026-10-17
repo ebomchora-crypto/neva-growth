@@ -6,7 +6,10 @@ const { HttpError } = require('./lib/http');
 
 function createApp() {
   const db = require('./lib/db');
-  const ready = db.ready().then(() => require('./lib/seed').seedLibrary());
+  // A inicialização roda na primeira requisição (e é repetida se falhar). Nunca deixa uma rejeição sem tratamento:
+  // isso derrubaria a função serverless com FUNCTION_INVOCATION_FAILED em vez de devolver um erro legível.
+  let initP = null;
+  const ready = () => (initP ||= db.ready().then(() => require('./lib/seed').seedLibrary()).catch((e) => { initP = null; throw e; }));
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -16,11 +19,18 @@ function createApp() {
     next();
   });
   // Garante esquema/migrações e seed antes da primeira requisição (necessário em serverless)
-  app.use(async (_req, _res, next) => { try { await ready; next(); } catch (e) { next(e); } });
+  app.use(async (_req, res, next) => {
+    try { await ready(); next(); }
+    catch (e) {
+      console.error('[init]', e.message);
+      const missing = /DATABASE_URL/.test(e.message);
+      res.status(503).json({ error: missing ? e.message : 'Banco de dados indisponível. Verifique DATABASE_URL (use a string do Transaction pooler do Supabase) e a senha do banco.', code: missing ? 'db_not_configured' : 'db_unavailable', detail: missing ? undefined : String(e.code || e.name || '') });
+    }
+  });
   app.use(A.loadUser);
   if (process.env.LOG_REQUESTS === '1') app.use((req, res, next) => { const t = Date.now(); res.on('finish', () => { if (req.path.startsWith('/api')) console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t}ms ${req.user ? 'u' + req.user.id : '-'}`); }); next(); });
 
-  app.get('/healthz', async (_req, res) => { await ready; res.json({ ok: true }); });
+  app.get('/healthz', (_req, res) => res.json({ ok: true }));
   // Sites publicados (públicos) e preview (autenticado)
   const { router: projects, previewRouter, publicRouter } = require('./routes/projects');
   app.use('/s', publicRouter);
