@@ -138,8 +138,8 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
 });
 await step('Builder: IA não configurada, criar de modelo', async () => {
-  await nav('builder'); await page.waitForSelector('text=Geração com IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
-  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('.tpl:has-text("Aplicação de tarefas")'); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
+  await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
+  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('button:has-text("Ver todos os modelos")'); await page.click('.modal .tpl:has-text("Aplicação de tarefas")'); await page.waitForFunction(() => !document.querySelector('.modal-back')); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
   await nav('design'); await page.waitForSelector('.refcard:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');

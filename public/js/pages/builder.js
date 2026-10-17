@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, toast, fail, fieldEl, icon, mascotImg } from '../ui.js';
+import { h, mount, toast, fail, fieldEl, icon, mascotImg, modal } from '../ui.js';
 
 const TEMPLATES = [
   { id: 'inst', title: 'Site institucional', desc: 'Apresentação da empresa com benefícios, serviços, depoimentos e contato.', kind: 'site', sections: ['beneficios', 'servicos', 'depoimentos', 'contato'] },
@@ -20,9 +20,6 @@ export default {
       { k: 'style', l: 'Estilo visual', ph: 'minimalista, editorial, tecnológico…' },
       { k: 'reference', l: 'Referência de design (DESIGN.md)', type: 'select', empty: 'Nenhuma', opts: refs.items.filter((r) => !r.locked).map((r) => [r.id, r.title]) }];
     const form = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((d) => fieldEl(d)));
-    const gal = h('div', { class: 'cards' });
-    const drawGal = () => mount(gal, TEMPLATES.map((t) => h('button', { type: 'button', class: 'card tpl' + (tpl.id === t.id ? ' on' : ''), style: 'text-align:left', onclick: () => { tpl = t; form.kind.value = t.kind; drawGal(); } }, thumb(t), h('div', { class: 'body' }, h('b', t.title), h('div', { class: 'sm mut' }, t.desc)))));
-    drawGal();
     const quota = h('span', { class: 'sm mut' }, aiOn ? `Geração com IA: ${U.builder.used}/${U.builder.limit} no mês · Prompts/assistente: ${U.ai.used}/${U.ai.limit}` : '');
     const btnOpt = h('button', { type: 'button', class: 'btn ghost', disabled: !aiOn || !canWrite, onclick: async () => {
       btnOpt.disabled = true; btnOpt.textContent = 'Otimizando…';
@@ -47,25 +44,27 @@ export default {
     const toggleDetails = () => details.classList.toggle('hide');
     const colorBtn = h('button', { type: 'button', class: 'bicon', title: 'Escolher a cor principal', 'aria-label': 'Escolher a cor principal', onclick: () => { details.classList.remove('hide'); form.color.focus(); form.color.click?.(); } }, icon('palette'));
     const plusBtn = h('button', { type: 'button', class: 'bicon', title: 'Detalhes do projeto: nome, tipo, estilo e referência', 'aria-label': 'Detalhes do projeto', onclick: toggleDetails }, icon('plus'));
-    // modelos: 4 por página, setas reais
+    // modelos: 4 por página (grade 2x2 com o título sobre a miniatura), setas reais e "Ver todos"
     let page = 0; const PER = 4; const models = h('div', { class: 'bmodels' }); const pager = h('div', { class: 'bpager' });
+    const pick = (t) => { tpl = t; form.kind.value = t.kind; drawModels(); };
     const drawModels = () => {
       const pages = Math.ceil(TEMPLATES.length / PER);
-      mount(models, TEMPLATES.slice(page * PER, page * PER + PER).map((t) => h('button', { type: 'button', class: 'bmodel' + (tpl.id === t.id ? ' on' : ''), onclick: () => { tpl = t; form.kind.value = t.kind; drawModels(); drawGal(); } }, thumb(t), h('span', t.title))));
-      mount(pager, h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { page = 0; drawModels(); document.getElementById('allmodels')?.scrollIntoView({ behavior: 'smooth' }); } }, 'Ver todos os modelos →'),
-        h('span', { class: 'row' }, h('button', { type: 'button', class: 'iconbtn', 'aria-label': 'Modelos anteriores', disabled: page === 0, onclick: () => { page--; drawModels(); } }, '‹'), h('button', { type: 'button', class: 'iconbtn', 'aria-label': 'Próximos modelos', disabled: page >= pages - 1, onclick: () => { page++; drawModels(); } }, '›')));
+      mount(models, TEMPLATES.slice(page * PER, page * PER + PER).map((t) => h('button', { type: 'button', class: 'bmodel' + (tpl.id === t.id ? ' on' : ''), title: t.desc, onclick: () => pick(t) }, thumb(t), h('span', t.title))));
+      mount(pager, h('button', { type: 'button', class: 'bmore', onclick: allModels }, 'Ver todos os modelos ', h('i', '→')),
+        h('span', { class: 'row' }, h('button', { type: 'button', class: 'bround', 'aria-label': 'Modelos anteriores', disabled: page === 0, onclick: () => { page--; drawModels(); } }, '‹'), h('button', { type: 'button', class: 'bround', 'aria-label': 'Próximos modelos', disabled: page >= pages - 1, onclick: () => { page++; drawModels(); } }, '›')));
     };
+    function allModels() {
+      const list = h('div', { class: 'cards' }, TEMPLATES.map((t) => h('button', { type: 'button', class: 'card tpl' + (tpl.id === t.id ? ' on' : ''), style: 'text-align:left', onclick: () => { pick(t); m.close(); } }, thumb(t), h('div', { class: 'body' }, h('b', t.title), h('div', { class: 'sm mut' }, t.desc)))));
+      const m = modal({ title: 'Todos os modelos', size: 'lg', body: list, actions: [{ label: 'Fechar', kind: 'ghost' }] });
+    }
     drawModels();
-    mount(box, h('div', { class: 'builder stack' },
-      h('div', { class: 'bstage' },
-        h('div', { class: 'btop' }, h('a', { href: '#/sites' }, '← Voltar aos sites'), h('span', { class: 'k' }, h('i', '●'), ' Builder de sites')),
-        mascotImg('dashboard'),
-        h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`),
-        !aiOn && h('div', { class: 'notice' }, `Geração com IA indisponível: defina ${st.ai.envVar} no servidor. Os modelos prontos abaixo funcionam sem IA.`),
-        h('div', { class: 'composer' },
-          h('div', { class: 'cleft' }, brief, details, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
-          h('div', { class: 'cright' }, models, pager)),
-        quota),
-      h('h2', { id: 'allmodels' }, 'Modelos iniciais'), gal, h('p', { class: 'sm mut' }, 'Os modelos são originais da Neva Growth e geram HTML/CSS/JS editáveis na IDE.')));
+    const status = aiOn ? h('span', { class: 'bstatus ok' }, h('i'), quota.textContent) : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: defina ', h('code', st.ai.envVar), ' no servidor. Os modelos funcionam sem IA.');
+    box.classList.add('fill');
+    mount(box, h('div', { class: 'bstage' },
+      h('div', { class: 'btop' }, h('a', { href: '#/sites' }, '← Voltar aos sites'), h('span', { class: 'k' }, h('i', '●'), ' Builder de sites')),
+      h('div', { class: 'bhero' }, mascotImg('dashboard'), h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`)),
+      h('div', { class: 'composer' },
+        h('div', { class: 'cleft' }, brief, details, status, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
+        h('div', { class: 'cright' }, models, pager))));
   }
 };
