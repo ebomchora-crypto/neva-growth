@@ -6,9 +6,10 @@ const { HttpError, bad, wrap } = require('../lib/http');
 const r = express.Router();
 // Lista básica (para selects de responsável) — qualquer usuário autenticado
 r.get('/options', (_req, res) => res.json(all('SELECT id,name FROM users WHERE active=1 ORDER BY name')));
+const COLS = 'id,name,email,role,active,plan,credits,username,created_at';
 
 r.use(A.requireRole('admin'));
-r.get('/', (_req, res) => { const items = all('SELECT id,name,email,role,active,created_at FROM users ORDER BY id'); res.json({ items, total: items.length, page: 1, limit: items.length || 1 }); });
+r.get('/', (_req, res) => { const items = all(`SELECT ${COLS} FROM users ORDER BY id`); res.json({ items, total: items.length, page: 1, limit: items.length || 1 }); });
 
 r.post('/', wrap((req, res) => {
   const { name, password, role = 'member' } = req.body || {};
@@ -18,7 +19,7 @@ r.post('/', wrap((req, res) => {
   A.validatePassword(password);
   if (get('SELECT id FROM users WHERE email=?', email)) throw bad('Já existe um usuário com este e-mail.');
   const info = run('INSERT INTO users(name,email,password_hash,role) VALUES (?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role);
-  res.status(201).json(get('SELECT id,name,email,role,active,created_at FROM users WHERE id=?', Number(info.lastInsertRowid)));
+  res.status(201).json(get(`SELECT ${COLS} FROM users WHERE id=?`, Number(info.lastInsertRowid)));
 }));
 
 r.put('/:id', wrap((req, res) => {
@@ -33,9 +34,15 @@ r.put('/:id', wrap((req, res) => {
   const name = b.name !== undefined ? String(b.name).trim() : u.name;
   if (name.length < 2) throw bad('Informe o nome.');
   run('UPDATE users SET name=?, role=?, active=? WHERE id=?', name, role, active, id);
+  if (b.plan !== undefined) { if (!get('SELECT 1 x FROM plans WHERE key=?', b.plan)) throw bad('Plano inválido.'); run('UPDATE users SET plan=? WHERE id=?', b.plan, id); }
+  if (b.credits !== undefined && b.credits !== null && b.credits !== '') {
+    const c = Number(b.credits); if (!Number.isInteger(c) || c < 0 || c > 1000000) throw bad('Créditos devem ser um inteiro ≥ 0.');
+    run('INSERT INTO credit_ledger(user_id,delta,reason) VALUES (?,?,?)', id, c - u.credits, `ajuste por ${req.user.email}`);
+    run('UPDATE users SET credits=? WHERE id=?', c, id);
+  }
   if (b.password) { A.validatePassword(b.password); run('UPDATE users SET password_hash=? WHERE id=?', A.hashPassword(b.password), id); }
   if (!active) run('DELETE FROM sessions WHERE user_id=?', id);
-  res.json(get('SELECT id,name,email,role,active,created_at FROM users WHERE id=?', id));
+  res.json(get(`SELECT ${COLS} FROM users WHERE id=?`, id));
 }));
 
 r.delete('/:id', wrap((req, res) => {

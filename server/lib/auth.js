@@ -29,10 +29,10 @@ function validateEmail(e) {
   return e.trim().toLowerCase();
 }
 
-function createSession(res, userId) {
+function createSession(res, userId, req) {
   const token = crypto.randomBytes(32).toString('base64url');
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  run('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES (?,?,?)', sha(token), userId, exp);
+  run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at,user_agent,ip) VALUES (?,?,?,?,?,?)', sha(token), userId, exp, Date.now(), String(req?.headers?.['user-agent'] || '').slice(0, 200), String(req?.ip || '').slice(0, 64));
   res.cookie(COOKIE, token, {
     httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === '1', maxAge: SESSION_DAYS * 864e5, path: '/'
   });
@@ -57,10 +57,12 @@ function loadUser(req, _res, next) {
   const t = readCookie(req, COOKIE);
   if (t) {
     const row = get(
-      `SELECT u.id,u.name,u.email,u.role,u.active,s.expires_at FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?`,
+      `SELECT u.id,u.name,u.email,u.role,u.active,u.username,u.plan,s.expires_at,s.token_hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?`,
       sha(t));
-    if (row && row.expires_at > Date.now() && row.active) req.user = { id: row.id, name: row.name, email: row.email, role: row.role };
-    else if (row) run('DELETE FROM sessions WHERE token_hash=?', sha(t));
+    if (row && row.expires_at > Date.now() && row.active) {
+      req.user = { id: row.id, name: row.name, email: row.email, role: row.role, username: row.username, plan: row.plan };
+      req.sid = row.token_hash;
+    } else if (row) run('DELETE FROM sessions WHERE token_hash=?', sha(t));
   }
   next();
 }

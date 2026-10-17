@@ -4,6 +4,7 @@ const A = require('./lib/auth');
 const { HttpError } = require('./lib/http');
 
 function createApp() {
+  require('./lib/seed').seedLibrary();
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -13,6 +14,7 @@ function createApp() {
     next();
   });
   app.use(A.loadUser);
+  if (process.env.LOG_REQUESTS === '1') app.use((req, res, next) => { const t = Date.now(); res.on('finish', () => { if (req.path.startsWith('/api')) console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t}ms ${req.user ? 'u' + req.user.id : '-'}`); }); next(); });
 
   app.get('/healthz', (_req, res) => res.json({ ok: true }));
   // Sites publicados (públicos) e preview (autenticado)
@@ -24,8 +26,13 @@ function createApp() {
   api.use(A.csrfGuard);
   api.use('/auth', require('./routes/auth'));
   api.use(A.requireAuth, A.blockViewerWrites);
+  api.use('/me', require('./routes/me'));
   api.use('/users', require('./routes/users'));
   api.use('/dashboard', require('./routes/dashboard'));
+  api.use('/library', require('./routes/library'));
+  api.use('/play', require('./routes/play'));
+  api.use('/prompts', require('./routes/prompts'));
+  api.use('/search', require('./routes/search'));
   api.use('/projects', projects);
   api.use('/integrations', require('./routes/integrations'));
   api.use(require('./routes/resources').router);

@@ -32,7 +32,8 @@ function coerce(name, f, v) {
       const s = String(v); if (!/^\d{4}-\d{2}-\d{2}/.test(s)) throw bad(`${f.label || name}: data inválida.`); return s.slice(0, 10);
     }
     case 'enum': {
-      if (!f.values.includes(v)) throw bad(`${f.label || name}: valor inválido.`); return v;
+      const vals = typeof f.values === 'function' ? f.values() : f.values;
+      if (!vals.includes(v)) throw bad(`${f.label || name}: valor inválido.`); return v;
     }
     case 'email': {
       const s = String(v).trim().toLowerCase();
@@ -72,11 +73,13 @@ function crud(cfg) {
     for (const f of filters) if (req.query[f] !== undefined && req.query[f] !== '') {
       where.push(`${alias}.${f} = ?`); p.push(req.query[f]);
     }
+    if (cfg.extraWhere) { const x = cfg.extraWhere(req); if (x) { where.push(x[0]); p.push(...x.slice(1)); } }
     const w = where.length ? ' WHERE ' + where.join(' AND ') : '';
+    const ord = (cfg.orderFor && cfg.orderFor(req)) || order;
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 1000);
     const page = Math.max(parseInt(req.query.page) || 1, 1);
     const total = get(`SELECT COUNT(*) n FROM (${base}${w})`, ...p).n;
-    const items = all(`${base}${w} ORDER BY ${order} LIMIT ? OFFSET ?`, ...p, limit, (page - 1) * limit);
+    const items = all(`${base}${w} ORDER BY ${ord} LIMIT ? OFFSET ?`, ...p, limit, (page - 1) * limit);
     res.json({ items, total, page, limit });
   }));
 
@@ -99,8 +102,11 @@ function crud(cfg) {
 
   r.put('/:id', wrap(async (req, res) => {
     const id = Number(req.params.id);
-    if (!get(`SELECT id FROM ${table} WHERE id=?`, id)) throw new HttpError(404, 'Registro não encontrado.');
+    const existing = get(`SELECT * FROM ${table} WHERE id=?`, id);
+    if (!existing) throw new HttpError(404, 'Registro não encontrado.');
     const data = parse(req.body || {}, true);
+    req.prev = existing;
+    if (cfg.beforeUpdate) cfg.beforeUpdate(data, req, existing);
     await checkRefs(data);
     const cols = Object.keys(data);
     if (cols.length) {

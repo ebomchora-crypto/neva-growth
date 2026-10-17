@@ -67,7 +67,7 @@ test('vendas, dashboard e clientes', async () => {
   const paid = (await call('PUT', `/api/sales/${sales[0].id}`, { status: 'pago' })).body;
   assert.equal(paid.status, 'pago');
   const d = (await call('GET', '/api/dashboard')).body;
-  assert.equal(d.kpis.revenue, 2000); assert.equal(d.kpis.clients, 1); assert.equal(d.revenueByMonth.length, 6);
+  assert.equal(d.wallet.revenueTotal, 2000); assert.equal(d.kpis.clients, 1); assert.equal(d.metrics.series.length >= 6, true); assert.equal(d.metrics.revenue, 2000);
   assert.equal((await call('GET', '/api/clients')).body.items[0].total_paid, 2000);
 });
 
@@ -135,7 +135,7 @@ test('projetos: arquivos, segurança de caminho, zip, preview e publicação', a
 test('integrações sem credenciais respondem 503 explicando o motivo', async () => {
   const s = (await call('GET', '/api/integrations/status')).body;
   assert.equal(s.ai.configured, false);
-  assert.equal((await call('POST', '/api/integrations/ai/chat', { messages: [{ role: 'user', content: 'oi' }] })).body.code, 'ai_not_configured');
+  assert.equal((await call('POST', '/api/integrations/ai/chat', { projectId: 1, message: 'oi' })).body.code, 'ai_not_configured');
   assert.equal((await call('POST', '/api/projects/generate-ai', { name: 'Xy', brief: 'uma landing page completa' })).status, 503);
   assert.equal((await call('POST', '/api/integrations/prospect/search', { query: 'dentista' })).body.code, 'places_not_configured');
 });
