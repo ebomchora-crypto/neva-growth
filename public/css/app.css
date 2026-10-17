@@ -766,3 +766,8 @@ body{background:#e6f0fa}
 .pgstack{position:relative;width:200px;height:120px;margin-bottom:6px}
 .pgstack i{position:absolute;left:calc(var(--i)*26px);top:calc(var(--i)*-3px + 14px);width:110px;height:90px;border-radius:16px;background:linear-gradient(145deg,rgba(234,243,252,.95),rgba(127,180,224,.75));border:1px solid rgba(74,149,210,.45);box-shadow:0 10px 22px rgba(47,123,189,.22);transform:skewY(-9deg) rotate(2deg)}
 .pgstack i:nth-child(1){opacity:.45}.pgstack i:nth-child(2){opacity:.6}.pgstack i:nth-child(3){opacity:.75}.pgstack i:nth-child(4){opacity:.9}.pgstack i:nth-child(5){background:#fff;opacity:1}
+
+@media(min-width:861px){.nav a.norail,.nav-sec{display:none}.nav .nav-sec{display:none}}
+/* separador entre blocos do menu, como no original */
+@media(min-width:861px){.nav a[data-path="design"]{margin-top:10px;position:relative}.nav a[data-path="design"]::before{content:"";position:absolute;left:6px;right:6px;top:-7px;height:1px;background:rgba(255,255,255,.35)}}
+.quicklinks{margin-bottom:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.quicklinks .kicker{margin:0}

@@ -4,19 +4,67 @@
   "installCommand": "npm install",
   "buildCommand": null,
   "outputDirectory": "public",
-  "regions": ["gru1"],
-  "functions": { "api/index.js": { "maxDuration": 60 } },
+  "regions": [
+    "gru1"
+  ],
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/s/(.*)", "destination": "/api" },
-    { "source": "/preview/(.*)", "destination": "/api" },
-    { "source": "/healthz", "destination": "/api" }
+    {
+      "source": "/api/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/s/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/preview/(.*)",
+      "destination": "/api"
+    },
+    {
+      "source": "/healthz",
+      "destination": "/api"
+    }
   ],
   "headers": [
-    { "source": "/(.*)", "headers": [
-      { "key": "X-Content-Type-Options", "value": "nosniff" },
-      { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-      { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
-    ] }
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    },
+    {
+      "source": "/(js|css)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    }
   ]
 }

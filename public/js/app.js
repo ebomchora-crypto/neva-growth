@@ -25,10 +25,10 @@ const ROUTES = [
   { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
   { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
   { sec: 'Gestão' },
-  { path: 'tarefas', label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
-  { path: 'produtos', label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
-  { path: 'cursos', label: 'Academia', icon: 'book', page: lazy('./pages/courses.js') },
-  { path: 'usuarios', label: 'Usuários', icon: 'shield', admin: true, page: lazy('./pages/resources.js', 'users') },
+  { path: 'tarefas', norail: true, label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
+  { path: 'produtos', norail: true, label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
+  { path: 'cursos', norail: true, label: 'Academia', icon: 'book', page: lazy('./pages/courses.js') },
+  { path: 'usuarios', norail: true, label: 'Usuários', icon: 'shield', admin: true, page: lazy('./pages/resources.js', 'users') },
   { path: 'configuracoes', label: 'Configurações', icon: 'cog', page: lazy('./pages/settings.js') }
 ];
 
@@ -140,7 +140,7 @@ function shell() {
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
-  const navLink = (r) => h('a', { href: '#/' + r.path, class: r.tool ? 'tool' : '', dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
+  const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),

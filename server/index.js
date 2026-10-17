@@ -53,7 +53,7 @@ function createApp() {
   api.use((_req, _res, next) => next(new HttpError(404, 'Rota não encontrada.')));
   app.use('/api', api);
 
-  app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'] }));
+  app.use(express.static(path.join(__dirname, '..', 'public'), { extensions: ['html'], setHeaders: (res, f) => { if (/\.(js|css|html)$/.test(f)) res.set('Cache-Control', 'public, max-age=0, must-revalidate'); } }));
   app.get('*', (req, res, next) => (req.path.startsWith('/api') ? next() : res.sendFile(path.join(__dirname, '..', 'public', 'index.html'))));
 
   // eslint-disable-next-line no-unused-vars

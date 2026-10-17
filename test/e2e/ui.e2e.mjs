@@ -41,8 +41,8 @@ await step('dashboard: períodos e estado vazio honesto', async () => {
   await page.waitForSelector('button:has-text("Resumo por IA (não configurado)")[disabled]');
 });
 await step('menu lateral na ordem de referência', async () => {
-  const order = await page.$$eval('.side a[data-path]', (as) => as.map((a) => a.dataset.path));
-  const want = ['associacao', 'dashboard', 'clientes', 'vendas', 'sites', 'leads', 'builder', 'design', 'acervo', 'play', 'prospeccao', 'prompts', 'tarefas', 'produtos', 'cursos', 'usuarios', 'configuracoes'];
+  const order = await page.$$eval('.side a[data-path]', (as) => as.filter((a) => a.offsetParent !== null).map((a) => a.dataset.path));
+  const want = ['associacao', 'dashboard', 'clientes', 'vendas', 'sites', 'leads', 'builder', 'design', 'acervo', 'play', 'prospeccao', 'prompts', 'configuracoes'];
   if (order.join() !== want.join()) throw new Error('ordem do menu: ' + order.join());
 });
 await step('ocultar valores persiste', async () => {

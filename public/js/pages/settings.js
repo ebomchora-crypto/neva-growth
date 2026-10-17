@@ -61,7 +61,8 @@ export default {
     };
     views.render = async (key) => { sec = key; drawNav(); try { mount(content, await views[key]()); } catch (e) { mount(content, h('div', { class: 'empty' }, e.message)); } };
     const drawNav = () => mount(nav, SECTIONS.map(([k, l, d]) => h('button', { class: sec === k ? 'on' : '', onclick: () => views.render(k) }, h('b', l), h('small', d))));
-    mount(box, hero({ kicker: 'Neva Growth / Central da conta', title: 'Configurações.', art: 'settings', subtitle: 'Seu acesso, sua operação, suas escolhas. Tudo sob o seu controle.' }), h('div', { class: 'settings' }, nav, content));
+    const quick = h('div', { class: 'card pad quicklinks' }, h('div', { class: 'kicker' }, 'Atalhos de gestão'), h('div', { class: 'row' }, [['tarefas', 'Tarefas'], ['produtos', 'Produtos'], ['cursos', 'Academia'], ...(isAdmin ? [['usuarios', 'Usuários']] : [])].map(([p2, l]) => h('a', { class: 'btn ghost', href: '#/' + p2 }, l))));
+    mount(box, hero({ kicker: 'Neva Growth / Central da conta', title: 'Configurações.', art: 'settings', subtitle: 'Seu acesso, sua operação, suas escolhas. Tudo sob o seu controle.' }), quick, h('div', { class: 'settings' }, nav, content));
     await views.render(sec);
   }
 };
