@@ -144,6 +144,12 @@ export function pills({ items, value, counts, onChange }) {
 }
 export const statCard = (label, value, hint, ic) => h('div', { class: 'stat' }, ic && h('span', { class: 'sico' }, icon(ic)), h('div', { class: 'sbody' }, h('small', label), h('b', value), hint && h('span', { class: 'shint' }, hint)));
 /** Ilustração geométrica própria da Neva (sem arte de terceiros) para o bloco de abertura. */
+/** Mascote da Neva para estados vazios, erros e boas-vindas; some sem quebrar se o arquivo faltar. */
+export function mascotImg(name, framed = false) {
+  const img = h('img', { class: 'mascot-img' + (framed ? ' framed' : ''), src: `/img/mascote/${name}.webp`, alt: '', 'aria-hidden': 'true', loading: 'lazy', decoding: 'async' });
+  img.addEventListener('error', () => img.remove());
+  return img;
+}
 const MASCOT = { chart: 'vendas', people: 'clientes', site: 'sites', kanban: 'crm', dashboard: 'dashboard' };
 export function heroArt(kind = 'chart') {
   const shape = drawShape(kind);

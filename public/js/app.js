@@ -1,5 +1,5 @@
 import { api } from './api.js';
-import { h, mount, icon, toast, fail, debounce, dtt } from './ui.js';
+import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
 const root = document.getElementById('app');
@@ -45,7 +45,7 @@ async function loadMe() {
 
 async function boot() {
   let st;
-  try { st = await api.get('/auth/status'); } catch (e) { mount(root, h('div', { class: 'boot', style: 'text-align:center;padding:20px' }, h('div', h('p', 'Não foi possível iniciar o servidor.'), h('p', { class: 'mut sm' }, e.message), h('button', { class: 'btn', onclick: boot }, 'Tentar novamente')))); return; }
+  try { st = await api.get('/auth/status'); } catch (e) { mount(root, h('div', { class: 'boot', style: 'text-align:center;padding:20px' }, h('div', mascotImg('erro'), h('p', 'Não foi possível iniciar o servidor.'), h('p', { class: 'mut sm' }, e.message), h('button', { class: 'btn', onclick: boot }, 'Tentar novamente')))); return; }
   state.user = st.user;
   if (st.needsSetup) return authScreen('setup', st);
   if (!st.user) return authScreen('login');
@@ -69,7 +69,7 @@ function authScreen(mode, st = {}) {
     h('label', { class: 'field' }, h('span', 'Senha' + (setup ? ' (mín. 8 caracteres)' : '')), h('input', { name: 'password', type: 'password', required: true, minlength: setup ? 8 : null, autocomplete: setup ? 'new-password' : 'current-password' })),
     setup && st.setupTokenRequired && h('label', { class: 'field' }, h('span', 'Token de instalação (SETUP_TOKEN)'), h('input', { name: 'setupToken', type: 'password', required: true, autocomplete: 'off' })),
     err, h('button', { class: 'btn', disabled: setup && st.setupBlocked }, setup ? 'Criar conta de administrador' : 'Entrar'));
-  mount(root, h('main', { class: 'auth' }, h('div', { class: 'card' },
+  mount(root, h('main', { class: 'auth' }, mascotImg('boas-vindas', true), h('div', { class: 'card' },
     h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('h1', setup ? 'Bem-vindo' : 'Entrar'),
     h('p', { class: 'mut' }, setup ? 'Primeiro acesso: crie a conta do administrador para configurar a plataforma.' : 'Acesse sua conta para continuar.'), form)));
 }
@@ -177,7 +177,7 @@ async function route() {
     pollNotifications();
   } catch (e) {
     if (e.status === 401) return;
-    mount(box, h('div', { class: 'empty' }, h('b', 'Não foi possível carregar esta página'), e.message || 'Erro inesperado.', h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn ghost', onclick: route }, 'Tentar novamente'))));
+    mount(box, h('div', { class: 'empty' }, mascotImg('erro'), h('b', 'Não foi possível carregar esta página'), e.message || 'Erro inesperado.', h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn ghost', onclick: route }, 'Tentar novamente'))));
     console.error(e);
   }
 }

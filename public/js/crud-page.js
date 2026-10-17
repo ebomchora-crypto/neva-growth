@@ -1,6 +1,6 @@
 // Página CRUD genérica: busca, filtros, paginação, criar/editar/excluir, exportação CSV.
 import { api } from './api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, downloadFile, toCSV, pills, hero, icon } from './ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, downloadFile, toCSV, pills, hero, icon, mascotImg } from './ui.js';
 
 export function crudPage(cfg) {
   return {
@@ -59,7 +59,8 @@ export function crudPage(cfg) {
       function renderTable(r) {
         if (!r.items.length) {
           const filtered = st.q || Object.values(st.filter).some(Boolean) || (cfg.pills && st.pill !== cfg.pills.default);
-          mount(body, h('div', { class: 'emptyart' }, (canWrite && !filtered && cfg.canCreate !== false ? h('button', { class: 'eico', style: 'cursor:pointer', title: `Novo ${cfg.singular}`, 'aria-label': `Novo ${cfg.singular}`, onclick: () => openForm(null) }, icon(cfg.emptyIcon || 'userplus')) : h('span', { class: 'eico' }, icon(cfg.emptyIcon || 'userplus'))), h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
+          const art = cfg.emptyMascot ? mascotImg(cfg.emptyMascot, cfg.emptyFramed) : (canWrite && !filtered && cfg.canCreate !== false ? h('button', { class: 'eico', style: 'cursor:pointer', title: `Novo ${cfg.singular}`, 'aria-label': `Novo ${cfg.singular}`, onclick: () => openForm(null) }, icon(cfg.emptyIcon || 'userplus')) : h('span', { class: 'eico' }, icon(cfg.emptyIcon || 'userplus')));
+          mount(body, h('div', { class: 'emptyart' }, art, h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
             filtered ? 'Nada neste recorte.' : (canWrite ? `Crie o primeiro ${cfg.singular} para começar.` : ''),
             )); mount(pager); return;
         }

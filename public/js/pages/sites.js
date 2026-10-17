@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, dt, pills, hero, statCard, debounce, icon } from '../ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, dt, pills, hero, statCard, debounce, icon, mascotImg } from '../ui.js';
 
 export const KINDS = [['site', 'Site institucional / landing page'], ['app', 'Aplicação (interface interativa)'], ['system', 'Sistema (CRUD com várias entidades)']];
 export const SECTIONS = [['beneficios', 'Benefícios'], ['servicos', 'Serviços'], ['depoimentos', 'Depoimentos'], ['faq', 'Perguntas frequentes'], ['contato', 'Contato']];
@@ -18,7 +18,7 @@ export default {
         h('input', { type: 'search', style: 'width:220px', placeholder: 'Buscar site, domínio ou cliente', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
         h('a', { class: 'kbtn', href: '#/builder', title: st0.ai.configured ? 'Gerações com IA usadas neste mês' : 'Builder com IA (IA não configurada)' }, icon('layout'), 'Builder de Sites', bu && h('span', { class: 'n' }, `${bu.used}/${bu.limit}`)),
         h('span', { class: 'found' }, h('b', String(items.length).padStart(2, '0')), 'projetos encontrados'));
-      mount(grid, !items.length ? h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('layout')), h('b', st.q || st.status !== 'todos' ? 'Nenhum projeto neste recorte' : 'Seu próximo site merece uma vitrine'), canWrite && !st.q ? 'Crie um site, aplicação ou sistema a partir de um modelo ou com IA.' : '') :
+      mount(grid, !items.length ? h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, (st.q || st.status !== 'todos' ? h('span', { class: 'eico' }, icon('layout')) : mascotImg('vazio-sites', true)), h('b', st.q || st.status !== 'todos' ? 'Nenhum projeto neste recorte' : 'Seu próximo site merece uma vitrine'), canWrite && !st.q ? 'Crie um site, aplicação ou sistema a partir de um modelo ou com IA.' : '') :
         items.map((p) => h('article', { class: 'card siteCard' },
           h('div', { class: 'row' }, h('span', { class: 'badge' }, { site: 'Site', app: 'Aplicação', system: 'Sistema' }[p.kind]), h('span', { class: 'badge ' + STATUS[p.status][1] }, STATUS[p.status][0])),
           h('h2', p.name), h('p', { class: 'mut sm', style: 'margin:0' }, p.description || 'Sem descrição.'),

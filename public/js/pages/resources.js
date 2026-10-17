@@ -7,7 +7,7 @@ const badge = (text, kind = '') => h('span', { class: 'badge ' + kind }, text);
 const CSTAGES = [['lead', 'Lead'], ['negociacao', 'Negociação'], ['proposta', 'Proposta enviada'], ['cliente', 'Cliente']];
 export const clients = crudPage({
   api: '/clients', singular: 'cliente', title_page: 'Clientes', subtitle: 'Acompanhe relações, avance negociações e veja o resultado de cada cliente.',
-  hero: { kicker: 'Neva Growth / Relationship Desk', title: 'Clientes que viram resultado.', art: 'people' }, statsClass: 'sep', emptyIcon: 'userplus', board: { kicker: 'Relationship board', title: 'Sua carteira' },
+  hero: { kicker: 'Neva Growth / Relationship Desk', title: 'Clientes que viram resultado.', art: 'people' }, statsClass: 'sep', emptyMascot: 'vazio-clientes', board: { kicker: 'Relationship board', title: 'Sua carteira' },
   title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
   stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira', 'users'), statCard('Em negociação', s.emNegociacao, 'oportunidades abertas', 'trend'),
     statCard('Clientes ativos', s.fechados, `${s.conversao}% de conversão`, 'check'), statCard('Receita gerada', money(s.receita), `${s.vendasPagas} venda(s) registrada(s)`, 'building')]; },
@@ -66,7 +66,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
 export const sales = crudPage({
   api: '/sales', singular: 'venda', newLabel: 'Nova venda', title_page: 'Vendas', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue. Indicadores consideram vendas pagas.',
-  hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyIcon: 'target', emptyTitle: 'Nenhuma venda registrada',
+  hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyMascot: 'vazio-vendas', emptyFramed: true, emptyTitle: 'Nenhuma venda registrada',
   title: (s) => s.description, filters: [{ k: 'status', l: 'Pagamento', opts: ['pendente', 'pago', 'cancelado'] }],
   stats: async (st) => { const s = await api.get('/sales/summary', { view: st.pill, q: st.q }); return [statCard('Faturamento', money(s.faturamento), [money(s.pendente), ' a receber']), statCard('Lucro líquido', money(s.lucro)),
     statCard('Margem média', s.margem + '%'), statCard('Ticket médio', money(s.ticket), `${s.pagas} paga(s)`)]; },

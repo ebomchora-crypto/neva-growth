@@ -55,12 +55,16 @@ Cada arquivo entra no bloco de abertura da tela correspondente (no lugar da ilus
 ## Estado dos arquivos
 | # | Arquivo | Estado |
 |---|---|---|
-| 00 | folha | Recebida (`docs/mascote/original-17.webp`) |
-| 01 | dashboard | Recebida e em uso (card "Sua próxima venda") |
-| 02 | clientes | **Pendente.** Usando provisoriamente a pose de frente recortada da folha |
-| 03 | vendas | Recebida e em uso |
-| 04 | sites | Recebida e em uso |
-| 05 | crm | Recebida e em uso |
-| 06–10 | boas-vindas, vazio-vendas, vazio-sites, vazio-clientes, erro | Pendentes (as telas seguem sem mascote) |
+| 00 | folha | Recebida |
+| 01 | dashboard | Em uso (card "Sua próxima venda") |
+| 02 | clientes | Em uso provisório: a pose do tablet com contatos (a mesma do 09). A pose acenando foi enviada na conversa, mas o arquivo não chegou ao servidor; reenviar para trocar |
+| 03 | vendas | Em uso |
+| 04 | sites | Em uso |
+| 05 | crm | Em uso |
+| 06 | boas-vindas | Em uso na tela de login/primeiro acesso |
+| 07 | vazio-vendas | Em uso no estado vazio de Vendas |
+| 08 | vazio-sites | Em uso no estado vazio de Sites |
+| 09 | vazio-clientes | Em uso no estado vazio de Clientes |
+| 10 | erro | Em uso nas telas de erro de carregamento |
 
-Os originais com fundo estão em `docs/mascote/original-*.webp`; as versões recortadas (fundo transparente, feitas por remoção automática de fundo) estão em `public/img/mascote/`.
+Originais com fundo: `docs/mascote/original-*.webp`. Versões em `public/img/mascote/`: recorte com fundo transparente (hero, clientes, erro) ou imagem original com cantos arredondados quando o recorte automático perdia partes do cenário (login, vazio-vendas, vazio-sites).
