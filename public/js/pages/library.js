@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard } from '../ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard, icon } from '../ui.js';
 
 const KIND = { prompt: ['Prompt Lab', 'Prompts prontos para usar'], skill: ['Skill Vault', 'Métodos e instalação'], animation: ['Animações', 'Movimento para sites'], design: ['Design', 'Referências'] };
 const EXT = { prompt: 'txt', skill: 'md', animation: 'html', design: 'md' };
@@ -31,20 +31,29 @@ export const design = {
   async render(box, ctx) {
     const isAdmin = ctx.user.role === 'admin';
     const st = { q: '', niche: '', style: '', site_type: '', sort: 'title' };
-    const grid = h('div', { class: 'cards' }); const count = h('span', { class: 'sm mut' }); const filtersBox = h('div', { class: 'grid g3' });
-    const sel = (key, label, opts) => h('label', { class: 'field' }, h('span', label), h('select', { onchange: (e) => { st[key] = e.target.value; load(); } }, h('option', { value: '' }, 'Todos'), opts.map((o) => h('option', { value: o, selected: st[key] === o }, o))));
+    const grid = h('div', { class: 'cards' }); const count = h('b'); const filtersBox = h('div', { class: 'dfilters' }); const shortcuts = h('div', { class: 'shortcuts' });
+    let meta = { niches: [], styles: [], siteTypes: [] };
+    const sel = (key, label, ic, opts) => h('label', { class: 'dfield' }, icon(ic), h('span', label), h('select', { 'aria-label': label, onchange: (e) => { st[key] = e.target.value; load(); } }, h('option', { value: '' }, 'Todos'), opts.map((o) => h('option', { value: o, selected: st[key] === o }, o))));
+    function drawShortcuts() {
+      const quick = meta.niches.slice(0, 6);
+      mount(shortcuts, h('span', { class: 'k' }, 'Atalhos'), pills({ items: [['', 'Tudo'], ...quick.map((n) => [n, n])], value: st.niche, onChange: (v) => { st.niche = v; load(); } }),
+        h('button', { class: 'btn ghost sm', style: 'margin-left:auto', onclick: () => { Object.assign(st, { q: '', niche: '', style: '', site_type: '' }); design.render(box, ctx); } }, '✕ Limpar filtros'));
+    }
     async function load() {
-      const meta = await api.get('/library/meta', { kind: 'design' });
-      mount(filtersBox, sel('niche', 'Nicho', meta.niches), sel('style', 'Estilo visual', meta.styles), sel('site_type', 'Tipo de site', meta.siteTypes));
+      meta = await api.get('/library/meta', { kind: 'design' });
+      mount(filtersBox, sel('niche', 'Nicho', 'building', meta.niches), sel('style', 'Estilo visual', 'palette', meta.styles), sel('site_type', 'Tipo de site', 'layout', meta.siteTypes));
+      drawShortcuts();
       const { items } = await api.get('/library', { kind: 'design', q: st.q, niche: st.niche, style: st.style, site_type: st.site_type, sort: st.sort, all: isAdmin ? 1 : '' }); count.textContent = `${items.length} referência(s)`;
       mount(grid, items.length ? items.map((it) => h('article', { class: 'card refcard' + (it.locked ? ' lock' : ''), tabindex: 0, onclick: () => (it.locked ? toast('Recurso de um plano superior.', 'err') : openItem(it, ctx, load).catch(fail)) },
         h('div', { class: 'swatch' }, it.title), h('div', { class: 'row' }, it.niche && h('span', { class: 'badge' }, it.niche), it.style && h('span', { class: 'badge' }, it.style), it.locked && h('span', { class: 'badge warn' }, '🔒 plano superior'), !it.published && h('span', { class: 'badge warn' }, 'rascunho')),
-        h('p', { class: 'sm mut', style: 'margin:0' }, it.summary || ''))) : h('div', { class: 'card empty', style: 'grid-column:1/-1' }, h('b', 'Nenhuma referência encontrada'), isAdmin ? 'Cadastre referências com DESIGN.md em "+ Nova referência".' : 'Peça a um administrador para cadastrar referências.'));
+        h('p', { class: 'sm mut', style: 'margin:0' }, it.summary || ''))) : h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('palette')), h('b', 'Nenhuma referência encontrada'), isAdmin ? 'Cadastre referências com DESIGN.md em "+ Nova referência".' : 'Peça a um administrador para cadastrar referências.'));
     }
-    mount(box, hero({ kicker: 'Neva Growth / Design', title: 'Identidades reais. DESIGN.md prontos.', subtitle: 'Explore referências, copie ou baixe o DESIGN.md e use como contexto no Builder e na IDE.',
+    const sortSel = h('select', { 'aria-label': 'Ordenar', style: 'width:auto', onchange: (e) => { st.sort = e.target.value; load(); } }, [['title', 'Nome: A → Z'], ['recent', 'Mais recentes']].map(([v, l]) => h('option', { value: v }, l)));
+    mount(box, hero({ kicker: 'Design Neva / Referências', title: 'Identidades reais. DESIGN.md prontos.', art: 'design', subtitle: 'Explore sites do mundo todo, encontre sua próxima referência e leve o DESIGN.md completo para o seu projeto.',
       actions: [isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, 'design') }, '+ Nova referência')] }),
-      h('div', { class: 'card pad stack' }, h('div', { class: 'row', style: 'justify-content:space-between' }, h('input', { type: 'search', style: 'max-width:380px', placeholder: 'Buscar referência, estilo ou categoria', 'aria-label': 'Buscar', oninput: debounce((e) => { st.q = e.target.value; load(); }) }), count), filtersBox,
-        h('button', { class: 'btn ghost sm', style: 'align-self:flex-start', onclick: () => { Object.assign(st, { q: '', niche: '', style: '', site_type: '' }); design.render(box, ctx); } }, 'Limpar filtros')), h('div', { style: 'height:14px' }), grid);
+      h('div', { class: 'dhead' }, h('span', { class: 'k' }, h('i', '/'), ' Explore por design'), h('div', { class: 'row' }, count, sortSel)),
+      h('div', { class: 'card pad stack' }, h('div', { class: 'ksearch', style: 'max-width:420px' }, icon('search'), h('input', { type: 'search', placeholder: 'Buscar referência, estilo ou categoria', 'aria-label': 'Buscar', oninput: debounce((e) => { st.q = e.target.value; load(); }) })), filtersBox, shortcuts),
+      h('div', { style: 'height:14px' }), grid);
     await load();
   }
 };
@@ -57,6 +66,7 @@ export const acervo = {
     async function load() {
       const meta = await api.get('/library/meta', { kind });
       const { items } = await api.get('/library', { kind, q: st.q, category: st.category, all: isAdmin ? 1 : '' });
+      total = items.filter((x) => x.published).length; try { drawHero(); } catch { /* ainda não montado */ } const c2 = document.getElementById('cnt2'); if (c2) c2.textContent = String(items.length).padStart(2, '0');
       mount(toolbar, h('div', { class: 'row' }, h('input', { type: 'search', style: 'max-width:340px', placeholder: 'Buscar por objetivo, área ou palavra-chave', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
         pills({ items: [['', 'Todos'], ...meta.categories.map((c) => [c, c])], value: st.category, onChange: (v) => { st.category = v; load(); } }), h('span', { class: 'sm mut' }, `${items.length} encontrado(s)`)));
       mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('div', { class: 'sm mut' }, `${String(i + 1).padStart(2, '0')} · ${it.category || KIND[kind][0]}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('div', { class: 't' }, it.title)))
@@ -72,11 +82,16 @@ export const acervo = {
           h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))));
       } catch (e) { mount(detail, h('div', { class: 'empty' }, e.message)); }
     }
-    const drawTabs = () => mount(tabs, h('div', { class: 'tabs' }, ['prompt', 'skill', 'animation'].map((k) => h('button', { class: kind === k ? 'on' : '', onclick: () => { kind = k; selected = null; st.category = ''; drawTabs(); load(); } }, KIND[k][0], h('span', { class: 'sm mut' }, ' · ' + KIND[k][1])))));
+    const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Métodos prontos para instalar.', 'Guias e skills para repetir bons resultados com a sua IA, sem começar do zero.'], animation: ['Movimento para sites.', 'Animações em HTML e CSS para copiar, ajustar e colocar nos seus projetos.'] };
+    const heroBox = h('div'); let total = 0;
+    const drawHero = () => mount(heroBox, hero({ kicker: `Neva Growth / ${KIND[kind][0]}`, title: TITLES[kind][0], art: 'acervo', subtitle: TITLES[kind][1],
+      stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('box'), `${total} recurso(s) publicado(s)`), h('span', { class: 'chipk' }, icon('check'), 'Texto completo'), h('span', { class: 'chipk' }, icon('refresh'), 'Sincronizado')),
+      actions: [isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, kind) }, '+ Novo recurso')] }));
+    const drawTabs = () => mount(tabs, h('div', { class: 'card acervobar' }, h('span', { class: 'ex' }, 'ACERVO NEVA'), h('div', { class: 'atabs' }, ['prompt', 'skill', 'animation'].map((k) => h('button', { class: kind === k ? 'on' : '', onclick: () => { kind = k; selected = null; st.category = ''; drawTabs(); load(); } }, h('b', KIND[k][0]), h('small', KIND[k][1])))),
+      h('a', { class: 'btn', href: '#/prompts' }, '✦ Gerar com IA')));
     drawTabs();
-    mount(box, hero({ kicker: 'Neva Growth / Acervo', title: 'Prompts para sair do rascunho.', subtitle: 'Escolha um recurso completo, copie ou baixe e ajuste no seu próprio chat. Para criar com IA, use o Gerador de prompts.',
-      actions: [h('a', { class: 'btn ghost', href: '#/prompts' }, '✦ Gerador de prompts'), isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, kind) }, '+ Novo recurso')] }),
-      tabs, h('div', { class: 'card pad stack', style: 'margin-bottom:14px' }, toolbar), h('div', { class: 'lib' }, h('div', { class: 'card', style: 'overflow:hidden' }, h('div', { class: 'pad', style: 'padding-bottom:6px' }, h('b', 'Explore')), listBox), h('div', { class: 'card' }, detail)));
+    mount(box, tabs, heroBox, h('div', { class: 'card pad stack', style: 'margin:14px 0' }, toolbar), h('div', { class: 'lib' }, h('div', { class: 'card', style: 'overflow:hidden' }, h('div', { class: 'pad libhead' }, h('div', h('div', { class: 'k' }, 'Neva / Biblioteca'), h('b', { style: 'font-size:1.2rem' }, 'Explore os recursos')), h('span', { class: 'cnt2', id: 'cnt2' }, '00')), listBox), h('div', { class: 'card' }, detail)));
+    drawHero();
     await load();
   }
 };

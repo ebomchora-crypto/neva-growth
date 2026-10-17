@@ -57,7 +57,7 @@ Cada arquivo entra no bloco de abertura da tela correspondente (no lugar da ilus
 |---|---|---|
 | 00 | folha | Recebida |
 | 01 | dashboard | Em uso (card "Sua próxima venda") |
-| 02 | clientes | Em uso provisório: a pose do tablet com contatos (a mesma do 09). A pose acenando foi enviada na conversa, mas o arquivo não chegou ao servidor; reenviar para trocar |
+| 02 | clientes | Em uso (raposa acenando com o tablet de contatos), abertura de Clientes |
 | 03 | vendas | Em uso |
 | 04 | sites | Em uso |
 | 05 | crm | Em uso |

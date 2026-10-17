@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, toast, fail, fieldEl } from '../ui.js';
+import { h, mount, toast, fail, fieldEl, icon, mascotImg } from '../ui.js';
 
 const TEMPLATES = [
   { id: 'inst', title: 'Site institucional', desc: 'Apresentação da empresa com benefícios, serviços, depoimentos e contato.', kind: 'site', sections: ['beneficios', 'servicos', 'depoimentos', 'contato'] },
@@ -40,10 +40,30 @@ export default {
       if (!form.reportValidity()) return;
       try { const p = await api.post('/projects', { name: name(), kind: tpl.kind, color: form.color.value, sections: tpl.sections, tagline: brief.value.trim().split('\n')[0].slice(0, 90) || name(), description: brief.value.slice(0, 300) });
         location.hash = '#/ide/' + p.id; } catch (e) { fail(e); } } }, 'Criar a partir do modelo');
+    // detalhes do projeto (nome, tipo, cor, estilo, referência) ficam recolhidos sob o botão "+"
+    const details = h('div', { class: 'bdetails hide' }, form);
+    const toggleDetails = () => details.classList.toggle('hide');
+    const colorBtn = h('button', { type: 'button', class: 'bicon', title: 'Escolher a cor principal', 'aria-label': 'Escolher a cor principal', onclick: () => { details.classList.remove('hide'); form.color.focus(); form.color.click?.(); } }, icon('palette'));
+    const plusBtn = h('button', { type: 'button', class: 'bicon', title: 'Detalhes do projeto: nome, tipo, estilo e referência', 'aria-label': 'Detalhes do projeto', onclick: toggleDetails }, icon('plus'));
+    // modelos: 4 por página, setas reais
+    let page = 0; const PER = 4; const models = h('div', { class: 'bmodels' }); const pager = h('div', { class: 'bpager' });
+    const drawModels = () => {
+      const pages = Math.ceil(TEMPLATES.length / PER);
+      mount(models, TEMPLATES.slice(page * PER, page * PER + PER).map((t) => h('button', { type: 'button', class: 'bmodel' + (tpl.id === t.id ? ' on' : ''), onclick: () => { tpl = t; form.kind.value = t.kind; drawModels(); drawGal(); } }, thumb(t), h('span', t.title))));
+      mount(pager, h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { page = 0; drawModels(); document.getElementById('allmodels')?.scrollIntoView({ behavior: 'smooth' }); } }, 'Ver todos os modelos →'),
+        h('span', { class: 'row' }, h('button', { type: 'button', class: 'iconbtn', 'aria-label': 'Modelos anteriores', disabled: page === 0, onclick: () => { page--; drawModels(); } }, '‹'), h('button', { type: 'button', class: 'iconbtn', 'aria-label': 'Próximos modelos', disabled: page >= pages - 1, onclick: () => { page++; drawModels(); } }, '›')));
+    };
+    drawModels();
     mount(box, h('div', { class: 'builder stack' },
-      h('div', { style: 'text-align:center;padding:12px 0' }, h('div', { class: 'kicker' }, 'Builder de sites'), h('h1', { style: 'font-size:clamp(1.6rem,4vw,2.4rem)' }, `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`)),
-      !aiOn && h('div', { class: 'notice' }, `Geração com IA indisponível: defina ${st.ai.envVar} no servidor. Os modelos prontos abaixo funcionam sem IA.`),
-      h('div', { class: 'card pad stack' }, brief, form, h('div', { class: 'row', style: 'justify-content:space-between' }, quota, h('div', { class: 'row' }, btnOpt, btnTpl, btnAi))),
-      h('h2', 'Modelos iniciais'), gal, h('p', { class: 'sm mut' }, 'Os modelos são originais da Neva Growth e geram HTML/CSS/JS editáveis na IDE.')));
+      h('div', { class: 'bstage' },
+        h('div', { class: 'btop' }, h('a', { href: '#/sites' }, '← Voltar aos sites'), h('span', { class: 'k' }, h('i', '●'), ' Builder de sites')),
+        mascotImg('dashboard'),
+        h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`),
+        !aiOn && h('div', { class: 'notice' }, `Geração com IA indisponível: defina ${st.ai.envVar} no servidor. Os modelos prontos abaixo funcionam sem IA.`),
+        h('div', { class: 'composer' },
+          h('div', { class: 'cleft' }, brief, details, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnTpl, btnAi)),
+          h('div', { class: 'cright' }, models, pager)),
+        quota),
+      h('h2', { id: 'allmodels' }, 'Modelos iniciais'), gal, h('p', { class: 'sm mut' }, 'Os modelos são originais da Neva Growth e geram HTML/CSS/JS editáveis na IDE.')));
   }
 };

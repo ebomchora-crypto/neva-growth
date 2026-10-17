@@ -62,6 +62,8 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 | CRM Kanban: faixa de etapas, Editar funil/Importar/Nova oportunidade, abas, Arquivados com contagem, quadro/lista, busca, Filtros, exportação, colunas com valor previsto e "Adicionar oportunidade" | Testado (e2e) |
 | Clientes (carteira com abas), Vendas (barra "Organizar projetos" com resumo), Sites (barra "Exibir", cota do Builder, contador) | Testado (e2e) |
 
+| Mascote da Neva (raposa) nas aberturas, estados vazios, login e erros; Play (faixa "Entre no Play"), Acervo (barra de abas e chips), Design (filtros e atalhos) e Builder (compositor com modelos paginados), capturas 16–19 | Testado (e2e) |
+
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
 ## Deploy

@@ -150,7 +150,7 @@ export function mascotImg(name, framed = false) {
   img.addEventListener('error', () => img.remove());
   return img;
 }
-const MASCOT = { chart: 'vendas', people: 'clientes', site: 'sites', kanban: 'crm', dashboard: 'dashboard' };
+const MASCOT = { chart: 'vendas', people: 'clientes', site: 'sites', kanban: 'crm', dashboard: 'dashboard', play: 'dashboard', acervo: 'clientes', design: 'design' };
 export function heroArt(kind = 'chart') {
   const shape = drawShape(kind);
   if (!MASCOT[kind]) return shape;

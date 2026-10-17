@@ -126,17 +126,17 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
 });
 await step('Builder: IA não configurada, criar de modelo', async () => {
   await nav('builder'); await page.waitForSelector('text=Geração com IA indisponível'); await page.waitForSelector('button:has-text("Criar com IA")[disabled]'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
-  await page.fill('input[name=name]', 'App de tarefas'); await page.click('.tpl:has-text("Aplicação de tarefas")'); await page.click('button:has-text("Criar a partir do modelo")'); await page.waitForURL(/#\/ide\/\d+/);
+  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('.tpl:has-text("Aplicação de tarefas")'); await page.click('button:has-text("Criar a partir do modelo")'); await page.waitForURL(/#\/ide\/\d+/);
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
   await nav('design'); await page.waitForSelector('.refcard:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');
   await page.fill('.modal input[name=title]', 'Editorial Verde'); await page.fill('.modal input[name=niche]', 'Fintech'); await page.fill('.modal input[name=style]', 'Escuro'); await page.fill('.modal textarea[name=content]', '# DESIGN.md\nCores: #0a0');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.refcard:has-text("Editorial Verde")');
-  await page.selectOption('select >> nth=0', 'Fintech'); await page.waitForFunction(() => document.querySelectorAll('.refcard').length === 1); await page.click('.refcard'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
+  await page.selectOption('select[aria-label="Nicho"]', 'Fintech'); await page.waitForFunction(() => document.querySelectorAll('.refcard').length === 1); await page.click('.refcard'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
 });
 await step('Acervo: recursos iniciais e novo recurso', async () => {
   await nav('acervo'); await page.waitForSelector('.libitem:has-text("Direção de landing page")'); await page.click('.libitem:has-text("Direção de landing page")'); await page.waitForSelector('pre.code:has-text("designer de produto")');
-  await page.click('.tabs button:has-text("Animações")'); await page.waitForSelector('.libitem:has-text("Revelar ao rolar")');
+  await page.click('.atabs button:has-text("Animações")'); await page.waitForSelector('.libitem:has-text("Revelar ao rolar")');
   await page.click('button:has-text("Novo recurso")'); await page.fill('.modal input[name=title]', 'Pulse botão'); await page.fill('.modal textarea[name=content]', '.pulse{animation:p 1s}'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.libitem:has-text("Pulse botão")');
 });
 await step('Play: cadastrar vídeo e marcar como visto', async () => {
