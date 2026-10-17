@@ -339,3 +339,10 @@ select.monthsel{width:auto;min-width:110px;border-radius:12px;padding:7px 12px}
 .orgbar .pills{gap:4px;flex-wrap:nowrap}.orgbar .pill{padding:6px 10px;font-size:.88rem;gap:6px}
 @media(max-width:1250px){.orgbar .pills{flex-wrap:wrap}}
 .hero-side,.hero-art,.promo .hero-art{pointer-events:none}.hero-actions{z-index:2}
+/* mascote */
+.hero-mascot{display:block;max-width:100%;max-height:300px;width:auto;height:auto;object-fit:contain;pointer-events:none;filter:drop-shadow(0 12px 16px rgba(10,35,70,.35))}
+.hero-side{align-items:flex-end;margin:-10px 0 -28px}
+.promo .hero-mascot{position:absolute;right:-6px;bottom:0;max-height:230px;max-width:46%}
+.hero-side{margin-top:0;padding-top:60px}.hero-mascot{max-height:250px}
+.orgbar .pill{white-space:nowrap}.orgbar .pills{flex-wrap:wrap}
+@media(max-width:900px){.hero-side{padding-top:0}}

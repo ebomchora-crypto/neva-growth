@@ -51,3 +51,16 @@ Character: the same white Arctic fox mascot from the reference image. White fluf
 
 ## Como eu uso depois que você enviar
 Cada arquivo entra no bloco de abertura da tela correspondente (no lugar da ilustração geométrica atual) e nos estados vazios. Se faltar algum, a tela continua usando a ilustração geométrica atual.
+
+## Estado dos arquivos
+| # | Arquivo | Estado |
+|---|---|---|
+| 00 | folha | Recebida (`docs/mascote/original-17.webp`) |
+| 01 | dashboard | Recebida e em uso (card "Sua próxima venda") |
+| 02 | clientes | **Pendente.** Usando provisoriamente a pose de frente recortada da folha |
+| 03 | vendas | Recebida e em uso |
+| 04 | sites | Recebida e em uso |
+| 05 | crm | Recebida e em uso |
+| 06–10 | boas-vindas, vazio-vendas, vazio-sites, vazio-clientes, erro | Pendentes (as telas seguem sem mascote) |
+
+Os originais com fundo estão em `docs/mascote/original-*.webp`; as versões recortadas (fundo transparente, feitas por remoção automática de fundo) estão em `public/img/mascote/`.

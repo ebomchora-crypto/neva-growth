@@ -73,7 +73,7 @@ export default {
             h('div', { class: 'row2' },
               h('section', { class: 'promo' }, h('h2', 'Sua próxima venda começa agora.'), h('p', `${k.openLeads} empresa(s) esperando seu próximo movimento · ${brl(k.openValue)} em aberto`),
                 canWrite && h('a', { class: 'plus', href: '#/leads', title: 'Abrir o CRM', 'aria-label': 'Abrir o CRM' }, icon('plus')),
-                h('div', { class: 'go' }, h('a', { class: 'btn sm', href: '#/prospeccao' }, 'Prospectar'), h('a', { class: 'btn ghost sm', href: '#/leads' }, 'Abrir CRM')), heroArt('kanban')),
+                h('div', { class: 'go' }, h('a', { class: 'btn sm', href: '#/prospeccao' }, 'Prospectar'), h('a', { class: 'btn ghost sm', href: '#/leads' }, 'Abrir CRM')), heroArt('dashboard')),
               h('section', { class: 'card pad stack' },
                 h('div', { class: 'row', style: 'justify-content:space-between' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, h('b', { style: 'font-size:1.5rem' }, money(m.profit)), delta(m.profitVariation))), monthsSel),
                 barChart(m.series)))),

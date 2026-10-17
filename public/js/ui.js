@@ -144,7 +144,15 @@ export function pills({ items, value, counts, onChange }) {
 }
 export const statCard = (label, value, hint, ic) => h('div', { class: 'stat' }, ic && h('span', { class: 'sico' }, icon(ic)), h('div', { class: 'sbody' }, h('small', label), h('b', value), hint && h('span', { class: 'shint' }, hint)));
 /** Ilustração geométrica própria da Neva (sem arte de terceiros) para o bloco de abertura. */
+const MASCOT = { chart: 'vendas', people: 'clientes', site: 'sites', kanban: 'crm', dashboard: 'dashboard' };
 export function heroArt(kind = 'chart') {
+  const shape = drawShape(kind);
+  if (!MASCOT[kind]) return shape;
+  const img = h('img', { class: 'hero-mascot', src: `/img/mascote/${MASCOT[kind]}.webp`, alt: '', 'aria-hidden': 'true', loading: 'lazy', decoding: 'async' });
+  img.addEventListener('error', () => img.replaceWith(shape));
+  return img;
+}
+function drawShape(kind) {
   const NS = 'http://www.w3.org/2000/svg';
   const el = (t, a, ...k) => { const e = document.createElementNS(NS, t); for (const [x, v] of Object.entries(a || {})) e.setAttribute(x, v); k.forEach((c) => e.append(c)); return e; };
   const svg = el('svg', { viewBox: '0 0 320 240', class: 'hero-art', 'aria-hidden': 'true' });
