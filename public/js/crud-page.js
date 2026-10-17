@@ -21,6 +21,7 @@ export function crudPage(cfg) {
         if (variant === 'bar' && cfg.pills.summary) mount(sumBox, cfg.pills.summary(lastTotal, lastCounts || {}));
         if (variant === 'board') mount(boardInfo, `${lastTotal} de ${lastCounts?.[''] ?? lastTotal} empresas no radar`);
       }
+      const belowBox = h('div', { class: 'below' });
       const body = h('div'); const pager = h('div', { class: 'pager' });
       const search = h('input', { class: 'search', type: 'search', placeholder: cfg.searchPlaceholder || 'Buscar…', 'aria-label': 'Buscar',
         oninput: debounce((e) => { st.q = e.target.value; st.page = 1; load(); }) });
@@ -50,10 +51,11 @@ export function crudPage(cfg) {
             toast(rec ? 'Alterações salvas.' : `${cfg.singular[0].toUpperCase() + cfg.singular.slice(1)} criado.`, 'ok'); close(); load();
           } }] });
       }
+      async function drawBelow() { if (cfg.below) try { mount(belowBox, await cfg.below({ canWrite, openNew: () => openForm(null), setPill: (v) => { st.pill = v; st.page = 1; load(); window.scrollTo({ top: 0, behavior: 'smooth' }); } })); } catch { /* painel opcional */ } }
       async function load() {
         try {
           const r = await api.get(cfg.api, { q: st.q, page: st.page, limit: st.limit, ...st.filter, ...(cfg.pills ? { [cfg.pills.param]: st.pill } : {}) });
-          lastTotal = r.total; renderTable(r); refreshMeta();
+          lastTotal = r.total; renderTable(r); refreshMeta(); drawBelow();
         } catch (e) { mount(body, h('div', { class: 'empty' }, e.message)); }
       }
       function renderTable(r) {
@@ -61,7 +63,8 @@ export function crudPage(cfg) {
           const filtered = st.q || Object.values(st.filter).some(Boolean) || (cfg.pills && st.pill !== cfg.pills.default);
           const art = cfg.emptyMascot ? mascotImg(cfg.emptyMascot, cfg.emptyFramed) : (canWrite && !filtered && cfg.canCreate !== false ? h('button', { class: 'eico', style: 'cursor:pointer', title: `Novo ${cfg.singular}`, 'aria-label': `Novo ${cfg.singular}`, onclick: () => openForm(null) }, icon(cfg.emptyIcon || 'userplus')) : h('span', { class: 'eico' }, icon(cfg.emptyIcon || 'userplus')));
           mount(body, h('div', { class: 'emptyart' }, art, h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
-            filtered ? 'Nada neste recorte.' : (canWrite ? `Crie o primeiro ${cfg.singular} para começar.` : ''),
+            filtered ? 'Nada neste recorte.' : (canWrite ? (cfg.emptyText || `Crie o primeiro ${cfg.singular} para começar.`) : ''),
+            canWrite && !filtered && cfg.canCreate !== false && cfg.emptyButton && h('button', { class: 'btn whitepill', style: 'margin-top:10px', onclick: () => openForm(null) }, cfg.emptyButton),
             )); mount(pager); return;
         }
         mount(body, h('div', { class: 'tablewrap' }, h('table',
@@ -96,7 +99,7 @@ export function crudPage(cfg) {
       mount(box,
         cfg.hero ? hero({ kicker: cfg.hero.kicker, title: cfg.hero.title, subtitle: cfg.subtitle, actions, stats: cfg.stats ? statsBox : null, art: cfg.hero.art })
           : h('div', { class: 'pagehead' }, h('div', h('h1', cfg.title_page), cfg.subtitle && h('p', cfg.subtitle)), h('div', { class: 'row' }, actions)),
-        bar, h('div', { class: 'card' + (variant === 'board' ? ' board' : '') }, head, tools, body, pager));
+        bar, h('div', { class: 'card' + (variant === 'board' ? ' board' : '') }, head, tools, body, pager), belowBox);
       await load();
     }
   };

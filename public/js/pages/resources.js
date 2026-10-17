@@ -7,7 +7,21 @@ const badge = (text, kind = '') => h('span', { class: 'badge ' + kind }, text);
 const CSTAGES = [['lead', 'Lead'], ['negociacao', 'Negociação'], ['proposta', 'Proposta enviada'], ['cliente', 'Cliente']];
 export const clients = crudPage({
   api: '/clients', singular: 'cliente', title_page: 'Clientes', subtitle: 'Acompanhe relações, avance negociações e veja o resultado de cada cliente.',
-  hero: { kicker: 'Neva Growth / Relationship Desk', title: 'Clientes que viram resultado.', art: 'people' }, statsClass: 'sep', emptyMascot: 'vazio-clientes', board: { kicker: 'Relationship board', title: 'Sua carteira' },
+  hero: { kicker: 'Neva Growth / Relationship Desk', title: 'Clientes que viram resultado.', art: 'people' }, statsClass: 'sep', emptyMascot: 'vazio-clientes', emptyTitle: 'Sua carteira está vazia', emptyText: 'Cadastre a primeira empresa e comece a vender.', emptyButton: 'Cadastrar cliente', board: { kicker: 'Relationship board', title: 'Sua carteira' },
+  below: async ({ canWrite, openNew, setPill }) => {
+    const s = await api.get('/clients/summary');
+    const rows = [['lead', 'Lead'], ['negociacao', 'Negociação'], ['proposta', 'Proposta enviada'], ['cliente', 'Cliente']].map(([k, l]) => [k, l, s.byStage?.[k] || 0]);
+    const max = Math.max(1, ...rows.map((r) => r[2]));
+    const next = !s.total ? { t: 'Pronto para começar.', d: 'Cadastre uma empresa para criar sua primeira oportunidade.', b: '+ Novo cliente', go: openNew }
+      : s.emNegociacao ? { t: 'Avance as negociações.', d: `${s.emNegociacao} empresa(s) em negociação ou proposta esperando o próximo passo.`, b: 'Ver em negociação', go: () => setPill('negociacao') }
+      : s.byStage?.lead ? { t: 'Leads para qualificar.', d: `${s.byStage.lead} empresa(s) ainda como lead. Dê o primeiro retorno.`, b: 'Ver leads', go: () => setPill('lead') }
+      : { t: 'Carteira em dia.', d: 'Nenhuma negociação aberta. Cadastre mais empresas ou prospecte novas.', b: '+ Novo cliente', go: openNew };
+    return h('div', { class: 'grid g2', style: 'margin-top:16px' },
+      h('section', { class: 'card pad pulse' }, h('div', { class: 'k' }, 'Funil / sinal ao vivo'), h('div', { class: 'row', style: 'justify-content:space-between' }, h('h2', 'Pulso da carteira'), h('span', { class: 'chip' }, `${s.total} contato(s)`)),
+        h('div', { class: 'prows' }, rows.map(([k, l, n]) => h('button', { type: 'button', class: 'prow', onclick: () => setPill(k), title: `Filtrar: ${l}` }, h('span', { class: 'pdot ' + k }), h('span', l), h('i', { class: 'pbar' }, h('b', { style: `width:${(n / max) * 100}%` })), h('strong', String(n))))),
+        h('button', { type: 'button', class: 'btn ghost', style: 'width:100%;margin-top:6px', onclick: () => setPill('') }, 'Ver carteira completa')),
+      h('section', { class: 'next' }, h('div', { class: 'k' }, 'Próximo movimento'), h('h2', next.t), h('p', next.d), canWrite || !next.go ? h('button', { type: 'button', class: 'btn whitepill big', onclick: next.go }, next.b) : null));
+  },
   title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
   stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira', 'users'), statCard('Em negociação', s.emNegociacao, 'oportunidades abertas', 'trend'),
     statCard('Clientes ativos', s.fechados, `${s.conversao}% de conversão`, 'check'), statCard('Receita gerada', money(s.receita), `${s.vendasPagas} venda(s) registrada(s)`, 'building')]; },

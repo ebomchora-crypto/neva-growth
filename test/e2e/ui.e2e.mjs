@@ -40,6 +40,11 @@ await step('dashboard: períodos e estado vazio honesto', async () => {
   await page.click('.pill:has-text("1 ano")'); await page.waitForSelector('svg.chart');
   await page.waitForSelector('button:has-text("Resumo por IA (não configurado)")[disabled]');
 });
+await step('menu lateral na ordem de referência', async () => {
+  const order = await page.$$eval('.side a[data-path]', (as) => as.map((a) => a.dataset.path));
+  const want = ['associacao', 'dashboard', 'clientes', 'vendas', 'sites', 'leads', 'builder', 'design', 'acervo', 'play', 'prospeccao', 'prompts', 'tarefas', 'produtos', 'cursos', 'usuarios', 'configuracoes'];
+  if (order.join() !== want.join()) throw new Error('ordem do menu: ' + order.join());
+});
 await step('ocultar valores persiste', async () => {
   await page.click('button[aria-label="Ocultar ou mostrar valores"]'); await page.waitForFunction(() => document.documentElement.classList.contains('hide-values'));
   await page.reload(); await page.waitForSelector('text=Lucro no período'); await page.waitForFunction(() => document.documentElement.classList.contains('hide-values'));
@@ -80,7 +85,7 @@ await step('CRM: minimizar header + lista + converter em cliente', async () => {
 await step('Clientes: indicadores, abas por estágio, entrega digital', async () => {
   await nav('clientes'); await page.waitForSelector('.stat:has-text("Clientes cadastrados")'); await page.waitForSelector('.stat:has-text("Clientes cadastrados") b:text-is("1")');
   await page.click('.pill:has-text("Lead")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Cliente")'); await page.waitForSelector('td:has-text("Clínica Aurora")');
-  await page.waitForSelector('th:has-text("Entrega digital")'); await page.waitForSelector('th:has-text("Resultado")');
+  await page.waitForSelector('.pulse:has-text("Pulso da carteira")'); await page.waitForSelector('.next:has-text("Próximo movimento")'); await page.waitForSelector('th:has-text("Entrega digital")'); await page.waitForSelector('th:has-text("Resultado")');
 });
 await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () => {
   await nav('vendas'); await page.click('button:has-text("Nova venda")');

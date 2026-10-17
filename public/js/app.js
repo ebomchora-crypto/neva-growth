@@ -7,28 +7,27 @@ initMotion();
 const root = document.getElementById('app');
 const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m));
 
+// Ordem do menu = ordem do menu lateral de referência: portal/associação, início, clientes, vendas, sites, CRM, builder | ferramentas | gestão.
 const ROUTES = [
-  { sec: 'Visão geral' },
+  { sec: 'Principal' },
+  { path: 'associacao', label: 'Associação', icon: 'card', page: lazy('./pages/membership.js') },
   { path: 'dashboard', search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
-  { sec: 'Comercial' },
-  { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
-  { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
   { path: 'clientes', search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
-  { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'cart', page: lazy('./pages/resources.js', 'sales') },
+  { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/resources.js', 'sales') },
+  { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
+  { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
+  { path: 'builder', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
+  { sec: 'Ferramentas' },
+  { path: 'design', search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
+  { path: 'acervo', search: 'Buscar recurso, prompt ou animação', tool: true, label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
+  { path: 'play', search: 'Buscar conteúdo', tool: true, label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
+  { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
+  { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
+  { sec: 'Gestão' },
   { path: 'tarefas', label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
   { path: 'produtos', label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
-  { sec: 'Criação' },
-  { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'globe', page: lazy('./pages/sites.js') },
-  { path: 'builder', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'sparkle', page: lazy('./pages/builder.js') },
-  { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
-  { path: 'design', tool: true, search: 'Buscar referência, estilo ou categoria', label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
-  { path: 'acervo', tool: true, search: 'Buscar recurso, prompt ou animação', label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
-  { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
-  { sec: 'Aprender' },
-  { path: 'play', tool: true, search: 'Buscar conteúdo', label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
   { path: 'cursos', label: 'Academia', icon: 'book', page: lazy('./pages/courses.js') },
-  { sec: 'Conta' },
-  { path: 'associacao', label: 'Associação', icon: 'card', page: lazy('./pages/membership.js') },
   { path: 'usuarios', label: 'Usuários', icon: 'shield', admin: true, page: lazy('./pages/resources.js', 'users') },
   { path: 'configuracoes', label: 'Configurações', icon: 'cog', page: lazy('./pages/settings.js') }
 ];
