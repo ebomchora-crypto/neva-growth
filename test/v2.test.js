@@ -7,7 +7,7 @@ const path = require('node:path');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neva2-'));
 process.env.DATA_DIR = dir;
 const { createApp } = require('../server/index.js');
-const { db } = require('../server/lib/db');
+const { get: dbGet } = require('../server/lib/db');
 
 let server, base; const jar = {};
 const call = async (who, method, url, body) => {
@@ -27,8 +27,8 @@ before(async () => {
 });
 after(() => { server.close(); fs.rmSync(dir, { recursive: true, force: true }); });
 
-test('migração v2 aplicada, com seed de planos, etapas e biblioteca', async () => {
-  assert.equal(db.prepare("SELECT value FROM meta WHERE key='schema_version'").get().value, '2');
+test('esquema Postgres aplicado, com seed de planos, etapas e biblioteca', async () => {
+  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '1');
   assert.equal((await A('GET', '/api/pipeline/stages')).body.length, 6);
   assert.deepEqual((await A('GET', '/api/me')).body.plans.map((p) => p.key), ['member', 'creator', 'elite']);
   assert.ok((await A('GET', '/api/library?kind=prompt')).body.total >= 3);

@@ -1,5 +1,5 @@
 const crypto = require('node:crypto');
-const { get, run, all } = require('./db');
+const { get, run } = require('./db');
 const { HttpError, bad } = require('./http');
 
 const SESSION_DAYS = 14;
@@ -29,17 +29,17 @@ function validateEmail(e) {
   return e.trim().toLowerCase();
 }
 
-function createSession(res, userId, req) {
+async function createSession(res, userId, req) {
   const token = crypto.randomBytes(32).toString('base64url');
   const exp = Date.now() + SESSION_DAYS * 864e5;
-  run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at,user_agent,ip) VALUES (?,?,?,?,?,?)', sha(token), userId, exp, Date.now(), String(req?.headers?.['user-agent'] || '').slice(0, 200), String(req?.ip || '').slice(0, 64));
+  await run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at,user_agent,ip) VALUES (?,?,?,?,?,?)', sha(token), userId, exp, Date.now(), String(req?.headers?.['user-agent'] || '').slice(0, 200), String(req?.ip || '').slice(0, 64));
   res.cookie(COOKIE, token, {
-    httpOnly: true, sameSite: 'lax', secure: process.env.COOKIE_SECURE === '1', maxAge: SESSION_DAYS * 864e5, path: '/'
+    httpOnly: true, sameSite: 'lax', secure: Boolean(req?.secure) || process.env.COOKIE_SECURE === '1', maxAge: SESSION_DAYS * 864e5, path: '/'
   });
 }
-function destroySession(req, res) {
+async function destroySession(req, res) {
   const t = readCookie(req, COOKIE);
-  if (t) run('DELETE FROM sessions WHERE token_hash=?', sha(t));
+  if (t) await run('DELETE FROM sessions WHERE token_hash=?', sha(t));
   res.clearCookie(COOKIE, { path: '/' });
 }
 function readCookie(req, name) {
@@ -52,17 +52,17 @@ function readCookie(req, name) {
 }
 
 // Anexa req.user quando há sessão válida
-function loadUser(req, _res, next) {
+async function loadUser(req, _res, next) {
   req.user = null;
   const t = readCookie(req, COOKIE);
   if (t) {
-    const row = get(
+    const row = await get(
       `SELECT u.id,u.name,u.email,u.role,u.active,u.username,u.plan,s.expires_at,s.token_hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?`,
       sha(t));
     if (row && row.expires_at > Date.now() && row.active) {
       req.user = { id: row.id, name: row.name, email: row.email, role: row.role, username: row.username, plan: row.plan };
       req.sid = row.token_hash;
-    } else if (row) run('DELETE FROM sessions WHERE token_hash=?', sha(t));
+    } else if (row) await run('DELETE FROM sessions WHERE token_hash=?', sha(t));
   }
   next();
 }
@@ -95,8 +95,8 @@ function loginThrottle(key) {
   return { fail() { a.push(now); attempts.set(key, a); }, ok() { attempts.delete(key); } };
 }
 
-const countUsers = () => get('SELECT COUNT(*) n FROM users').n;
+const countUsers = async () => (await get('SELECT COUNT(*) n FROM users')).n;
 module.exports = {
   ROLES, hashPassword, verifyPassword, validatePassword, validateEmail, createSession, destroySession,
-  loadUser, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers, all
+  loadUser, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers
 };

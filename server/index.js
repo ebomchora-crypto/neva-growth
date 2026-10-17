@@ -1,10 +1,12 @@
+require('express-async-errors');
 const express = require('express');
 const path = require('node:path');
 const A = require('./lib/auth');
 const { HttpError } = require('./lib/http');
 
 function createApp() {
-  require('./lib/seed').seedLibrary();
+  const db = require('./lib/db');
+  const ready = db.ready().then(() => require('./lib/seed').seedLibrary());
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
@@ -13,10 +15,12 @@ function createApp() {
     res.set({ 'x-frame-options': 'SAMEORIGIN', 'referrer-policy': 'same-origin', 'x-content-type-options': 'nosniff' });
     next();
   });
+  // Garante esquema/migrações e seed antes da primeira requisição (necessário em serverless)
+  app.use(async (_req, _res, next) => { try { await ready; next(); } catch (e) { next(e); } });
   app.use(A.loadUser);
   if (process.env.LOG_REQUESTS === '1') app.use((req, res, next) => { const t = Date.now(); res.on('finish', () => { if (req.path.startsWith('/api')) console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t}ms ${req.user ? 'u' + req.user.id : '-'}`); }); next(); });
 
-  app.get('/healthz', (_req, res) => res.json({ ok: true }));
+  app.get('/healthz', async (_req, res) => { await ready; res.json({ ok: true }); });
   // Sites publicados (públicos) e preview (autenticado)
   const { router: projects, previewRouter, publicRouter } = require('./routes/projects');
   app.use('/s', publicRouter);
@@ -46,7 +50,7 @@ function createApp() {
   app.use((err, req, res, _next) => {
     if (err.type === 'entity.parse.failed') err = new HttpError(400, 'JSON inválido.');
     if (err.type === 'entity.too.large') err = new HttpError(413, 'Conteúdo grande demais.');
-    const status = err instanceof HttpError ? err.status : /UNIQUE/.test(err.message || '') ? 409 : 500;
+    const status = err instanceof HttpError ? err.status : err.code === '23505' ? 409 : 500;
     if (status === 500) console.error(err);
     const message = status === 409 ? 'Registro duplicado.' : status === 500 ? 'Erro interno do servidor.' : err.message;
     res.status(status).json({ error: message, code: err.code });

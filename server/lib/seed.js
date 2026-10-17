@@ -1,5 +1,5 @@
 // Conteúdo inicial ORIGINAL da Neva Growth para a biblioteca (criado uma única vez; admins podem editar/excluir).
-const { db, get, run } = require('./db');
+const { get, run, tx } = require('./db');
 
 const ITEMS = [
   { kind: 'prompt', title: 'Direção de landing page', category: 'Design e produto', summary: 'Briefing completo para gerar uma landing page de conversão.',
@@ -20,13 +20,12 @@ const ITEMS = [
     content: `# DESIGN.md — Editorial minimalista\n\n## Princípios\nTipografia como imagem; grade de 12 colunas; uma ação principal por tela.\n\n## Cores\nFundo #fbfcfe, texto #101820, destaque único #2f7bbd.\n\n## Tipografia\nTítulos em escala fluida (clamp(2.2rem, 6vw, 5rem)), peso 700, letter-spacing -0.02em. Corpo 17–18px.\n\n## Layout\nSeções com 96–140px de respiro vertical; imagens em proporção 4:3 e 16:9; navegação simples no topo.\n\n## Movimento\nRevelar ao rolar com 400–600 ms; sem parallax pesado.` }
 ];
 
-function seedLibrary() {
-  if (get("SELECT 1 x FROM meta WHERE key='library_seeded'")) return;
-  db.exec('BEGIN');
-  try {
-    for (const i of ITEMS) run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,min_plan) VALUES (?,?,?,?,?,?,?,?,?)', i.kind, i.title, i.category || null, i.summary || null, i.content, i.niche || null, i.style || null, i.site_type || null, 'member');
-    run("INSERT INTO meta(key,value) VALUES ('library_seeded','1')");
-    db.exec('COMMIT');
-  } catch (e) { db.exec('ROLLBACK'); throw e; }
+async function seedLibrary() {
+  if (await get("SELECT 1 x FROM meta WHERE key='library_seeded'")) return;
+  await tx(async () => {
+    if (await get("SELECT 1 x FROM meta WHERE key='library_seeded'")) return;
+    for (const i of ITEMS) await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,min_plan) VALUES (?,?,?,?,?,?,?,?,?)', i.kind, i.title, i.category || null, i.summary || null, i.content, i.niche || null, i.style || null, i.site_type || null, 'member');
+    await run("INSERT INTO meta(key,value) VALUES ('library_seeded','1') ON CONFLICT (key) DO NOTHING");
+  });
 }
 module.exports = { seedLibrary };

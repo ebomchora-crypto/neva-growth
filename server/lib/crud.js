@@ -1,12 +1,12 @@
 const express = require('express');
 const { all, get, run } = require('./db');
-const { HttpError, bad, wrap } = require('./http');
+const { HttpError, bad } = require('./http');
 
 /**
  * Fábrica de CRUD declarativo.
- * fields: { col: { type: 'string'|'text'|'number'|'int'|'bool'|'date'|'enum'|'ref', required, max, values, min } }
+ * fields: { col: { type: 'string'|'text'|'number'|'int'|'bool'|'date'|'enum'|'ref'|'email', required, max, values, min } }
  */
-function coerce(name, f, v) {
+async function coerce(name, f, v) {
   const empty = v === undefined || v === null || v === '';
   if (empty) {
     if (f.required) throw bad(`Campo obrigatório: ${f.label || name}.`);
@@ -32,7 +32,7 @@ function coerce(name, f, v) {
       const s = String(v); if (!/^\d{4}-\d{2}-\d{2}/.test(s)) throw bad(`${f.label || name}: data inválida.`); return s.slice(0, 10);
     }
     case 'enum': {
-      const vals = typeof f.values === 'function' ? f.values() : f.values;
+      const vals = typeof f.values === 'function' ? await f.values() : f.values;
       if (!vals.includes(v)) throw bad(`${f.label || name}: valor inválido.`); return v;
     }
     case 'email': {
@@ -49,21 +49,21 @@ function crud(cfg) {
   const base = select || `SELECT ${alias}.* FROM ${table} ${alias}`;
   const names = Object.keys(fields);
 
-  function parse(body, partial) {
+  async function parse(body, partial) {
     const out = {};
     for (const n of names) {
       if (partial && !(n in body)) continue;
-      out[n] = coerce(n, fields[n], body[n]);
+      out[n] = await coerce(n, fields[n], body[n]);
     }
     return out;
   }
   async function checkRefs(data) {
     for (const n of names) if (fields[n].type === 'ref' && data[n] != null && fields[n].table) {
-      if (!get(`SELECT id FROM ${fields[n].table} WHERE id=?`, data[n])) throw bad(`${fields[n].label || n}: registro não encontrado.`);
+      if (!(await get(`SELECT id FROM ${fields[n].table} WHERE id=?`, data[n]))) throw bad(`${fields[n].label || n}: registro não encontrado.`);
     }
   }
 
-  r.get('/', wrap((req, res) => {
+  r.get('/', async (req, res) => {
     const where = []; const p = [];
     if (req.query.q && search.length) {
       where.push('(' + search.map((c) => `${alias}.${c} LIKE ? ESCAPE '\\'`).join(' OR ') + ')');
@@ -78,52 +78,52 @@ function crud(cfg) {
     const ord = (cfg.orderFor && cfg.orderFor(req)) || order;
     const limit = Math.min(Math.max(parseInt(req.query.limit) || 25, 1), 1000);
     const page = Math.max(parseInt(req.query.page) || 1, 1);
-    const total = get(`SELECT COUNT(*) n FROM (${base}${w})`, ...p).n;
-    const items = all(`${base}${w} ORDER BY ${ord} LIMIT ? OFFSET ?`, ...p, limit, (page - 1) * limit);
+    const total = (await get(`SELECT COUNT(*) n FROM (${base}${w}) AS sub`, ...p)).n;
+    const items = await all(`${base}${w} ORDER BY ${ord} LIMIT ? OFFSET ?`, ...p, limit, (page - 1) * limit);
     res.json({ items, total, page, limit });
-  }));
+  });
 
-  r.get('/:id', wrap((req, res) => {
-    const row = get(`${base} WHERE ${alias}.id=?`, Number(req.params.id));
+  r.get('/:id', async (req, res) => {
+    const row = await get(`${base} WHERE ${alias}.id=?`, Number(req.params.id));
     if (!row) throw new HttpError(404, 'Registro não encontrado.');
     res.json(row);
-  }));
+  });
 
-  r.post('/', wrap(async (req, res) => {
-    const data = parse(req.body || {}, false);
-    if (cfg.beforeCreate) cfg.beforeCreate(data, req);
+  r.post('/', async (req, res) => {
+    const data = await parse(req.body || {}, false);
+    if (cfg.beforeCreate) await cfg.beforeCreate(data, req);
     await checkRefs(data);
     const cols = Object.keys(data);
-    const info = run(`INSERT INTO ${table}(${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`, ...cols.map((c) => data[c]));
-    const row = get(`${base} WHERE ${alias}.id=?`, Number(info.lastInsertRowid));
-    if (cfg.afterSave) cfg.afterSave(row, req, 'create');
+    const info = await run(`INSERT INTO ${table}(${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`, ...cols.map((c) => data[c]));
+    const row = await get(`${base} WHERE ${alias}.id=?`, Number(info.lastInsertRowid));
+    if (cfg.afterSave) await cfg.afterSave(row, req, 'create');
     res.status(201).json(row);
-  }));
+  });
 
-  r.put('/:id', wrap(async (req, res) => {
+  r.put('/:id', async (req, res) => {
     const id = Number(req.params.id);
-    const existing = get(`SELECT * FROM ${table} WHERE id=?`, id);
+    const existing = await get(`SELECT * FROM ${table} WHERE id=?`, id);
     if (!existing) throw new HttpError(404, 'Registro não encontrado.');
-    const data = parse(req.body || {}, true);
+    const data = await parse(req.body || {}, true);
     req.prev = existing;
-    if (cfg.beforeUpdate) cfg.beforeUpdate(data, req, existing);
+    if (cfg.beforeUpdate) await cfg.beforeUpdate(data, req, existing);
     await checkRefs(data);
     const cols = Object.keys(data);
     if (cols.length) {
       const set = cols.map((c) => `${c}=?`).join(',') + (touch ? ",updated_at=datetime('now')" : '');
-      run(`UPDATE ${table} SET ${set} WHERE id=?`, ...cols.map((c) => data[c]), id);
+      await run(`UPDATE ${table} SET ${set} WHERE id=?`, ...cols.map((c) => data[c]), id);
     }
-    const row = get(`${base} WHERE ${alias}.id=?`, id);
-    if (cfg.afterSave) cfg.afterSave(row, req, 'update');
+    const row = await get(`${base} WHERE ${alias}.id=?`, id);
+    if (cfg.afterSave) await cfg.afterSave(row, req, 'update');
     res.json(row);
-  }));
+  });
 
-  r.delete('/:id', wrap((req, res) => {
+  r.delete('/:id', async (req, res) => {
     const id = Number(req.params.id);
-    const info = run(`DELETE FROM ${table} WHERE id=?`, id);
+    const info = await run(`DELETE FROM ${table} WHERE id=?`, id);
     if (!info.changes) throw new HttpError(404, 'Registro não encontrado.');
     res.json({ ok: true });
-  }));
+  });
   return r;
 }
 module.exports = { crud, coerce };

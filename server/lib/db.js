@@ -1,203 +1,212 @@
+/**
+ * Camada de dados PostgreSQL.
+ *  - Produção/Vercel: DATABASE_URL (Supabase/Postgres) via `pg`.
+ *  - Desenvolvimento e testes: PGlite (Postgres em WASM, persistido em DATA_DIR/pgdata).
+ * API assíncrona: all/get/run/tx. Escreva SQL com `?`; é convertido para $1, $2…
+ * Datas são TEXT (UTC) no formato 'YYYY-MM-DD HH:MM:SS' / 'YYYY-MM-DD', compatíveis com o frontend.
+ */
 const fs = require('node:fs');
 const path = require('node:path');
-const { DatabaseSync } = require('node:sqlite');
+const { AsyncLocalStorage } = require('node:async_hooks');
 
-const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data'));
-fs.mkdirSync(dataDir, { recursive: true });
-const file = process.env.DB_FILE || path.join(dataDir, 'neva.db');
-const db = new DatabaseSync(file);
-db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
+const als = new AsyncLocalStorage();
+const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
+const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
+const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger']);
 
-db.exec(`
-CREATE TABLE IF NOT EXISTS users (
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE COLLATE NOCASE,
-  password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member', active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS sessions (
-  token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  expires_at INTEGER NOT NULL
-);
-CREATE TABLE IF NOT EXISTS leads (
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, company TEXT, email TEXT, phone TEXT, website TEXT,
-  source TEXT, status TEXT NOT NULL DEFAULT 'novo', value REAL NOT NULL DEFAULT 0, notes TEXT,
-  owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS clients (
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, company TEXT, email TEXT, phone TEXT, document TEXT,
-  address TEXT, notes TEXT, lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS activities (
-  id INTEGER PRIMARY KEY, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
-  client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE, type TEXT NOT NULL DEFAULT 'nota',
-  text TEXT NOT NULL, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY, title TEXT NOT NULL, due_date TEXT, priority TEXT NOT NULL DEFAULT 'media',
-  done INTEGER NOT NULL DEFAULT 0, lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
-  assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL, notes TEXT,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS products (
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'servico', price REAL NOT NULL DEFAULT 0,
-  description TEXT, active INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS sales (
-  id INTEGER PRIMARY KEY, client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
-  product_id INTEGER REFERENCES products(id) ON DELETE SET NULL, description TEXT NOT NULL,
-  amount REAL NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pendente', sold_at TEXT NOT NULL DEFAULT (date('now')),
-  paid_at TEXT, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS courses (
-  id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT, level TEXT NOT NULL DEFAULT 'iniciante',
-  published INTEGER NOT NULL DEFAULT 1,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS lessons (
-  id INTEGER PRIMARY KEY, course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
-  title TEXT NOT NULL, content TEXT, video_url TEXT, position INTEGER NOT NULL DEFAULT 0,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS lesson_progress (
-  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
-  completed_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (user_id, lesson_id)
-);
-CREATE TABLE IF NOT EXISTS projects (
-  id INTEGER PRIMARY KEY, name TEXT NOT NULL, description TEXT, kind TEXT NOT NULL DEFAULT 'site',
-  slug TEXT NOT NULL UNIQUE, published INTEGER NOT NULL DEFAULT 0, owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
-CREATE TABLE IF NOT EXISTS project_files (
-  id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-  path TEXT NOT NULL, content TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT (datetime('now')),
-  UNIQUE(project_id, path)
-);
+// Tradução mínima de construções herdadas do SQLite + placeholders
+function translate(sql) {
+  let s = sql
+    .replace(/datetime\('now'\)/gi, NOW)
+    .replace(/datetime\('now',\s*'(-?\d+)\s*minutes?'\)/gi, (_m, n) => `to_char((now() AT TIME ZONE 'utc') + interval '${Number(n)} minute','YYYY-MM-DD HH24:MI:SS')`)
+    .replace(/date\('now',\s*'([+-]?\d+)\s*days?'\)/gi, (_m, n) => `to_char((now() AT TIME ZONE 'utc')::date + ${Number(n)},'YYYY-MM-DD')`)
+    .replace(/date\('now'\)/gi, TODAY)
+    .replace(/group_concat\(/gi, 'string_agg(')
+    .replace(/(?<![A-Za-z])LIKE\b/g, 'ILIKE');   // busca sem diferenciar maiúsculas, como no SQLite
+  let ignore = false;
+  if (/^\s*INSERT\s+OR\s+IGNORE\s+INTO/i.test(s)) { s = s.replace(/INSERT\s+OR\s+IGNORE\s+INTO/i, 'INSERT INTO'); ignore = true; }
+  let out = '', n = 0, q = false;
+  for (const ch of s) {
+    if (ch === "'") q = !q;
+    if (ch === '?' && !q) out += '$' + (++n); else out += ch;
+  }
+  if (ignore) out += ' ON CONFLICT DO NOTHING';
+  return out;
+}
+
+let driver = null;
+let readyPromise = null;
+
+function pgDriver(url) {
+  const { Pool, types } = require('pg');
+  types.setTypeParser(20, (v) => Number(v));    // int8 (COUNT, bigint)
+  types.setTypeParser(1700, (v) => Number(v));  // numeric (ROUND, AVG)
+  const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: Number(process.env.PG_POOL_MAX) || (process.env.VERCEL ? 3 : 10), idleTimeoutMillis: 10000 });
+  return {
+    name: 'postgres',
+    query: async (sql, params, client) => { const r = await (client || pool).query(sql, params); return { rows: r.rows, count: r.rowCount ?? 0 }; },
+    exec: async (sql, client) => { await (client || pool).query(sql); },
+    tx: async (fn) => {
+      const client = await pool.connect();
+      try { await client.query('BEGIN'); const out = await fn(client); await client.query('COMMIT'); return out; }
+      catch (e) { try { await client.query('ROLLBACK'); } catch { /* ignore */ } throw e; }
+      finally { client.release(); }
+    }
+  };
+}
+function pgliteDriver(dataDir) {
+  const { PGlite } = require('@electric-sql/pglite');
+  const dir = dataDir === ':memory:' ? undefined : path.join(dataDir, 'pgdata');
+  if (dir) fs.mkdirSync(dataDir, { recursive: true });
+  const db = new PGlite(dir, { parsers: { 20: (v) => Number(v), 1700: (v) => Number(v) } });
+  return {
+    name: 'pglite',
+    query: async (sql, params, client) => { const r = await (client || db).query(sql, params); return { rows: r.rows, count: r.affectedRows ?? r.rows.length }; },
+    exec: async (sql, client) => { await (client || db).exec(sql); },
+    tx: async (fn) => db.transaction(async (t) => fn(t))
+  };
+}
+
+async function q(sql, params = []) {
+  await ready();
+  const client = als.getStore();
+  const clean = params.map((p) => (p === undefined ? null : p));
+  try { return await driver.query(translate(sql), clean, client); }
+  catch (e) { e.sql = sql; throw e; }
+}
+async function all(sql, ...p) { return (await q(sql, p)).rows; }
+async function get(sql, ...p) { return (await q(sql, p)).rows[0]; }
+async function run(sql, ...p) {
+  let s = sql; let returning = false;
+  const m = /^\s*INSERT\s+(?:OR\s+IGNORE\s+)?INTO\s+(\w+)/i.exec(sql);
+  if (m && ID_TABLES.has(m[1].toLowerCase()) && !/RETURNING/i.test(sql)) { s = `${sql} RETURNING id`; returning = true; }
+  const r = await q(s, p);
+  return { changes: r.count, lastInsertRowid: returning ? r.rows[0]?.id : undefined };
+}
+/** Executa fn dentro de uma transação; queries feitas dentro dela (mesmo indiretamente) usam a mesma conexão. */
+async function tx(fn) {
+  await ready();
+  if (als.getStore()) return fn();   // já dentro de uma transação
+  return driver.tx((client) => als.run(client, fn));
+}
+const exec = async (sql) => { await ready(); await driver.exec(sql); };
+
+// ---------------------------------------------------------------------------
+// Esquema e migrações versionadas (apenas aditivas). Em Postgres gerenciado, os backups
+// são do provedor (ex.: Supabase); migrações rodam sob advisory lock para evitar corrida entre instâncias.
+// ---------------------------------------------------------------------------
+const ID = 'INTEGER GENERATED BY DEFAULT AS IDENTITY PRIMARY KEY';
+const TS = `TEXT NOT NULL DEFAULT (${NOW})`;
+const DAY = `TEXT NOT NULL DEFAULT (${TODAY})`;
+const REAL = 'DOUBLE PRECISION';
+
+const MIGRATIONS = [{ v: 1, name: 'v1-esquema-completo', sql: `
+CREATE TABLE IF NOT EXISTS users (id ${ID}, name TEXT NOT NULL, email TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'member',
+  active INTEGER NOT NULL DEFAULT 1, username TEXT, phone TEXT, plan TEXT NOT NULL DEFAULT 'member', credits INTEGER NOT NULL DEFAULT 100, created_at ${TS});
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
+CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at BIGINT NOT NULL,
+  created_at BIGINT, user_agent TEXT, ip TEXT);
+CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
+CREATE TABLE IF NOT EXISTS leads (id ${ID}, name TEXT NOT NULL, company TEXT, email TEXT, phone TEXT, website TEXT, source TEXT, status TEXT NOT NULL DEFAULT 'novo',
+  value ${REAL} NOT NULL DEFAULT 0, notes TEXT, owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL, priority TEXT NOT NULL DEFAULT 'media', due_date TEXT,
+  archived INTEGER NOT NULL DEFAULT 0, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS clients (id ${ID}, name TEXT NOT NULL, company TEXT, email TEXT, phone TEXT, document TEXT, address TEXT, notes TEXT,
+  stage TEXT NOT NULL DEFAULT 'cliente', lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS activities (id ${ID}, lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE, client_id INTEGER REFERENCES clients(id) ON DELETE CASCADE,
+  type TEXT NOT NULL DEFAULT 'nota', text TEXT NOT NULL, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at ${TS});
+CREATE TABLE IF NOT EXISTS tasks (id ${ID}, title TEXT NOT NULL, due_date TEXT, priority TEXT NOT NULL DEFAULT 'media', done INTEGER NOT NULL DEFAULT 0,
+  lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL, assignee_id INTEGER REFERENCES users(id) ON DELETE SET NULL, notes TEXT, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS products (id ${ID}, name TEXT NOT NULL, type TEXT NOT NULL DEFAULT 'servico', price ${REAL} NOT NULL DEFAULT 0, description TEXT,
+  active INTEGER NOT NULL DEFAULT 1, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS sales (id ${ID}, client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL, product_id INTEGER REFERENCES products(id) ON DELETE SET NULL,
+  description TEXT NOT NULL, amount ${REAL} NOT NULL DEFAULT 0, cost ${REAL} NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'pendente', sold_at ${DAY}, paid_at TEXT,
+  delivery_date TEXT, delivery_status TEXT NOT NULL DEFAULT 'pendente', created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS courses (id ${ID}, title TEXT NOT NULL, description TEXT, level TEXT NOT NULL DEFAULT 'iniciante', published INTEGER NOT NULL DEFAULT 1, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS lessons (id ${ID}, course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE, title TEXT NOT NULL, content TEXT, video_url TEXT,
+  position INTEGER NOT NULL DEFAULT 0, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS lesson_progress (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+  completed_at ${TS}, PRIMARY KEY (user_id, lesson_id));
+CREATE TABLE IF NOT EXISTS projects (id ${ID}, name TEXT NOT NULL, description TEXT, kind TEXT NOT NULL DEFAULT 'site', slug TEXT NOT NULL UNIQUE, published INTEGER NOT NULL DEFAULT 0,
+  owner_id INTEGER REFERENCES users(id) ON DELETE SET NULL, archived INTEGER NOT NULL DEFAULT 0, domain TEXT, client_id INTEGER REFERENCES clients(id) ON DELETE SET NULL,
+  created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS project_files (id ${ID}, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, path TEXT NOT NULL, content TEXT NOT NULL DEFAULT '',
+  updated_at ${TS}, UNIQUE(project_id, path));
+CREATE TABLE IF NOT EXISTS pipeline_stages (id ${ID}, key TEXT NOT NULL UNIQUE, label TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0,
+  kind TEXT NOT NULL DEFAULT 'open' CHECK (kind IN ('open','won','lost')));
+CREATE TABLE IF NOT EXISTS user_settings (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL, PRIMARY KEY (user_id, key));
+CREATE TABLE IF NOT EXISTS notifications (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, type TEXT NOT NULL, text TEXT NOT NULL, link TEXT,
+  read INTEGER NOT NULL DEFAULT 0, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read);
+CREATE TABLE IF NOT EXISTS plans (key TEXT PRIMARY KEY, name TEXT NOT NULL, rank INTEGER NOT NULL, tagline TEXT, benefits TEXT,
+  ai_monthly_limit INTEGER NOT NULL DEFAULT 0, builder_monthly_limit INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS library_items (id ${ID}, kind TEXT NOT NULL CHECK (kind IN ('prompt','skill','animation','design')), title TEXT NOT NULL, category TEXT, summary TEXT,
+  content TEXT NOT NULL DEFAULT '', min_plan TEXT NOT NULL DEFAULT 'member', niche TEXT, style TEXT, site_type TEXT, url TEXT, published INTEGER NOT NULL DEFAULT 1,
+  created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS play_items (id ${ID}, title TEXT NOT NULL, description TEXT, category TEXT, video_url TEXT NOT NULL, published INTEGER NOT NULL DEFAULT 1, created_at ${TS}, updated_at ${TS});
+CREATE TABLE IF NOT EXISTS play_progress (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, item_id INTEGER NOT NULL REFERENCES play_items(id) ON DELETE CASCADE,
+  seen_at ${TS}, PRIMARY KEY (user_id, item_id));
+CREATE TABLE IF NOT EXISTS saved_prompts (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, mode TEXT NOT NULL, format TEXT NOT NULL,
+  input TEXT NOT NULL, output TEXT NOT NULL, created_at ${TS});
+CREATE TABLE IF NOT EXISTS file_versions (id ${ID}, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, path TEXT NOT NULL, content TEXT NOT NULL,
+  source TEXT NOT NULL DEFAULT 'save', user_id INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_versions ON file_versions(project_id, path, id);
+CREATE TABLE IF NOT EXISTS ai_conversations (id ${ID}, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  role TEXT NOT NULL, content TEXT NOT NULL, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_aiconv ON ai_conversations(project_id, user_id, id);
+CREATE TABLE IF NOT EXISTS ai_usage (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_aiusage ON ai_usage(user_id, kind, created_at);
+CREATE TABLE IF NOT EXISTS credit_ledger (id ${ID}, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, delta INTEGER NOT NULL, reason TEXT NOT NULL, created_at ${TS});
 CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status);
 CREATE INDEX IF NOT EXISTS idx_sales_status ON sales(status);
 CREATE INDEX IF NOT EXISTS idx_activities_lead ON activities(lead_id);
-`);
+INSERT INTO pipeline_stages(key,label,position,kind) VALUES ('novo','Novos contatos',1,'open'),('contato','Em contato',2,'open'),('proposta','Proposta enviada',3,'open'),
+  ('negociacao','Em negociação',4,'open'),('ganho','Conquistados',5,'won'),('perdido','Perdidos',6,'lost') ON CONFLICT (key) DO NOTHING;
+INSERT INTO plans(key,name,rank,tagline,benefits,ai_monthly_limit,builder_monthly_limit) VALUES
+  ('member','Member',1,'Porta de entrada','CRM, vendas, sites e IDE
+Biblioteca de recursos básicos
+Assistente de IA com limite mensal',30,5),
+  ('creator','Creator',2,'Círculo de criação','Tudo do Member
+Recursos avançados da biblioteca
+Mais gerações de IA e do Builder',150,25),
+  ('elite','Elite',3,'Círculo elite','Tudo do Creator
+Acesso a todos os recursos
+Limites ampliados de IA e Builder',600,100) ON CONFLICT (key) DO NOTHING;
+-- Segurança: o app acessa o banco com a role do DATABASE_URL (que ignora RLS). Habilitar RLS sem políticas
+-- impede qualquer acesso pela API pública do Supabase (chaves anon/publishable) às tabelas.
+DO $$ DECLARE t text; BEGIN
+  FOR t IN SELECT tablename FROM pg_tables WHERE schemaname = 'public' LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+  END LOOP;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON ALL TABLES IN SCHEMA public FROM authenticated'; END IF;
+END $$;
+` }];
 
-
-// ---------------------------------------------------------------------------
-// Migrações versionadas. Só adicionam colunas/tabelas (nunca removem dados).
-// Antes de aplicar migrações pendentes em um banco que já tem usuários, é feito um backup consistente
-// (VACUUM INTO) em <DATA_DIR>/backups/.
-// ---------------------------------------------------------------------------
-db.exec('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
-const hasCol = (t, c) => db.prepare(`PRAGMA table_info(${t})`).all().some((x) => x.name === c);
-const addCol = (t, c, def) => { if (!hasCol(t, c)) db.exec(`ALTER TABLE ${t} ADD COLUMN ${c} ${def}`); };
-
-const MIGRATIONS = [
-  { v: 2, name: 'v2-referencias', up() {
-    addCol('sales', 'cost', 'REAL NOT NULL DEFAULT 0');
-    addCol('sales', 'delivery_date', 'TEXT');
-    addCol('sales', 'delivery_status', "TEXT NOT NULL DEFAULT 'pendente'");
-    addCol('clients', 'stage', "TEXT NOT NULL DEFAULT 'cliente'");
-    addCol('projects', 'archived', 'INTEGER NOT NULL DEFAULT 0');
-    addCol('projects', 'domain', 'TEXT');
-    addCol('projects', 'client_id', 'INTEGER REFERENCES clients(id) ON DELETE SET NULL');
-    addCol('leads', 'priority', "TEXT NOT NULL DEFAULT 'media'");
-    addCol('leads', 'due_date', 'TEXT');
-    addCol('leads', 'archived', 'INTEGER NOT NULL DEFAULT 0');
-    addCol('users', 'username', 'TEXT');
-    addCol('users', 'phone', 'TEXT');
-    addCol('users', 'plan', "TEXT NOT NULL DEFAULT 'member'");
-    addCol('users', 'credits', 'INTEGER NOT NULL DEFAULT 100');
-    addCol('sessions', 'created_at', 'INTEGER');
-    addCol('sessions', 'user_agent', 'TEXT');
-    addCol('sessions', 'ip', 'TEXT');
-    db.exec(`
-      CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username) WHERE username IS NOT NULL;
-      CREATE TABLE IF NOT EXISTS pipeline_stages (
-        id INTEGER PRIMARY KEY, key TEXT NOT NULL UNIQUE, label TEXT NOT NULL, position INTEGER NOT NULL DEFAULT 0,
-        kind TEXT NOT NULL DEFAULT 'open' CHECK (kind IN ('open','won','lost')));
-      CREATE TABLE IF NOT EXISTS user_settings (
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, key TEXT NOT NULL, value TEXT NOT NULL,
-        PRIMARY KEY (user_id, key));
-      CREATE TABLE IF NOT EXISTS notifications (
-        id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, type TEXT NOT NULL,
-        text TEXT NOT NULL, link TEXT, read INTEGER NOT NULL DEFAULT 0, created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE INDEX IF NOT EXISTS idx_notif_user ON notifications(user_id, read);
-      CREATE TABLE IF NOT EXISTS plans (
-        key TEXT PRIMARY KEY, name TEXT NOT NULL, rank INTEGER NOT NULL, tagline TEXT, benefits TEXT,
-        ai_monthly_limit INTEGER NOT NULL DEFAULT 0, builder_monthly_limit INTEGER NOT NULL DEFAULT 0);
-      CREATE TABLE IF NOT EXISTS library_items (
-        id INTEGER PRIMARY KEY, kind TEXT NOT NULL CHECK (kind IN ('prompt','skill','animation','design')),
-        title TEXT NOT NULL, category TEXT, summary TEXT, content TEXT NOT NULL DEFAULT '', min_plan TEXT NOT NULL DEFAULT 'member',
-        niche TEXT, style TEXT, site_type TEXT, url TEXT, published INTEGER NOT NULL DEFAULT 1,
-        created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE TABLE IF NOT EXISTS play_items (
-        id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT, category TEXT, video_url TEXT NOT NULL,
-        published INTEGER NOT NULL DEFAULT 1,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')), updated_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE TABLE IF NOT EXISTS play_progress (
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        item_id INTEGER NOT NULL REFERENCES play_items(id) ON DELETE CASCADE,
-        seen_at TEXT NOT NULL DEFAULT (datetime('now')), PRIMARY KEY (user_id, item_id));
-      CREATE TABLE IF NOT EXISTS saved_prompts (
-        id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL,
-        mode TEXT NOT NULL, format TEXT NOT NULL, input TEXT NOT NULL, output TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE TABLE IF NOT EXISTS file_versions (
-        id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, path TEXT NOT NULL,
-        content TEXT NOT NULL, source TEXT NOT NULL DEFAULT 'save', user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE INDEX IF NOT EXISTS idx_versions ON file_versions(project_id, path, id);
-      CREATE TABLE IF NOT EXISTS ai_conversations (
-        id INTEGER PRIMARY KEY, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, role TEXT NOT NULL, content TEXT NOT NULL,
-        created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE INDEX IF NOT EXISTS idx_aiconv ON ai_conversations(project_id, user_id, id);
-      CREATE TABLE IF NOT EXISTS ai_usage (
-        id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        kind TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
-      CREATE INDEX IF NOT EXISTS idx_aiusage ON ai_usage(user_id, kind, created_at);
-      CREATE TABLE IF NOT EXISTS credit_ledger (
-        id INTEGER PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, delta INTEGER NOT NULL,
-        reason TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (datetime('now')));
-    `);
-    const ins = db.prepare('INSERT OR IGNORE INTO pipeline_stages(key,label,position,kind) VALUES (?,?,?,?)');
-    [['novo', 'Novos contatos', 1, 'open'], ['contato', 'Em contato', 2, 'open'], ['proposta', 'Proposta enviada', 3, 'open'],
-      ['negociacao', 'Em negociação', 4, 'open'], ['ganho', 'Conquistados', 5, 'won'], ['perdido', 'Perdidos', 6, 'lost']].forEach((r) => ins.run(...r));
-    const pl = db.prepare('INSERT OR IGNORE INTO plans(key,name,rank,tagline,benefits,ai_monthly_limit,builder_monthly_limit) VALUES (?,?,?,?,?,?,?)');
-    pl.run('member', 'Member', 1, 'Porta de entrada', 'CRM, vendas, sites e IDE\nBiblioteca de recursos básicos\nAssistente de IA com limite mensal', 30, 5);
-    pl.run('creator', 'Creator', 2, 'Círculo de criação', 'Tudo do Member\nRecursos avançados da biblioteca\nMais gerações de IA e do Builder', 150, 25);
-    pl.run('elite', 'Elite', 3, 'Círculo elite', 'Tudo do Creator\nAcesso a todos os recursos\nLimites ampliados de IA e Builder', 600, 100);
-  } }
-];
-
-function migrate() {
-  const cur = Number(db.prepare("SELECT value FROM meta WHERE key='schema_version'").get()?.value || 1);
-  const pending = MIGRATIONS.filter((m) => m.v > cur);
-  if (!pending.length) return;
-  const hasData = db.prepare('SELECT COUNT(*) n FROM users').get().n > 0;
-  if (hasData && file !== ':memory:') {
-    const dir = path.join(path.dirname(file), 'backups'); fs.mkdirSync(dir, { recursive: true });
-    const dest = path.join(dir, `neva-pre-v${pending.at(-1).v}-${Date.now()}.db`);
-    db.exec(`VACUUM INTO '${dest.replace(/'/g, "''")}'`);
-    console.log(`[db] backup criado em ${dest}`);
-  }
-  for (const m of pending) {
-    db.exec('BEGIN');
-    try { m.up(); db.prepare("INSERT INTO meta(key,value) VALUES ('schema_version',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(String(m.v)); db.exec('COMMIT'); console.log(`[db] migração ${m.name} aplicada`); }
-    catch (e) { db.exec('ROLLBACK'); throw e; }
-  }
-}
-migrate();
-
-const all = (sql, ...p) => db.prepare(sql).all(...p);
-const get = (sql, ...p) => db.prepare(sql).get(...p);
-const run = (sql, ...p) => db.prepare(sql).run(...p);
-function tx(fn) {
-  db.exec('BEGIN');
-  try { const r = fn(); db.exec('COMMIT'); return r; } catch (e) { db.exec('ROLLBACK'); throw e; }
+async function migrate() {
+  await driver.exec('CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)');
+  const lock = driver.name === 'postgres';
+  const run1 = async (client) => {
+    const cur = Number((await driver.query("SELECT value FROM meta WHERE key='schema_version'", [], client)).rows[0]?.value || 0);
+    for (const m of MIGRATIONS.filter((x) => x.v > cur)) {
+      await driver.exec(m.sql, client);
+      await driver.query("INSERT INTO meta(key,value) VALUES ('schema_version',$1) ON CONFLICT (key) DO UPDATE SET value=excluded.value", [String(m.v)], client);
+      console.log(`[db] migração ${m.name} aplicada (${driver.name})`);
+    }
+  };
+  if (lock) await driver.tx(async (client) => { await driver.query('SELECT pg_advisory_xact_lock(727274)', [], client); await run1(client); });
+  else await driver.tx(async (client) => run1(client));
 }
 
-module.exports = { db, all, get, run, tx };
+function ready() {
+  readyPromise ||= (async () => {
+    const url = process.env.DATABASE_URL;
+    if (!url && process.env.VERCEL) throw new Error('DATABASE_URL não configurada. Defina a string de conexão do Postgres (Supabase, pooler em modo transaction) nas variáveis de ambiente da Vercel.');
+    driver = url ? pgDriver(url) : pgliteDriver(process.env.DATA_DIR === ':memory:' ? ':memory:' : path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', '..', 'data')));
+    await migrate();
+    return driver.name;
+  })();
+  return readyPromise;
+}
+const close = async () => { /* pool é encerrado pelo processo */ };
+module.exports = { all, get, run, tx, exec, ready, close, NOW, TODAY, translate, MIGRATIONS };

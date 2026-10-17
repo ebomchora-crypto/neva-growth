@@ -1,13 +1,14 @@
 # Acompanhamento da implementação
 
 Estados: **Não iniciado · Em desenvolvimento · Implementado · Testado · Bloqueado por dependência externa**.
-"Testado" = coberto por teste automatizado executado nesta entrega: **18 testes de API** (`npm test`) e **31 verificações de interface no Chromium** (`npm run test:e2e`).
+"Testado" = coberto por teste automatizado executado nesta entrega: **18 testes de API** (`npm test`, Postgres) e **31 verificações de interface no Chromium** (`npm run test:e2e`).
 Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial da biblioteca é original da Neva e editável/removível por administradores.
 
 ## Plataforma e segurança
 | Recurso | Estado | Observações |
 |---|---|---|
-| Migração versionada de banco com backup automático (`VACUUM INTO`) | Testado | Verificada com cópia de banco v1 com dados (dados preservados, backup criado) |
+| Banco PostgreSQL (Supabase em produção, PGlite em dev) com migração versionada sob advisory lock; RLS ativo em todas as tabelas | Testado | 18 testes de API em PGlite; suíte `api.test.js` também executada pelo driver `pg` (rede); esquema aplicado e verificado no Supabase real (advisor: só avisos INFO de "RLS sem política", intencionais) |
+| Importador SQLite → Postgres (preserva ids, não migra sessões) | Testado | Verificado com banco da versão anterior com dados |
 | Auth, sessões, CSRF, perfis admin/membro/leitura; autorização no servidor | Testado | Viewer só lê; projetos só editáveis por dono/admin; dados pessoais por usuário |
 | Planos Member/Creator/Elite (benefícios e limites editáveis por admin; atribuição por admin) | Testado | Bloqueio de conteúdo **no servidor** (403 `plan_required`) |
 | Limites mensais de IA/Builder + proteção contra rajadas (8/min) | Testado (lógica) | Chamada real à IA não testada (sem chave) |
@@ -51,6 +52,13 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 | Importar arquivos e pastas (texto até 1 MB) | Testado. **Importar .zip não implementado** |
 | Assistente de IA: histórico por projeto/usuário, contexto do projeto, revisão por diff, aplicar, desfazer, limites | Lógica de aplicar/desfazer/histórico: Testado. Respostas da IA: Bloqueado por dependência externa |
 | Terminal e execução de back-end | **Não iniciado — arquitetura em `docs/EXECUCAO_ISOLADA.md`** (exige infraestrutura isolada; não executamos código de usuário no servidor) |
+
+## Deploy
+| Item | Estado |
+|---|---|
+| Configuração Vercel (`vercel.json`, função `api/index.js`, região gru1) | Implementado; **não testado na Vercel real** |
+| Publicação em system-nevagrowth.vercel.app | **Bloqueado por dependência externa**: a conexão desta sessão com a Vercel retorna 403 para a conta; veja `docs/DEPLOY_VERCEL.md` |
+| `DATABASE_URL` (Transaction pooler) e `SETUP_TOKEN` | Pendente: dependem de segredos que só o dono tem (senha do banco) |
 
 ## Pendências conhecidas
 - Capturas ainda não enviadas: formulários originais, seções 7–8 de Configurações, benefícios de cada plano, botão amarelo/alerta do dashboard, telas com dados. Onde a imagem não bastava, implementei hipóteses coerentes (marcadas em `REFERENCIAS_VISUAIS.md`).

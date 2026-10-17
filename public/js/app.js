@@ -47,13 +47,13 @@ async function boot() {
   let st;
   try { st = await api.get('/auth/status'); } catch { mount(root, h('div', { class: 'boot' }, 'Não foi possível conectar ao servidor. ', h('button', { class: 'btn', onclick: boot }, 'Tentar novamente'))); return; }
   state.user = st.user;
-  if (st.needsSetup) return authScreen('setup');
+  if (st.needsSetup) return authScreen('setup', st);
   if (!st.user) return authScreen('login');
   await loadMe().catch(() => {});
   shell();
 }
 
-function authScreen(mode) {
+function authScreen(mode, st = {}) {
   const setup = mode === 'setup';
   const err = h('p', { class: 'err-text', role: 'alert' });
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
@@ -63,10 +63,12 @@ function authScreen(mode) {
     try { const r = await api.post(setup ? '/auth/setup' : '/auth/login', d); state.user = r.user; await loadMe().catch(() => {}); shell(); }
     catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
   } },
+    setup && st.setupBlocked && h('div', { class: 'notice' }, 'Instalação bloqueada: defina SETUP_TOKEN nas variáveis de ambiente do servidor e faça um novo deploy.'),
     setup && h('label', { class: 'field' }, h('span', 'Seu nome'), h('input', { name: 'name', required: true, autocomplete: 'name' })),
     h('label', { class: 'field' }, h('span', 'E-mail'), h('input', { name: 'email', type: 'email', required: true, autocomplete: 'username' })),
     h('label', { class: 'field' }, h('span', 'Senha' + (setup ? ' (mín. 8 caracteres)' : '')), h('input', { name: 'password', type: 'password', required: true, minlength: setup ? 8 : null, autocomplete: setup ? 'new-password' : 'current-password' })),
-    err, h('button', { class: 'btn' }, setup ? 'Criar conta de administrador' : 'Entrar'));
+    setup && st.setupTokenRequired && h('label', { class: 'field' }, h('span', 'Token de instalação (SETUP_TOKEN)'), h('input', { name: 'setupToken', type: 'password', required: true, autocomplete: 'off' })),
+    err, h('button', { class: 'btn', disabled: setup && st.setupBlocked }, setup ? 'Criar conta de administrador' : 'Entrar'));
   mount(root, h('main', { class: 'auth' }, h('div', { class: 'card' },
     h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('h1', setup ? 'Bem-vindo' : 'Entrar'),
     h('p', { class: 'mut' }, setup ? 'Primeiro acesso: crie a conta do administrador para configurar a plataforma.' : 'Acesse sua conta para continuar.'), form)));
