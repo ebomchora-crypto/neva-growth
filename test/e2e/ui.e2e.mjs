@@ -28,6 +28,9 @@ await step(REDUCED ? 'animações: desligadas com reduzir movimento' : 'animaç�
   await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx') && !!window.gsap);
   await nav('clientes'); await page.waitForFunction(() => { const e = document.querySelector('.hero'); return e && getComputedStyle(e).opacity === '1'; }, null, { timeout: 5000 });
   await page.waitForFunction(() => document.querySelector('.hero h1 .w') !== null);
+  await page.waitForTimeout(2500);
+  const fixo = await page.evaluate(() => { const m = document.querySelector('.hero-mascot'); if (!m) return 'sem mascote'; return gsap.getTweensOf(m).length === 0 && gsap.getTweensOf(m.parentElement).length === 0 && getComputedStyle(m).transform === 'none' && getComputedStyle(m).opacity === '1' && m.getAnimations().length === 0 ? 'ok' : 'mexendo'; });
+  if (fixo !== 'ok') throw new Error('mascote não está fixo: ' + fixo);
   await nav('configuracoes'); await page.click('.snav button:has-text("Privacidade")'); await page.waitForSelector('input[aria-label="Animações"]'); await page.uncheck('input[aria-label="Animações"]');
   await page.waitForFunction(() => !document.documentElement.classList.contains('motion') && !document.querySelector('.bgfx'));
   await page.check('input[aria-label="Animações"]'); await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx')); await nav('dashboard');

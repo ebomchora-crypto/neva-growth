@@ -73,7 +73,8 @@ function countUp(el) {
 const inView = (el) => { const r = el.getBoundingClientRect(); return r.top < innerHeight * 1.05 && r.bottom > -40; };
 
 // ---------- entrada de elementos (observador): tudo que aparece em #view ganha entrada suave
-const SEL = '.hero,.card:not(.modal),.col,.lcard,tbody tr,.refcard,.siteCard,.vcard,.libitem,.tpl,.bmodel,.walletpanel,.promo,.emptyart,.bstage,.composer,.auth>.card,.auth>.mascot-img,.palette,.dropdown';
+// Mascotes são sempre fixos: nenhum contêiner que os carrega (promo, vazio, builder, login) é animado.
+const SEL = '.hero,.card:not(.modal),.col,.lcard,tbody tr,.refcard,.siteCard,.vcard,.libitem,.tpl,.bmodel,.walletpanel,.composer,.auth>.card,.palette,.dropdown';
 let queue = []; let raf = 0; const io = 'IntersectionObserver' in window ? new IntersectionObserver((es) => {
   es.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); reveal([e.target]); } });
 }, { rootMargin: '0px 0px -6% 0px' }) : null;
@@ -97,23 +98,14 @@ function flush() {
   document.querySelectorAll('.pill.on,.ktabs button.on,.atabs button.on').forEach((p) => { if (!p.dataset.fx) { p.dataset.fx = '1'; G.fromTo(p, { scale: 0.9 }, { scale: 1, duration: 0.45, ease: 'back.out(2.2)', clearProps: 'transform' }); } });
 }
 function heroIn(hero) {
+  // só o texto e os indicadores entram; o bloco, a ilustração e o mascote ficam parados
   const tl = G.timeline({ defaults: { ease: 'power3.out' } });
-  const art = hero.querySelector('.hero-mascot,.hero-art');
-  tl.fromTo(hero, { y: 26, opacity: 0, scale: 0.985 }, { y: 0, opacity: 1, scale: 1, duration: 0.7, clearProps: 'transform,opacity' }, 0);
-  const k = hero.querySelector('.kicker'); if (k) tl.from(k, { x: -18, opacity: 0, duration: 0.5 }, 0.15);
+  const k = hero.querySelector('.kicker'); if (k) tl.from(k, { x: -18, opacity: 0, duration: 0.5, clearProps: 'transform,opacity' }, 0);
   const h1 = hero.querySelector('h1');
-  if (h1) { const w = splitWords(h1); tl.from(w, { yPercent: 70, opacity: 0, rotate: 2.5, duration: 0.7, stagger: 0.06, ease: 'power4.out' }, 0.2); }
-  const p = hero.querySelector('.hero-main>p'); if (p) tl.from(p, { y: 14, opacity: 0, duration: 0.55 }, 0.5);
-  const acts = hero.querySelectorAll('.hero-actions>*'); if (acts.length) tl.from(acts, { y: -14, opacity: 0, scale: 0.92, duration: 0.5, stagger: 0.08, ease: 'back.out(1.8)' }, 0.55);
-  const stats = hero.querySelectorAll('.hero-stats .stat,.pstrip .ps,.chips3>*'); if (stats.length) tl.from(stats, { y: 18, opacity: 0, duration: 0.55, stagger: 0.07 }, 0.65);
-  if (art) {
-    tl.from(art, { x: small() ? 0 : 70, y: small() ? 30 : 0, opacity: 0, scale: 0.88, rotate: 4, duration: 0.9, ease: 'back.out(1.5)', clearProps: 'transform,opacity' }, 0.35);
-    tl.add(() => { if (art.isConnected) track(G.to(art, { y: -9, rotation: 1.2, duration: 3.2, ease: 'sine.inOut', yoyo: true, repeat: -1 })); }, '>');
-  }
-  const ring = hero.querySelector('.hero-art circle'); if (ring) track(G.to(hero.querySelectorAll('.hero-art circle'), { scale: 1.05, transformOrigin: '50% 50%', duration: 3, yoyo: true, repeat: -1, ease: 'sine.inOut', stagger: 0.4 }));
-  // brilho que atravessa o bloco de abertura
-  const sheen = document.createElement('i'); sheen.className = 'sheen'; hero.append(sheen);
-  G.fromTo(sheen, { xPercent: -120 }, { xPercent: 420, duration: 1.6, delay: 0.5, ease: 'power2.inOut', onComplete: () => sheen.remove() });
+  if (h1) { const w = splitWords(h1); tl.from(w, { yPercent: 70, opacity: 0, rotate: 2.5, duration: 0.7, stagger: 0.06, ease: 'power4.out', clearProps: 'transform,opacity' }, 0.05); }
+  const p = hero.querySelector('.hero-main>p'); if (p) tl.from(p, { y: 14, opacity: 0, duration: 0.55, clearProps: 'transform,opacity' }, 0.35);
+  const acts = hero.querySelectorAll('.hero-actions>*'); if (acts.length) tl.from(acts, { y: -14, opacity: 0, scale: 0.92, duration: 0.5, stagger: 0.08, ease: 'back.out(1.8)', clearProps: 'transform,opacity' }, 0.4);
+  const stats = hero.querySelectorAll('.hero-stats .stat,.pstrip .ps,.chips3>*'); if (stats.length) tl.from(stats, { y: 18, opacity: 0, duration: 0.55, stagger: 0.07, clearProps: 'transform,opacity' }, 0.5);
 }
 function chartIn(svg) {
   svg.querySelectorAll('path').forEach((p) => { try { const L = p.getTotalLength(); G.fromTo(p, { strokeDasharray: L, strokeDashoffset: L }, { strokeDashoffset: 0, duration: 1.4, ease: 'power2.inOut', delay: 0.25, clearProps: 'strokeDasharray,strokeDashoffset' }); } catch { /* sem geometria */ } });

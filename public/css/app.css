@@ -452,7 +452,6 @@ select.monthsel{width:auto;min-width:110px;border-radius:12px;padding:7px 12px}
 html:not(.motion) .navind{display:none}
 .hero .sheen{position:absolute;top:-10%;bottom:-10%;left:0;width:18%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.3),transparent);transform:skewX(-18deg);pointer-events:none}
 .hero h1 .w{display:inline-block;will-change:transform}
-.hero-mascot,.hero-art{will-change:transform}
 .iconbtn .dot:not(.hide){animation:ping 2.2s ease-out infinite}
 @keyframes ping{0%{box-shadow:0 0 0 0 rgba(209,67,75,.55)}70%{box-shadow:0 0 0 9px rgba(209,67,75,0)}100%{box-shadow:0 0 0 0 rgba(209,67,75,0)}}
 .livepill i{animation:ping2 2s ease-out infinite}
@@ -466,7 +465,7 @@ html:not(.motion) .navind{display:none}
 .refcard,.siteCard,.vcard,.bmodel{transform-style:preserve-3d}
 .lcard.drag{transform:rotate(2deg) scale(1.03)}
 .col.over{outline:2px dashed var(--ice-500);background:var(--ice-50)}
-.emptyart .eico,.emptyart .mascot-img{animation:bob 4s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-6px)}}
+.emptyart .eico{animation:bob 4s ease-in-out infinite}@keyframes bob{50%{transform:translateY(-6px)}}
 @media(prefers-reduced-motion:reduce){.bgfx,.rbar{display:none}.iconbtn .dot,.livepill i,.emptyart .eico,.emptyart .mascot-img,.boot{animation:none}}
 .hero h1{display:block}.hero h1 .badge{margin-left:14px;vertical-align:middle;display:inline-block;font-size:.78rem}
 @media(max-width:860px){

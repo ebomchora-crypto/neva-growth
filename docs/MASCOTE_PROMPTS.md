@@ -68,3 +68,44 @@ Cada arquivo entra no bloco de abertura da tela correspondente (no lugar da ilus
 | 10 | erro | Em uso nas telas de erro de carregamento |
 
 Originais com fundo: `docs/mascote/original-*.webp`. Versões em `public/img/mascote/`: recorte com fundo transparente (hero, clientes, erro) ou imagem original com cantos arredondados quando o recorte automático perdia partes do cenário (login, vazio-vendas, vazio-sites).
+
+## Regra: mascotes sempre fixos
+Os mascotes não têm nenhuma animação no site (sem flutuar, sem entrada, sem inclinação). Só o texto e os indicadores ao redor do mascote animam. O teste de interface verifica isso.
+
+## Segunda leva: 11 poses para as demais telas
+Mesmo bloco fixo e mesmo formato de saída da primeira leva. Anexe a folha do personagem (00) como referência em todos.
+
+**11 · `play.png` · Play**
+`[Bloco fixo] Full body, one arm holding a closed book against the chest, other hand opening an inviting palm toward the viewer, a slim laptop under the arm. Friendly, encouraging smile.`
+
+**12 · `acervo.png` · Acervo**
+`[Bloco fixo] Full body, holding three floating glass cards in both hands like a fan, each card with a tiny icon (image, speech bubble, curly braces), surprised and delighted expression.`
+
+**13 · `design.png` · Design**
+`[Bloco fixo] Full body, crouching slightly, holding several printed design reference sheets with color swatches and layout wireframes, one finger on chin, thoughtful curious look.`
+
+**14 · `prospeccao.png` · Prospecção**
+`[Bloco fixo] Full body, holding binoculars up to the eyes with one hand and pointing forward with the other, a small floating map pin glowing ice-blue next to him. Adventurous, focused.`
+
+**15 · `prompts.png` · Gerador de Prompts**
+`[Bloco fixo] Full body, writing on a floating translucent glass panel with one finger, tiny glowing sparks and a small star icon appearing from the fingertip, inspired smile.`
+
+**16 · `configuracoes.png` · Configurações**
+`[Bloco fixo] Full body, holding a large adjustable wrench in one hand and a small glowing gear in the other, relaxed confident stance, slight smirk.`
+
+**17 · `associacao.png` · Associação**
+`[Bloco fixo] Full body, proudly presenting a glowing membership card with the "N" logo in one hand, other hand on the chest, a small medal ribbon on the jacket, warm proud smile.`
+
+**18 · `tarefas.png` · Tarefas**
+`[Bloco fixo] Full body, holding a tall glass checklist panel with four items and the first two checked, giving a thumbs-up with the other hand. Satisfied, energetic.`
+
+**19 · `produtos.png` · Produtos**
+`[Bloco fixo] Full body, carrying an open cardboard box with a few small product shapes and a floating price tag with a generic currency symbol (no readable numbers), cheerful pose.`
+
+**20 · `usuarios.png` · Usuários**
+`[Bloco fixo] Full body, waving with one hand, three small round avatar bubbles floating behind in a row, welcoming expression.`
+
+**21 · `academia.png` · Academia**
+`[Bloco fixo] Full body, wearing a small graduation cap over the ears, holding an open book in one hand and a rolled diploma in the other, proud and bright smile.`
+
+Ao receber cada arquivo, eu recorto o fundo, coloco na abertura da tela correspondente (já no visual novo, com o resto da tela redesenhada) e publico.
