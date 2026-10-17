@@ -24,6 +24,11 @@ Só marco "Testado" após executar teste. **Fase atual: análise de referências
 | 5 | Etapas de funil personalizáveis, arquivar, prioridade/prazo, abas Minhas/Atraso/Prioritárias, filtros | Cap. 5 | Não iniciado |
 | 6 | Resumo do período por IA | Cap. 1 | Não iniciado (dependeria de chave de IA) |
 | 7 | Busca global / paleta de comandos, ocultar valores, tempo real | Cap. 1–5 | Não iniciado |
+| 10 | Prospecção por mapa (áreas por raio, filtros sem site/nota, créditos, potencial do território) | Cap. 10 | Não iniciado (busca real dependeria de chave Google Places) |
+| 11 | Builder por prompt com galeria de modelos, otimizar prompt, estilo/paleta, cota | Cap. 6 | Não iniciado (IA dependeria de chave) |
+| 12 | Biblioteca de referências de design com DESIGN.md (acervo próprio) | Cap. 7 | Não iniciado |
+| 13 | Acervo: Prompt Lab / Skill Vault / Animações (CRUD, copiar/baixar, acesso por plano) | Cap. 8 | Não iniciado |
+| 14 | Play: conteúdos avulsos, tempo assistido, continuar de onde parou | Cap. 9 | Não iniciado |
 | 8 | IDE: substituir em arquivos, histórico/versões, autosave, importação, execução isolada | Briefing | Não iniciado |
 | 9 | IA com edição de arquivos, diff, desfazer, histórico, limites de uso | Briefing | Não iniciado (dependeria de chave de IA) |
 

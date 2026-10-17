@@ -11,8 +11,9 @@
 - **Navegação por trilho lateral de ícones** (sem rótulos de texto), item ativo destacado. **[Evidente]**
   Ordem, de cima para baixo: logo · cartão de contato · início/dashboard · clientes · carteira (vendas) · navegador (sites) ·
   quadro/kanban (CRM) · grade com "+" (apps/ferramentas?) · separador · **5 ícones circulares com selo** · engrenagem · sair.
-  - **[Dúvida]** O ícone de cartão de contato (1º) e a grade "+" (7º) não têm destino identificável. Os 5 ícones com selo
-    abaixo do separador não são identificáveis (podem ser cursos, ferramentas, mídia, IA…). **Preciso de capturas dessas telas.**
+  - **Mapa do menu (atualizado com as capturas 6–10):** grupo superior = cartão de contato (**ainda desconhecido**) · Dashboard · Clientes · Vendas ·
+    Sites · CRM Kanban · **Builder de Sites** (grade "+", cap. 6). Grupo inferior (ícones com selo) = **Design Makers** (paleta, cap. 7) ·
+    **Acervo** (prompts/skills/animações, cap. 8) · **Play** (vídeos, cap. 9) · **Prospecção "Code Hunter"** (alvo, cap. 10) · 5º ícone (varinha) **ainda desconhecido**.
 - **Barra superior**: busca contextual (o placeholder muda por página: "Buscar cliente ou projeto", "Buscar cliente, empresa ou telefone",
   "Buscar venda, projeto ou cliente", "Buscar site, domínio ou cliente") + atalho **⌘ + Espaço** (paleta de comandos / busca global **[Hipótese]**) +
   botão de alerta (triângulo) + [só no dashboard] botão amarelo (ícone de cupom/ingresso, função desconhecida).
@@ -108,13 +109,69 @@ ocultar valores; cartão "carteira"; atalhos Cliente/Venda; paleta ⌘Espaço.
 
 ---
 
+---
+
+## Captura 6 — Builder de Sites (gerador por prompt) — marcado **"EM BREVE"**
+
+**Componentes [Evidente]**: "← Voltar aos sites"; etiqueta "BUILDER DE SITES · EM BREVE"; título "O que vamos criar, {usuário}?"; campo de prompt
+"Descreva o site que você quer criar…"; seletor de **modelo/nível ("Syre / Medium")**; botões **+** (anexar), **Otimizar prompt**, paleta (estilo/cores), microfone (**[Hipótese]** ditado por voz),
+**Criar site**; galeria de **modelos iniciais** (Design de interiores, Estúdio de tecnologia, Operações com IA, Agência de IA) com carrossel e "Ver todos os modelos".
+**Relações**: abre a partir de Sites (botão "Builder de Sites 25/10", cap. 4); o "25/10" provavelmente é a cota do builder. **O próprio sistema de referência o rotula "em breve" — não há como saber como ele realmente funciona.**
+**Já existe na Neva**: geração de projeto por IA (brief + nome + tipo), modelos prontos de site/app/sistema, IDE.
+**Ausente**: tela única de prompt com galeria de modelos visuais; otimizar prompt (IA); anexos/referências; escolha de estilo/paleta; nível de esforço do modelo; entrada por voz; cota de uso; mais modelos (hoje 3 tipos).
+**Dúvidas**: o que "Syre" significa (provavelmente o nome do modelo/agente deles); o que o botão "+" anexa; se a geração é por etapas.
+
+## Captura 7 — Design Makers (biblioteca de referências de design)
+
+**Componentes [Evidente]**: hero "Identidades reais. DESIGN.md prontos."; texto: explorar sites do mundo, achar referência e **levar o DESIGN.md completo** para o projeto;
+busca "Buscar referência, estilo ou categoria"; "24 referências"; ordenação "Nome: A→Z"; filtros **Nicho · Estilo visual · Tipo de site**; atalhos **Tudo · SaaS · Agências · E-commerce · IA · Fintech**; "Limpar filtros"; grade de cartões com miniatura do site.
+**[Hipótese]** Cada cartão abre um detalhe com um arquivo **DESIGN.md** (tokens, tipografia, cores, componentes) para copiar/baixar e usar como contexto de IA ao gerar sites.
+**Já existe na Neva**: nada equivalente.
+**Ausente**: catálogo de referências com filtros e DESIGN.md; ligação com o gerador (usar DESIGN.md como contexto).
+**Dúvidas / cuidado**: o conteúdo (24 sites reais e seus DESIGN.md) é **curadoria deles** — a Neva precisaria de acervo **próprio** (ex.: DESIGN.md originais e referências cadastradas por admins), sem copiar o catálogo.
+
+## Captura 8 — Acervo (Prompt Lab · Skill Vault · Animações · Gerar com IA)
+
+**Componentes [Evidente]**: faixa de abas **Prompt Lab** (prompts prontos para usar) · **Skill Vault** (métodos e instalação) · **Animações** (movimento para sites) · botão **"Gerar com IA" (VIP)**.
+Prompt Lab: hero "Prompts para sair do rascunho." ("copie ou baixe e ajuste no seu próprio chat"); selos "2 recursos publicados · Texto completo · Sincronizado";
+busca "por objetivo, área ou palavra-chave"; categorias (Todos / "Design e produto"); "02 encontrados"; lista "Explore os prompts" (01 "Direção de landing page") com painel de detalhe.
+**Interações [Evidente/Hipótese]**: buscar, filtrar por categoria, abrir recurso, **copiar** e **baixar** o texto; "VIP" indica recurso restrito por plano (**[Hipótese]**).
+**Já existe na Neva**: nada equivalente (a IDE tem assistente, mas sem biblioteca de prompts/skills).
+**Ausente**: biblioteca de recursos (prompts, skills, animações) com CRUD admin, categorias, busca, copiar/baixar; níveis de acesso por plano.
+**Dúvidas**: o que é "Skill Vault" (**[Hipótese]** pacotes de instruções para agentes de código com instruções de instalação); como "Animações" são entregues (trechos de código? demos?).
+
+## Captura 9 — Play (vídeos e conteúdos)
+
+**Componentes [Evidente]**: hero "Conhecimento para criar sem parar." (vídeos, análises e práticas, "sem etapas obrigatórias"); indicador **"Conteúdos vistos 0% — 0 de 1 conteúdo visto · 0s assistidos"**
+(mede **itens vistos e tempo assistido**); bloco "Entre no Play" com botão **Explorar conteúdos**; cartões de categorias/coleções (ferramentas de IA, Venda, Estratégia).
+**Já existe na Neva**: Academia (cursos → aulas, vídeo YouTube/Vimeo, progresso por aula).
+**Ausente**: conteúdo avulso em coleções (sem trilha obrigatória); **tempo assistido**; capas/categorias; "continuar de onde parou".
+**Dúvidas**: origem/hospedagem dos vídeos; como "assistido" é medido (**[Hipótese]** evento do player).
+
+## Captura 10 — Prospecção "Code Hunter" (mapa)
+
+**Componentes [Evidente]**: layout em duas colunas: painel de passos + **mapa escuro em tela cheia**.
+- **01 Defina o alvo**: *Segmento* (opcional, "Clínicas, restaurantes, academias…") e *Localidade* ("Cidade, bairro ou estado"); dica "**em branco, a busca considera somente os pins do mapa**".
+- **02 Qualificação**: resumo "**Sem site · 100 créditos · qualquer nota**" (filtros: apenas empresas **sem site**, **limite de 100 créditos** por busca, **nota mínima**) — expansível.
+- **03 Território**: "1/3 áreas"; **raio das áreas** (slider, 10 km); botão de ação cortado no rodapé (provavelmente adicionar área/buscar).
+- Mapa: pin **P1** com círculo do raio; cartão "**Território conectado — 1 área selecionada (01/03)** · 10 km sincronizados · 0 sinais encontrados"; cartão "**Potencial do território 0% — aguardando sinais**";
+  busca "Explorar o mapa — cidade, bairro ou endereço" + **Ir ao local**; controles de zoom (12) e centralizar.
+**Interações [Evidente/Hipótese]**: posicionar até 3 áreas no mapa, ajustar raio, buscar empresas dentro das áreas; resultados viram "sinais"; "potencial" = **[Hipótese]** proporção de empresas qualificadas (ex.: sem site) na área.
+**Já existe na Neva**: busca textual por segmento + localização via Google Places (exige chave), com importação como leads e detecção de duplicata por nome+telefone.
+**Ausente**: **mapa interativo**; áreas por **raio** (até 3); filtro **"sem site"** e **nota mínima**; **sistema de créditos/limite por busca**; indicador de potencial do território; resultados sobre o mapa.
+**Dúvidas / limitações**: provedor do mapa e das empresas não identificável pela imagem; como "créditos" são consumidos (por resultado? por busca?). A API oficial Google Places permite restringir por círculo e retorna site/nota, então os filtros são viáveis **com chave**; mapa exige biblioteca de mapas (ex.: Leaflet/MapLibre com tiles autorizados).
+
 ## Relações entre módulos (hipótese de modelo)
 
 ```
-Prospecção → Empresa/Lead ──(estágio)──▶ CRM Kanban ──▶ Cliente ──▶ Venda/Projeto (custo, margem, entrega) ──▶ Dashboard (lucro, ticket, período)
+Prospecção (mapa) → Empresa/Lead ──(estágio)──▶ CRM Kanban ──▶ Cliente ──▶ Venda/Projeto (custo, margem, entrega) ──▶ Dashboard (lucro, ticket, período)
                                                          └──────────▶ Site/Entrega digital (domínio, status)
 ```
 
 ## Pendências para a próxima rodada de capturas
-Formulários (Novo cliente, Nova venda, Nova oportunidade, Adicionar site), os 5 módulos do grupo inferior do trilho, ícones 1 e 7, o botão amarelo/alerta,
-Builder de Sites (25/10), Configurações, menu do usuário, estados **com dados**, versão mobile.
+Formulários (Novo cliente, Nova venda, Nova oportunidade, Adicionar site), **ícone 1 do trilho (cartão de contato) e 5º ícone inferior (varinha)**, botão amarelo/alerta do dashboard,
+detalhe de um item de Design Makers / Prompt Lab / Skill Vault / Animações / Play, tela "Gerar com IA (VIP)", Configurações, menu do usuário, estados **com dados**, versão mobile.
+
+## Índice das capturas salvas (`docs/referencias/`)
+01 Dashboard · 02 Clientes · 03 Vendas · 04 Sites · 05 CRM Kanban · 06 Builder de Sites · 07 Design Makers · 08 Acervo/Prompt Lab · 09 Play · 10 Prospecção Code Hunter.
+> São imagens de um produto de terceiros, usadas só como referência interna de análise.
