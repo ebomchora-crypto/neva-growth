@@ -1,7 +1,9 @@
 import { api } from './api.js';
 import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
+import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow } from './motion.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
+initMotion();
 const root = document.getElementById('app');
 const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m));
 
@@ -54,6 +56,7 @@ async function boot() {
 }
 
 function authScreen(mode, st = {}) {
+  snow(true);
   const setup = mode === 'setup';
   const err = h('p', { class: 'err-text', role: 'alert' });
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
@@ -132,6 +135,7 @@ async function pollNotifications() {
 }
 
 function shell() {
+  snow(false);
   const side = h('aside', { class: 'side', id: 'side' });
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
@@ -157,7 +161,7 @@ function shell() {
       h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', `${roleName} · ${state.me?.plan?.name || ''}`))));
   mount(root, h('div', { class: 'shell' }, side, scrim, h('div', { class: 'main' }, top, view)));
     clearInterval(pollTimer); pollNotifications(); pollTimer = setInterval(pollNotifications, 30000);
-  route();
+  shellIn(); route();
 }
 
 async function route() {
@@ -166,22 +170,26 @@ async function route() {
   if (!r) { location.hash = '#/dashboard'; return; }
   if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
+  navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on'));
   const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';
   state.cleanup?.(); state.cleanup = null;
+  await routeStart(view);
   const box = h('div', { class: 'content' + (r.wide ? ' wide' : '') }, h('p', { class: 'mut' }, 'Carregando…'));
   mount(view, box);
   try {
     const mod = await r.page(); const page = mod.default || mod;
     const out = await page.render(box, { user: state.user, me: state.me, params, navigate: (p) => { location.hash = '#/' + p; }, reloadMe: loadMe });
     if (typeof out === 'function') state.cleanup = out;
-    pollNotifications();
+    pollNotifications(); routeEnd();
   } catch (e) {
+    routeEnd();
     if (e.status === 401) return;
     mount(box, h('div', { class: 'empty' }, mascotImg('erro'), h('b', 'Não foi possível carregar esta página'), e.message || 'Erro inesperado.', h('div', { style: 'margin-top:12px' }, h('button', { class: 'btn ghost', onclick: route }, 'Tentar novamente'))));
     console.error(e);
   }
 }
 
+window.addEventListener('resize', debounce(() => navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on')), 150));
 window.addEventListener('hashchange', () => { if (state.user) route(); });
 window.addEventListener('neva:unauth', () => { if (state.user) { state.user = null; clearInterval(pollTimer); toast('Sessão expirada. Entre novamente.', 'err'); boot(); } });
 boot();

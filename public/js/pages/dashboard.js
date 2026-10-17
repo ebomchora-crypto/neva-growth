@@ -10,8 +10,8 @@ function delta(v) {
   if (v === null) return h('span', { class: 'delta', title: 'Sem lucro no período anterior para comparar' }, 'novo');
   return h('span', { class: 'delta ' + (v > 0 ? 'up' : v < 0 ? 'down' : '') }, `${v > 0 ? '▲' : v < 0 ? '▼' : '•'} ${Math.abs(v).toLocaleString('pt-BR')}%`);
 }
-function lineChart(series) {
-  const W = 640, H = 230, L = 52, R = 12, T = 12, B = 28;
+function lineChart(series, avail = 640) {
+  const W = Math.max(300, Math.min(640, avail)), H = 230, L = 52, R = 12, T = 12, B = 28;
   const max = Math.max(1, ...series.map((s) => Math.max(s.revenue, s.profit))); const step = series.length > 1 ? (W - L - R) / (series.length - 1) : 0;
   const x = (i) => (series.length > 1 ? L + i * step : (W + L - R) / 2); const y = (v) => T + (H - T - B) * (1 - v / max);
   const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': 'Receita e lucro no período' });
@@ -24,8 +24,8 @@ function lineChart(series) {
   line('revenue', '#aacfee'); line('profit', '#2f7bbd');
   return svg;
 }
-function barChart(series) {
-  const W = 420, H = 200, L = 8, R = 8, T = 10, B = 24; const max = Math.max(1, ...series.map((s) => s.profit)); const bw = Math.max(4, ((W - L - R) / series.length) * 0.6);
+function barChart(series, avail = 420) {
+  const W = Math.max(280, Math.min(420, avail)), H = 200, L = 8, R = 8, T = 10, B = 24; const max = Math.max(1, ...series.map((s) => s.profit)); const bw = Math.max(4, ((W - L - R) / series.length) * 0.6);
   const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', style: 'height:200px', role: 'img', 'aria-label': 'Lucro por período' });
   const slot = (W - L - R) / series.length; const every = Math.ceil(series.length / 10);
   svg.append(sv('line', { class: 'grid', x1: L, x2: W - R, y1: H - B, y2: H - B }));
@@ -65,7 +65,7 @@ export default {
                   h('button', { class: 'btn ghost sm pillbtn', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina ANTHROPIC_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, aiOn ? '✦ Gerar resumo do período' : 'Resumo por IA (não configurado)'),
                   h('div', { id: 'periodbar' }))),
               summaryBox,
-              lineChart(m.series),
+              lineChart(m.series, area.clientWidth - 64),
               h('div', { class: 'foot' },
                 h('span', { class: 'chip' }, 'Ticket médio ', h('b', money(m.ticket)), h('span', { class: 'mut sm' }, ` · ${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}`)),
                 h('div', { class: 'row' }, h('span', { class: 'chip' }, h('i', { style: 'background:#2f7bbd' }), 'Lucro líquido'), h('span', { class: 'chip' }, h('i', { style: 'background:#aacfee' }), 'Receita total'))),
@@ -76,7 +76,7 @@ export default {
                 h('div', { class: 'go' }, h('a', { class: 'btn sm', href: '#/prospeccao' }, 'Prospectar'), h('a', { class: 'btn ghost sm', href: '#/leads' }, 'Abrir CRM')), heroArt('dashboard')),
               h('section', { class: 'card pad stack' },
                 h('div', { class: 'row', style: 'justify-content:space-between' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, h('b', { style: 'font-size:1.5rem' }, money(m.profit)), delta(m.profitVariation))), monthsSel),
-                barChart(m.series)))),
+                barChart(m.series, area.clientWidth - 64)))),
           h('aside', { class: 'walletpanel' },
             h('div', { class: 'wh' }, h('h2', 'Minha carteira'), canWrite && h('a', { class: 'btn sm', href: '#/vendas' }, '+ Nova venda')),
             h('div', { class: 'cardvis' }, h('span', { class: 'chipic' }), h('span', { class: 'mk' }, 'NEVA'),

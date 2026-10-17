@@ -64,6 +64,18 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 
 | Mascote da Neva (raposa) nas aberturas, estados vazios, login e erros; Play (faixa "Entre no Play"), Acervo (barra de abas e chips), Design (filtros e atalhos) e Builder (compositor com modelos paginados), capturas 16–19 | Testado (e2e) |
 
+## Animações e celular (GSAP)
+| Item | Estado |
+|---|---|
+| GSAP 3 servido localmente (`public/vendor/gsap.min.js`, sem CDN); módulo `public/js/motion.js` | Testado (e2e) |
+| Entrada: abertura (kicker, título palavra a palavra, ações, indicadores, mascote com flutuação, brilho), cartões/colunas/linhas em cascata, revelação ao rolar, contagem de valores em R$, barras de progresso, gráficos desenhados | Testado (e2e) |
+| Transição entre páginas com barra de progresso; indicador deslizante no menu; modais e avisos com entrada/saída; pop ao soltar card no Kanban; botões magnéticos e inclinação 3D nas galerias (só com mouse) | Testado (e2e) |
+| Fundo animado (manchas de luz com parallax) e neve na tela de entrada | Testado (e2e) |
+| Respeita "reduzir movimento" do sistema; interruptor em Configurações → Privacidade (por navegador); sem GSAP nada fica escondido | Testado (e2e, execução normal e com `REDUCED=1`) |
+| Celular: topo compacto, aberturas empilhadas, faixas de indicadores em grade, Kanban com rolagem por coluna, gráficos na largura real, modais como folha inferior, entradas em 16 px (sem zoom do iOS) | Testado em 390 px (sem rolagem horizontal) |
+
+Licença: o GSAP é gratuito (licença padrão da GreenSock/Webflow), cópia em `public/vendor/GSAP-LICENSE.txt` quando disponível.
+
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
 ## Deploy

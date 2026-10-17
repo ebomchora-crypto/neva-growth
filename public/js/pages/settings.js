@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h, mount, toast, fail, fieldEl, readForm, hero, dtt, confirmBox, downloadFile } from '../ui.js';
 import { applyPrivacy } from '../app.js';
+import { motionEnabled, setMotion } from '../motion.js';
 
 const SECTIONS = [['perfil', 'Meu perfil', 'Identidade e contato'], ['seguranca', 'Segurança', 'Senha e sessões'], ['notificacoes', 'Notificações', 'Alertas de vendas'], ['privacidade', 'Privacidade', 'Valores no painel'],
   ['crm', 'CRM', 'Prospecção e funil'], ['plano', 'Meu plano', 'Acesso e benefícios'], ['integracoes', 'Integrações', 'IA e prospecção'], ['dados', 'Dados', 'Exportação e backup']];
@@ -34,7 +35,12 @@ export default {
       },
       async notificacoes() { return card(3, 'Notificações', h('p', { class: 'sm mut', style: 'margin:0' }, 'Alertas aparecem no sino do topo (in-app). Você não recebe alertas de ações que você mesmo fez.'),
         switchRow('notify_sales', 'Vendas', 'Vendas pagas e oportunidades conquistadas.'), switchRow('notify_tasks', 'Tarefas', 'Tarefas atribuídas a você por outra pessoa.'), switchRow('notify_leads', 'Leads', 'Novos leads cadastrados por outros usuários.')); },
-      async privacidade() { return card(4, 'Privacidade', switchRow('hide_values', 'Ocultar valores no painel', 'Desfoca valores monetários em todas as telas (também pelo ícone de olho no topo). Vale só para a sua conta.')); },
+      async privacidade() {
+        const mcb = h('input', { type: 'checkbox', checked: motionEnabled(), 'aria-label': 'Animações', onchange: () => { setMotion(mcb.checked); toast(mcb.checked ? 'Animações ligadas.' : 'Animações desligadas.', 'ok'); } });
+        const sys = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        return h('div', { class: 'stack' }, card(4, 'Privacidade', switchRow('hide_values', 'Ocultar valores no painel', 'Desfoca valores monetários em todas as telas (também pelo ícone de olho no topo). Vale só para a sua conta.')),
+          card(4, 'Animações', h('label', { class: 'switch' }, h('span', h('b', 'Animações e efeitos de fundo'), h('div', { class: 'sm mut' }, sys ? 'Seu sistema pede para reduzir movimento, então elas ficam desligadas.' : 'Transições, entradas e fundo animado. Vale só para este navegador. Desligue se o aparelho estiver lento.')), mcb)));
+      },
       async crm() {
         const radius = h('input', { type: 'range', min: 1, max: 50, value: me.settings.prospect_radius_km, 'aria-label': 'Raio padrão' }); const rv = h('b', `${me.settings.prospect_radius_km} km`);
         radius.oninput = () => { rv.textContent = radius.value + ' km'; }; radius.onchange = async () => { try { await api.put('/me/settings', { prospect_radius_km: radius.value }); toast('Raio padrão salvo.', 'ok'); } catch (e) { fail(e); } };
@@ -51,7 +57,7 @@ export default {
           h('p', { class: 'sm mut' }, 'Chaves ficam apenas no servidor (variáveis de ambiente) e nunca são enviadas ao navegador.'));
       },
       async dados() { return card(8, 'Dados', h('p', 'Exporte uma cópia dos dados do workspace (JSON, sem senhas).'), isAdmin ? h('div', h('button', { class: 'btn', onclick: async () => { try { const r = await fetch('/api/me/export', { credentials: 'same-origin', headers: { 'x-requested-with': 'neva' } }); if (!r.ok) throw new Error((await r.json()).error); downloadFile('neva-export.json', await r.blob()); } catch (e) { fail(e); } } }, 'Exportar dados (JSON)')) : h('div', { class: 'notice info' }, 'Somente administradores podem exportar os dados.'),
-        h('p', { class: 'sm mut' }, 'O banco SQLite fica em DATA_DIR/neva.db. Antes de cada migração de esquema é criado um backup automático em DATA_DIR/backups/.')); }
+        h('p', { class: 'sm mut' }, 'Os dados ficam no banco PostgreSQL do projeto. Faça cópias pelo painel do provedor do banco e use a exportação acima para ter um arquivo seu.')); }
     };
     views.render = async (key) => { sec = key; drawNav(); try { mount(content, await views[key]()); } catch (e) { mount(content, h('div', { class: 'empty' }, e.message)); } };
     const drawNav = () => mount(nav, SECTIONS.map(([k, l, d]) => h('button', { class: sec === k ? 'on' : '', onclick: () => views.render(k) }, h('b', l), h('small', d))));

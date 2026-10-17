@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { pop } from '../motion.js';
 import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, brl, money, dt, dtt, debounce, downloadFile, toCSV, parseCSV, pills, hero, statCard, icon } from '../ui.js';
 
 const ACT = { nota: 'Nota', ligacao: 'Ligação', email: 'E-mail', reuniao: 'Reunião', whatsapp: 'WhatsApp', etapa: 'Etapa' };
@@ -12,7 +13,7 @@ export default {
     let stages = await api.get('/pipeline/stages');
     const users = await api.get('/users/options');
     const st = { view: ss.get('leadsView') || 'kanban', tab: 'todas', q: '', archived: false, priority: '', source: '', owner: '', min: ss.get('crmMin') === '1' };
-    let leads = []; let archivedCount = 0;
+    let leads = []; let archivedCount = 0; let justId = null;
     const area = h('div'); const statsBox = h('div', { class: 'hero-stats' }); const heroBox = h('div'); const bar = h('div', { class: 'stack', style: 'margin-bottom:14px' });
     const stageLabel = (k) => stages.find((s) => s.key === k)?.label || k;
     const firstOpen = () => stages.find((s) => s.kind === 'open')?.key;
@@ -56,7 +57,7 @@ export default {
       modal({ title: 'Filtros', body: f, actions: [{ label: 'Limpar', kind: 'ghost', onClick: () => { st.priority = st.source = st.owner = ''; load(); } }, { label: 'Aplicar', onClick: () => { st.priority = f.priority.value; st.owner = f.owner.value; st.source = f.source.value; load(); } }] });
     }
     function card(l) {
-      const el = h('div', { class: 'lcard', draggable: canWrite && !st.archived ? 'true' : null, tabindex: 0, onclick: () => openLead(l.id), onkeydown: (e) => { if (e.key === 'Enter') openLead(l.id); } },
+      const el = h('div', { class: 'lcard' + (l.id === justId ? ' just' : ''), draggable: canWrite && !st.archived ? 'true' : null, tabindex: 0, onclick: () => openLead(l.id), onkeydown: (e) => { if (e.key === 'Enter') openLead(l.id); } },
         h('div', h('span', { class: 'pri ' + l.priority, title: `Prioridade ${l.priority}` }), h('b', l.name)), l.company && h('div', { class: 'sm mut' }, l.company),
         h('div', { class: 'row', style: 'justify-content:space-between;margin-top:6px' }, h('span', { class: 'sm' }, money(l.value)), l.due_date && h('span', { class: 'sm ' + (late(l) ? 'late' : 'mut') }, (late(l) ? '⚠ ' : '') + dt(l.due_date))),
         l.owner_name && h('span', { class: 'badge', style: 'margin-top:6px' }, l.owner_name.split(' ')[0]));
@@ -88,7 +89,7 @@ export default {
             e.preventDefault(); col.classList.remove('over');
             const id = Number(e.dataTransfer.getData('text/plain')); const l = leads.find((x) => x.id === id);
             if (!l || l.status === s.key) return;
-            const prev = l.status; l.status = s.key; draw();
+            const prev = l.status; l.status = s.key; justId = id; draw(); pop(document.querySelector('.lcard.just')); justId = null;
             try { await api.post(`/leads/${id}/stage`, { status: s.key }); } catch (ex) { l.status = prev; draw(); fail(ex); }
           });
         }

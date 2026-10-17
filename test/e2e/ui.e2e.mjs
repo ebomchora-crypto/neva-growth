@@ -6,7 +6,8 @@ import path from 'node:path';
 const base = process.env.BASE_URL || 'http://127.0.0.1:3111';
 const OUT = process.env.E2E_OUT || os.tmpdir();
 const browser = await chromium.launch({ executablePath: process.env.CHROMIUM_PATH || '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
-const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true });
+const REDUCED = !!process.env.REDUCED;
+const ctx = await browser.newContext({ viewport: { width: 1360, height: 900 }, acceptDownloads: true, reducedMotion: REDUCED ? 'reduce' : 'no-preference' });
 const page = await ctx.newPage(); page.setDefaultTimeout(7000);
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
@@ -21,6 +22,15 @@ await page.goto(base);
 await step('setup admin + dashboard', async () => {
   await page.fill('input[name=name]', 'Ana Teste'); await page.fill('input[name=email]', 'ana@neva.test'); await page.fill('input[name=password]', 'senha-forte-123');
   await page.click('button:has-text("Criar conta")'); await page.waitForSelector('text=Lucro no período'); await page.waitForSelector('text=Minha carteira');
+});
+await step(REDUCED ? 'animações: desligadas com reduzir movimento' : 'animações: GSAP ativo, entrada termina visível e interruptor funciona', async () => {
+  if (REDUCED) { await page.waitForFunction(() => !document.documentElement.classList.contains('motion') && !document.querySelector('.bgfx')); return; }
+  await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx') && !!window.gsap);
+  await nav('clientes'); await page.waitForFunction(() => { const e = document.querySelector('.hero'); return e && getComputedStyle(e).opacity === '1'; }, null, { timeout: 5000 });
+  await page.waitForFunction(() => document.querySelector('.hero h1 .w') !== null);
+  await nav('configuracoes'); await page.click('.snav button:has-text("Privacidade")'); await page.waitForSelector('input[aria-label="Animações"]'); await page.uncheck('input[aria-label="Animações"]');
+  await page.waitForFunction(() => !document.documentElement.classList.contains('motion') && !document.querySelector('.bgfx'));
+  await page.check('input[aria-label="Animações"]'); await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx')); await nav('dashboard');
 });
 await step('dashboard: períodos e estado vazio honesto', async () => {
   await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('text=Nenhuma venda paga neste período');

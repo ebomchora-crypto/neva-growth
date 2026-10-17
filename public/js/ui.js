@@ -1,4 +1,5 @@
 // Utilitários de UI: construtor DOM seguro (sem innerHTML), modais, toasts, formatação.
+import { modalIn, modalOut, toastIn, toastOut } from './motion.js';
 export function h(tag, attrs, ...kids) {
   const el = document.createElement(tag);
   if (attrs != null && (typeof attrs !== 'object' || attrs instanceof Node || Array.isArray(attrs))) { kids.unshift(attrs); attrs = null; }
@@ -34,14 +35,15 @@ export const debounce = (fn, ms = 300) => { let t; return (...a) => { clearTimeo
 
 export function toast(msg, type = '') {
   const t = h('div', { class: 'toast ' + type }, msg);
-  document.getElementById('toasts').append(t);
-  setTimeout(() => t.remove(), type === 'err' ? 6000 : 3200);
+  document.getElementById('toasts').append(t); toastIn(t);
+  setTimeout(() => toastOut(t, () => t.remove()), type === 'err' ? 6000 : 3200);
 }
 export const fail = (e) => toast(e?.message || 'Erro inesperado.', 'err');
 
 export function modal({ title, body, actions = [], size = '', onClose }) {
   const back = h('div', { class: 'modal-back' });
-  const close = () => { back.remove(); document.removeEventListener('keydown', esc); onClose?.(); };
+  let closing = false;
+  const close = () => { if (closing) return; closing = true; document.removeEventListener('keydown', esc); modalOut(back, box, () => back.remove()); onClose?.(); };
   const esc = (e) => { if (e.key === 'Escape') close(); };
   const box = h('div', { class: 'modal ' + size, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('header', h('h2', title), h('button', { class: 'x', 'aria-label': 'Fechar', onclick: close }, '×')),
@@ -55,7 +57,7 @@ export function modal({ title, body, actions = [], size = '', onClose }) {
   back.append(box);
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   document.addEventListener('keydown', esc);
-  document.body.append(back);
+  document.body.append(back); modalIn(back, box);
   (box.querySelector('input,select,textarea,button.btn') || box).focus?.();
   return { close, box };
 }
@@ -137,7 +139,7 @@ export const icon = (name) => {
 };
 
 // ---- Valores monetários ocultáveis (preferência de privacidade)
-export const money = (n) => h('span', { class: 'money' }, brl(n));
+export const money = (n) => h('span', { class: 'money', 'data-v': Number.isFinite(Number(n)) ? Number(n) : null }, brl(n));
 export function pills({ items, value, counts, onChange }) {
   return h('div', { class: 'pills', role: 'tablist' }, items.map(([v, l]) => h('button', { type: 'button', role: 'tab', class: 'pill' + (String(value) === String(v) ? ' on' : ''), 'aria-selected': String(value) === String(v), onclick: () => onChange(v) },
     l, counts && counts[v] !== undefined && h('span', { class: 'cnt' }, counts[v]))));
@@ -174,7 +176,7 @@ function drawShape(kind) {
 export function hero({ kicker, title, subtitle, actions, stats, art, badge, aside, actionsClass = '' }) {
   return h('section', { class: 'hero' }, h('div', { class: 'hero-main' },
     h('div', { class: 'hero-head' }, h('div', kicker && h('div', { class: 'kicker' }, h('span', '/'), ' ', kicker), h('h1', title, badge)), actions && h('div', { class: 'hero-actions ' + actionsClass }, actions)),
-    subtitle && h('p', subtitle), stats && h('div', { class: 'hero-stats' }, stats)),
+    subtitle && h('p', subtitle), stats && (stats instanceof Element && /hero-stats|pstrip|chips3/.test(stats.className) ? stats : h('div', { class: 'hero-stats' }, stats))),
     h('div', { class: 'hero-side' }, aside, art ? heroArt(art) : null));
 }
 export const copyText = async (text, okMsg = 'Copiado.') => {
