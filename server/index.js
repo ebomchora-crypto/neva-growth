@@ -24,7 +24,7 @@ function createApp() {
     catch (e) {
       console.error('[init]', e.message);
       const missing = /DATABASE_URL/.test(e.message);
-      res.status(503).json({ error: missing ? e.message : 'Banco de dados indisponível. Verifique DATABASE_URL (use a string do Transaction pooler do Supabase) e a senha do banco.', code: missing ? 'db_not_configured' : 'db_unavailable', detail: missing ? undefined : String(e.code || e.name || '') });
+      res.status(503).json({ error: missing ? e.message : 'Banco de dados indisponível. Verifique DATABASE_URL (use a string do Transaction pooler do Supabase) e a senha do banco.', code: missing ? 'db_not_configured' : 'db_unavailable', detail: missing ? undefined : `${e.code || e.name || ''} ${String(e.message || '').replace(/postgres(ql)?:\/\/\S+/gi, '[url]')}`.trim().slice(0, 200) });
     }
   });
   app.use(A.loadUser);

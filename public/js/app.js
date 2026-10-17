@@ -45,7 +45,7 @@ async function loadMe() {
 
 async function boot() {
   let st;
-  try { st = await api.get('/auth/status'); } catch { mount(root, h('div', { class: 'boot' }, 'Não foi possível conectar ao servidor. ', h('button', { class: 'btn', onclick: boot }, 'Tentar novamente'))); return; }
+  try { st = await api.get('/auth/status'); } catch (e) { mount(root, h('div', { class: 'boot', style: 'text-align:center;padding:20px' }, h('div', h('p', 'Não foi possível iniciar o servidor.'), h('p', { class: 'mut sm' }, e.message), h('button', { class: 'btn', onclick: boot }, 'Tentar novamente')))); return; }
   state.user = st.user;
   if (st.needsSetup) return authScreen('setup', st);
   if (!st.user) return authScreen('login');
