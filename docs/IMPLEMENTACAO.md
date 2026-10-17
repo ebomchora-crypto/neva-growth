@@ -74,7 +74,7 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 | Respeita "reduzir movimento" do sistema; interruptor em Configurações → Privacidade (por navegador); sem GSAP nada fica escondido | Testado (e2e, execução normal e com `REDUCED=1`) |
 | Celular: topo compacto, aberturas empilhadas, faixas de indicadores em grade, Kanban com rolagem por coluna, gráficos na largura real, modais como folha inferior, entradas em 16 px (sem zoom do iOS) | Testado em 390 px (sem rolagem horizontal) |
 
-Licença: o GSAP é gratuito (licença padrão da GreenSock/Webflow), cópia em `public/vendor/GSAP-LICENSE.txt` quando disponível.
+Licença: o GSAP é gratuito para uso comercial (licença padrão da GreenSock/Webflow); o pacote npm `gsap` traz o texto da licença.
 
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
