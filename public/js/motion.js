@@ -1,5 +1,6 @@
 // Animações da Neva Growth (GSAP). Tudo é opcional: sem GSAP, com "reduzir movimento" do sistema
 // ou com a preferência desligada em Configurações, nada é escondido nem animado.
+import { shaderBg } from './shader-bg.js';
 const G = window.gsap;
 const KEY = 'neva-motion';
 const mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
@@ -8,6 +9,7 @@ export const motionEnabled = () => Boolean(G) && !mq.matches && stored() !== 'of
 export function setMotion(on) {
   try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch { /* sem storage */ }
   document.documentElement.classList.toggle('motion', motionEnabled());
+  shaderBg.setAnimated(on);
   if (!on) { kill(); G?.globalTimeline.clear(); bg?.remove(); bg = null; mo?.disconnect(); mo = null; document.querySelectorAll('.navind').forEach((n) => { n.style.display = 'none'; }); }
   else { startBackground(); observeView(); magnetic(); document.querySelectorAll('.navind').forEach((n) => { n.style.display = ''; }); }
 }
@@ -22,19 +24,7 @@ export function kill() { loops.forEach((t) => t.kill?.()); loops.clear(); }
 function startBackground() {
   if (!motionEnabled() || bg) return;
   bg = document.createElement('div'); bg.className = 'bgfx'; bg.setAttribute('aria-hidden', 'true');
-  const n = small() ? 2 : 3;
-  for (let i = 1; i <= n; i++) { const b = document.createElement('i'); b.className = 'blob b' + i; bg.append(b); }
   document.body.prepend(bg);
-  const blobs = [...bg.children];
-  blobs.forEach((b, i) => {
-    G.set(b, { xPercent: -50, yPercent: -50, left: ['18%', '82%', '55%'][i], top: ['22%', '30%', '86%'][i] });
-    G.to(b, { x: () => G.utils.random(-120, 120), y: () => G.utils.random(-90, 90), scale: () => G.utils.random(0.85, 1.25), duration: () => G.utils.random(9, 16), ease: 'sine.inOut', repeat: -1, yoyo: true, repeatRefresh: true });
-  });
-  if (fine() && !parOn) {
-    parOn = true;
-    const qx = blobs.map((b, i) => G.quickTo(b, 'rotation', { duration: 2.4, ease: 'power3.out' }));
-    addEventListener('pointermove', (e) => { const dx = e.clientX / innerWidth - 0.5; qx.forEach((q, i) => q(dx * (i + 1) * 14)); }, { passive: true });
-  }
   // neve leve só na tela de entrada
   const snow = document.createElement('div'); snow.className = 'snow'; bg.append(snow);
   const count = small() ? 14 : 34;
@@ -199,6 +189,7 @@ export function magnetic() {
 
 export function initMotion() {
   document.documentElement.classList.toggle('motion', motionEnabled());
+  shaderBg.init(motionEnabled());
   if (!motionEnabled()) return;
   G.defaults({ ease: 'power3.out', duration: 0.6 });
   startBackground(); observeView(); magnetic();

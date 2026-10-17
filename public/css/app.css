@@ -625,3 +625,6 @@ html:not(.motion) .navind{display:none}
 .effpop .ed{margin-top:6px;text-align:center;color:rgba(255,255,255,.72);font-size:.8rem}.effpop .ed.muted2{color:rgba(255,255,255,.5);font-size:.74rem}
 
 .bstage{isolation:isolate}.mdots{position:absolute!important;inset:0;z-index:0;pointer-events:none;border-radius:inherit}.bstage>*:not(.mdots){z-index:1}
+
+.shaderbg{position:fixed;inset:0;width:100vw;height:100vh;z-index:-2;display:block;pointer-events:none}
+body{background:#e6f0fa}

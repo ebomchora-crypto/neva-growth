@@ -24,8 +24,8 @@ await step('setup admin + dashboard', async () => {
   await page.click('button:has-text("Criar conta")'); await page.waitForSelector('text=Lucro no período'); await page.waitForSelector('text=Minha carteira');
 });
 await step(REDUCED ? 'animações: desligadas com reduzir movimento' : 'animações: GSAP ativo, entrada termina visível e interruptor funciona', async () => {
-  if (REDUCED) { await page.waitForFunction(() => !document.documentElement.classList.contains('motion') && !document.querySelector('.bgfx')); return; }
-  await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx') && !!window.gsap);
+  if (REDUCED) { await page.waitForFunction(() => !document.documentElement.classList.contains('motion') && !document.querySelector('.bgfx') && !!document.querySelector('canvas.shaderbg')); return; }
+  await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx') && !!window.gsap && !!document.querySelector('canvas.shaderbg'));
   await nav('clientes'); await page.waitForFunction(() => { const e = document.querySelector('.hero'); return e && getComputedStyle(e).opacity === '1'; }, null, { timeout: 5000 });
   await page.waitForFunction(() => document.querySelector('.hero h1 .w') !== null);
   await page.waitForTimeout(2500);

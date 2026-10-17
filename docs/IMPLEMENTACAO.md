@@ -88,6 +88,8 @@ Licença: o GSAP é gratuito para uso comercial (licença padrão da GreenSock/W
 
 Não copiados do original: seletor de modelo "Syre / Medium" e botão de microfone (sem função real aqui); miniaturas de sites de terceiros.
 
+Fundo da plataforma: shader WebGL de ondas (port em JavaScript puro do componente "ShaderBackground" do 21st.dev, `public/js/shader-bg.js`), com a paleta clara azul-gelo. Anima a 30 fps só com animações ligadas; com "reduzir movimento" ou o interruptor desligado fica um quadro estático; sem WebGL fica a cor sólida. O projeto não usa React/Tailwind/TypeScript, por isso o componente foi portado em vez de copiado para `components/ui`.
+
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
 ## Deploy
