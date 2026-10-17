@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, confirmBox, toast, fail, copyText, downloadFile, hero, dtt } from '../ui.js';
+import { h, mount, confirmBox, toast, fail, copyText, downloadFile, hero, dtt, icon } from '../ui.js';
 
 export default {
   async render(box, ctx) {
@@ -12,20 +12,22 @@ export default {
     const drawOut = () => mount(outBox, output ? h('div', { class: 'stack' }, h('pre', { class: 'code', style: 'white-space:pre-wrap;max-height:55vh' }, output),
       h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(output, 'Prompt copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`prompt.${format === 'json' ? 'json' : 'txt'}`, output) }, 'Baixar'),
         canWrite && h('button', { class: 'btn ghost', onclick: async () => { try { await api.post('/prompts', { input: lastInput, output, mode, format }); toast('Salvo em "Meus prompts".', 'ok'); } catch (e) { fail(e); } } }, 'Salvar')))
-      : h('div', { class: 'empty' }, h('b', 'Sua ideia entra aqui. O prompt sai pronto.'), 'Pode escrever de forma simples. A IA cuida da estrutura sem perder a sua intenção.'));
+      : h('div', { class: 'pgempty' }, h('div', { class: 'pgstack', 'aria-hidden': 'true' }, [0, 1, 2, 3, 4].map((i) => h('i', { style: `--i:${i}` }))), h('div', { class: 'k' }, 'O próximo passo começa com suas palavras'), h('h3', 'Sua ideia entra aqui.', h('br'), 'O prompt sai pronto.'), h('p', 'Pode escrever de forma simples. A IA cuida da estrutura sem perder a sua intenção.')));
+    const modeCards = () => h('div', { class: 'modecards' }, [['idea', 'Criar a partir de uma ideia', 'Descreva o que quer fazer'], ['improve', 'Melhorar meu prompt', 'Cole um prompt que já escreveu']].map(([v, l, d]) => h('button', { type: 'button', class: mode === v ? 'on' : '', onclick: () => { mode = v; drawCreate(); } }, h('b', l), h('small', d))));
+    const counter = h('span', { class: 'sm mut' }, '0 / 8.000 caracteres'); input.maxLength = 8000; input.addEventListener('input', () => { counter.textContent = `${input.value.length.toLocaleString('pt-BR')} / 8.000 caracteres`; });
     const seg = (items, value, set) => h('div', { class: 'seg' }, items.map(([v, l]) => h('button', { type: 'button', class: value === v ? 'on' : '', onclick: () => { set(v); drawCreate(); } }, l)));
-    const gen = h('button', { class: 'btn', disabled: !aiOn || !canWrite, onclick: async () => {
+    const gen = h('button', { class: 'btn genbtn', disabled: !aiOn || !canWrite, onclick: async () => {
       lastInput = input.value; gen.disabled = true; gen.textContent = 'Gerando…';
-      try { const r = await api.post('/prompts/generate', { mode, format, input: lastInput }); output = r.output.trim(); drawOut(); } catch (e) { fail(e); } finally { gen.disabled = !aiOn; gen.textContent = mode === 'idea' ? '✦ Gerar prompt' : '✦ Melhorar prompt'; } } }, '✦ Gerar prompt');
+      try { const r = await api.post('/prompts/generate', { mode, format, input: lastInput }); output = r.output.trim(); drawOut(); } catch (e) { fail(e); } finally { gen.disabled = !aiOn; gen.replaceChildren(mode === 'idea' ? 'Gerar prompt' : 'Melhorar prompt', ' ', icon('arrow')); } } }, 'Gerar prompt');
     function drawCreate() {
       input.placeholder = mode === 'idea' ? 'Ex.: Quero criar um site para uma pizzaria, bem elaborado, profissional e com animações bonitas. Preciso de cardápio, fotos dos produtos e pedido pelo WhatsApp.' : 'Cole aqui o prompt que você já escreveu.';
-      gen.textContent = mode === 'idea' ? '✦ Gerar prompt' : '✦ Melhorar prompt';
+      gen.replaceChildren(mode === 'idea' ? 'Gerar prompt' : 'Melhorar prompt', ' ', icon('arrow'));
       mount(body, h('div', { class: 'grid g2', style: 'align-items:start' }, h('div', { class: 'card pad stack' },
-        seg([['idea', 'Criar a partir de uma ideia'], ['improve', 'Melhorar meu prompt']], mode, (v) => { mode = v; }),
+        modeCards(),
         h('div', h('b', 'Formato do prompt final'), h('div', { class: 'row', style: 'margin-top:6px' }, seg([['text', 'Texto'], ['json', 'JSON']], format, (v) => { format = v; }), h('span', { class: 'sm mut' }, 'JSON organiza as instruções, mas não garante uma resposta melhor da IA.'))),
         h('h2', mode === 'idea' ? 'Qual é a sua ideia?' : 'Cole seu prompt'), input,
         !aiOn && h('div', { class: 'notice' }, `IA não configurada: defina ${st.ai.envVar} no servidor para gerar prompts.`),
-        h('div', { class: 'row', style: 'justify-content:space-between' }, h('span', { class: 'sm mut' }, aiOn ? `Uso mensal de IA: ${me.usage.ai.used}/${me.usage.ai.limit}` : ''), gen)),
+        h('div', { class: 'row', style: 'justify-content:space-between' }, counter, gen)),
         h('div', { class: 'card pad stack' }, h('div', { class: 'kicker' }, 'Prompt final'), outBox)));
       drawOut();
     }

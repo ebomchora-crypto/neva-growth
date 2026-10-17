@@ -80,7 +80,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
 export const sales = crudPage({
   api: '/sales', singular: 'venda', newLabel: 'Nova venda', title_page: 'Vendas', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue. Indicadores consideram vendas pagas.',
-  hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyMascot: 'vazio-vendas', emptyFramed: true, emptyTitle: 'Nenhuma venda registrada',
+  hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyIcon: 'target', emptyGlyph: true, emptyTitle: 'A primeira venda abre o painel.', emptyText: 'Registre receita, custo e prazo. A análise financeira nasce automaticamente.', emptyButton: '+ Registrar primeira venda',
   title: (s) => s.description, filters: [{ k: 'status', l: 'Pagamento', opts: ['pendente', 'pago', 'cancelado'] }],
   stats: async (st) => { const s = await api.get('/sales/summary', { view: st.pill, q: st.q }); return [statCard('Faturamento', money(s.faturamento), [money(s.pendente), ' a receber']), statCard('Lucro líquido', money(s.lucro)),
     statCard('Margem média', s.margem + '%'), statCard('Ticket médio', money(s.ticket), `${s.pagas} paga(s)`)]; },

@@ -62,7 +62,7 @@ export function crudPage(cfg) {
         if (!r.items.length) {
           const filtered = st.q || Object.values(st.filter).some(Boolean) || (cfg.pills && st.pill !== cfg.pills.default);
           const art = cfg.emptyMascot ? mascotImg(cfg.emptyMascot, cfg.emptyFramed) : (canWrite && !filtered && cfg.canCreate !== false ? h('button', { class: 'eico', style: 'cursor:pointer', title: `Novo ${cfg.singular}`, 'aria-label': `Novo ${cfg.singular}`, onclick: () => openForm(null) }, icon(cfg.emptyIcon || 'userplus')) : h('span', { class: 'eico' }, icon(cfg.emptyIcon || 'userplus')));
-          mount(body, h('div', { class: 'emptyart' }, art, h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
+          mount(body, h('div', { class: 'emptyart' + (cfg.emptyGlyph ? ' withglyph' : '') }, cfg.emptyGlyph && h('span', { class: 'bigglyph', 'aria-hidden': 'true' }, 'N'), art, h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
             filtered ? 'Nada neste recorte.' : (canWrite ? (cfg.emptyText || `Crie o primeiro ${cfg.singular} para começar.`) : ''),
             canWrite && !filtered && cfg.canCreate !== false && cfg.emptyButton && h('button', { class: 'btn whitepill', style: 'margin-top:10px', onclick: () => openForm(null) }, cfg.emptyButton),
             )); mount(pager); return;

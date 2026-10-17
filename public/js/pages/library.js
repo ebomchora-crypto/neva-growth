@@ -69,7 +69,7 @@ export const acervo = {
       total = items.filter((x) => x.published).length; try { drawHero(); } catch { /* ainda não montado */ } const c2 = document.getElementById('cnt2'); if (c2) c2.textContent = String(items.length).padStart(2, '0');
       mount(toolbar, h('div', { class: 'row' }, h('input', { type: 'search', style: 'max-width:340px', placeholder: 'Buscar por objetivo, área ou palavra-chave', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
         pills({ items: [['', 'Todos'], ...meta.categories.map((c) => [c, c])], value: st.category, onChange: (v) => { st.category = v; load(); } }), h('span', { class: 'sm mut' }, `${items.length} encontrado(s)`)));
-      mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('div', { class: 'sm mut' }, `${String(i + 1).padStart(2, '0')} · ${it.category || KIND[kind][0]}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('div', { class: 't' }, it.title)))
+      mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('span', { class: 'lnum' }, String(i + 1).padStart(2, '0')), h('span', { class: 'lbody' }, h('span', { class: 'lcat' }, `${it.category || KIND[kind][0]}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('b', { class: 't' }, it.title), it.summary && h('span', { class: 'lsum' }, it.summary)), h('span', { class: 'larr' }, icon('chevron'))))
         : h('div', { class: 'empty' }, h('b', 'Nenhum recurso'), isAdmin ? 'Use "+ Novo recurso" para cadastrar.' : 'Nada publicado ainda.'));
       if (!selected && items[0] && !items[0].locked) show(items[0]); else if (!items.length) mount(detail, h('div', { class: 'empty' }, 'Selecione um recurso.'));
     }
@@ -77,9 +77,13 @@ export const acervo = {
       selected = it.id; listBox.querySelectorAll('.libitem').forEach((b) => b.classList.remove('on'));
       if (it.locked) return mount(detail, h('div', { class: 'empty' }, h('b', '🔒 Recurso de plano superior'), 'Peça a um administrador para alterar seu plano em Associação.'));
       try { const full = await api.get('/library/' + it.id);
-        mount(detail, h('div', { class: 'pad stack' }, h('div', { class: 'row' }, h('span', { class: 'badge' }, KIND[full.kind][0]), full.category && h('span', { class: 'badge' }, full.category)), h('h2', full.title), full.summary && h('p', { class: 'mut', style: 'margin:0' }, full.summary),
-          h('pre', { class: 'code', style: 'white-space:pre-wrap;max-height:55vh' }, full.content),
-          h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))));
+        mount(detail, h('div', { class: 'dpane' },
+          h('div', { class: 'dbanner' }, h('div', { class: 'dk' }, h('span', icon('box')), `${KIND[full.kind][0].toUpperCase()} / ${full.category || 'Geral'}`), h('h2', full.title), full.summary && h('p', full.summary)),
+          h('div', { class: 'dbody stack' },
+            h('div', { class: 'dnotice' }, h('b', 'USO INTERNO'), h('span', 'Conteúdo da Neva Growth para uso dentro da sua conta. Evite compartilhar fora da equipe.')),
+            h('section', { class: 'dcard' }, h('div', { class: 'k' }, `Neva / ${KIND[full.kind][0]}`), h('h3', full.kind === 'prompt' ? 'Prompt final' : 'Conteúdo'), h('p', { class: 'sm mut', style: 'margin:2px 0 10px' }, 'Texto completo para copiar e adaptar no seu chat.'),
+              h('pre', { class: 'code', style: 'white-space:pre-wrap;max-height:55vh' }, full.content),
+              h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))))));
       } catch (e) { mount(detail, h('div', { class: 'empty' }, e.message)); }
     }
     const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Métodos prontos para instalar.', 'Guias e skills para repetir bons resultados com a sua IA, sem começar do zero.'], animation: ['Movimento para sites.', 'Animações em HTML e CSS para copiar, ajustar e colocar nos seus projetos.'] };
