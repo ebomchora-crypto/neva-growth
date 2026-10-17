@@ -110,7 +110,7 @@ export default {
         h('div', { class: 'stack' }, h('div', { class: 'grid g2' }, info, potential), h('div', { class: 'row' }, goInput, h('button', { class: 'btn ghost', onclick: async () => { try { const d = await geocode(goInput.value); map.setView([Number(d.lat), Number(d.lon)], 12); } catch (e) { fail(e); } } }, 'Ir ao local')), mapEl)), band, savedBox, resBox);
     try { L = await loadLeaflet(); } catch (e) { mount(mapEl, h('div', { class: 'empty' }, e.message)); return; }
     map = L.map(mapEl).setView([-14.2, -51.9], 4);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; contribuidores do OpenStreetMap' }).addTo(map);
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, referrerPolicy: 'origin', attribution: '&copy; contribuidores do OpenStreetMap' }).addTo(map);
     map.on('click', (e) => { if (S.areas.length >= MAX_AREAS) return toast(`Máximo de ${MAX_AREAS} áreas. Remova uma (botão direito no pino).`, 'err'); S.areas.push({ lat: e.latlng.lat, lng: e.latlng.lng }); redrawAreas(); });
     drawInfo(); drawResults(); loadSaved();
     return () => { try { map.remove(); } catch { /* ok */ } };

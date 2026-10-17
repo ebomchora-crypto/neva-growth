@@ -15,7 +15,7 @@ function createApp() {
   app.set('trust proxy', 1);
   app.use(express.json({ limit: '3mb' }));
   app.use((req, res, next) => {
-    res.set({ 'x-frame-options': 'SAMEORIGIN', 'referrer-policy': 'same-origin', 'x-content-type-options': 'nosniff' });
+    res.set({ 'x-frame-options': 'SAMEORIGIN', 'referrer-policy': 'strict-origin-when-cross-origin', 'x-content-type-options': 'nosniff' });
     next();
   });
   // Garante esquema/migrações e seed antes da primeira requisição (necessário em serverless)
