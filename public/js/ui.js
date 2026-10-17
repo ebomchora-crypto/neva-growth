@@ -127,10 +127,11 @@ export const icon = (name) => {
     funnel: 'M3 4h18l-7 8v6l-4 2v-8z', check: 'M9 11l3 3 8-8M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h9', cart: 'M3 4h2l2.4 11h10.2L20 8H6M9 20a1 1 0 100-2 1 1 0 000 2M17 20a1 1 0 100-2 1 1 0 000 2',
     tag: 'M3 12V4h8l10 10-8 8zM7.5 8.5h.01', book: 'M4 5a2 2 0 012-2h13v16H6a2 2 0 00-2 2zM4 21V5M9 7h6', globe: 'M12 21a9 9 0 100-18 9 9 0 000 18M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18',
     code: 'M8 8l-5 4 5 4M16 8l5 4-5 4M14 4l-4 16', search: 'M11 18a7 7 0 100-14 7 7 0 000 14M21 21l-5-5', cog: 'M12 15a3 3 0 100-6 3 3 0 000 6M19 12a7 7 0 00-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 00-2-1.2L14.2 3h-4l-.4 2.7a7 7 0 00-2 1.2l-2.3-1-2 3.4 2 1.5a7 7 0 000 2.4l-2 1.5 2 3.4 2.3-1a7 7 0 002 1.2l.4 2.7h4l.4-2.7a7 7 0 002-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2',
-    shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', menu: 'M4 6h16M4 12h16M4 18h16', logout: 'M9 4H5a2 2 0 00-2 2v12a2 2 0 002 2h4M16 17l5-5-5-5M21 12H9', wand: 'M15 4V2M15 10V8M11 6H9M21 6h-2M5 21l11-11M18 8l-2-2', bell: 'M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 004 0', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12M12 15a3 3 0 100-6 3 3 0 000 6', eyeoff: 'M3 3l18 18M10.6 6.1A9.8 9.8 0 0112 6c6 0 10 6 10 6a17 17 0 01-3.2 3.7M6.6 6.6C3.7 8.4 2 12 2 12s4 6 10 6a9.6 9.6 0 004-.9', refresh: 'M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5', card: 'M3 5h18v14H3zM3 10h18M7 15h4', play: 'M5 4l14 8-14 8z', palette: 'M12 3a9 9 0 100 18c1.5 0 2-1 1.5-2s-.5-2 1-2H17a4 4 0 004-4c0-5-4-10-9-10M7.5 11h.01M10 7.5h.01M14 7.5h.01', target: 'M12 21a9 9 0 100-18 9 9 0 000 18M12 16a4 4 0 100-8 4 4 0 000 8M12 12h.01', sparkle: 'M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z', box: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', kanban: 'M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v7h-4z'
+    shield: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z', menu: 'M4 6h16M4 12h16M4 18h16', logout: 'M9 4H5a2 2 0 00-2 2v12a2 2 0 002 2h4M16 17l5-5-5-5M21 12H9', wand: 'M15 4V2M15 10V8M11 6H9M21 6h-2M5 21l11-11M18 8l-2-2', bell: 'M6 8a6 6 0 0112 0c0 7 3 9 3 9H3s3-2 3-9M10 21a2 2 0 004 0', eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12M12 15a3 3 0 100-6 3 3 0 000 6', eyeoff: 'M3 3l18 18M10.6 6.1A9.8 9.8 0 0112 6c6 0 10 6 10 6a17 17 0 01-3.2 3.7M6.6 6.6C3.7 8.4 2 12 2 12s4 6 10 6a9.6 9.6 0 004-.9', refresh: 'M21 12a9 9 0 11-3-6.7L21 8M21 3v5h-5', card: 'M3 5h18v14H3zM3 10h18M7 15h4', play: 'M5 4l14 8-14 8z', palette: 'M12 3a9 9 0 100 18c1.5 0 2-1 1.5-2s-.5-2 1-2H17a4 4 0 004-4c0-5-4-10-9-10M7.5 11h.01M10 7.5h.01M14 7.5h.01', target: 'M12 21a9 9 0 100-18 9 9 0 000 18M12 16a4 4 0 100-8 4 4 0 000 8M12 12h.01', sparkle: 'M12 3l2 5 5 2-5 2-2 5-2-5-5-2 5-2z', box: 'M21 8l-9-5-9 5v8l9 5 9-5zM3 8l9 5 9-5M12 13v8', kanban: 'M4 4h5v16H4zM10 4h5v10h-5zM16 4h4v7h-4z',
+    cmd: 'M9 6a3 3 0 10-3 3h12a3 3 0 10-3-3v12a3 3 0 103-3H6a3 3 0 103 3z', plus: 'M12 5v14M5 12h14', grid: 'M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z', list: 'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01', download: 'M12 4v11M7 11l5 5 5-5M5 20h14', filter: 'M4 6h16M7 12h10M10 18h4', archive: 'M3 4h18v4H3zM5 8v12h14V8M10 12h4', chevron: 'M6 9l6 6 6-6', alert: 'M12 3l10 18H2zM12 10v5M12 18h.01', trend: 'M3 17l6-6 4 4 8-8M15 7h6v6', building: 'M4 21V4h10v17M14 9h6v12M8 8h2M8 12h2M8 16h2M17 13h.01M17 17h.01', wallet: 'M3 7a2 2 0 012-2h13v4M3 7v11a2 2 0 002 2h15V9H5a2 2 0 01-2-2M16 14h.01', user: 'M12 12a4 4 0 100-8 4 4 0 000 8M4 21a8 8 0 0116 0', userplus: 'M15 20v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2M8.5 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7M19 8v6M16 11h6', layout: 'M3 5h18v14H3zM3 9h18', pulse: 'M3 12h4l3-8 4 16 3-8h4', dollar: 'M12 3v18M16 7.5C16 6 14.2 5 12 5s-4 1-4 2.8c0 4.4 8 2.4 8 6.4 0 1.7-1.8 2.8-4 2.8s-4-1.2-4-2.8'
   };
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.setAttribute('class', 'ico');
   const p = document.createElementNS('http://www.w3.org/2000/svg', 'path'); p.setAttribute('d', paths[name] || paths.home); s.append(p);
   return s;
 };
@@ -141,10 +142,26 @@ export function pills({ items, value, counts, onChange }) {
   return h('div', { class: 'pills', role: 'tablist' }, items.map(([v, l]) => h('button', { type: 'button', role: 'tab', class: 'pill' + (String(value) === String(v) ? ' on' : ''), 'aria-selected': String(value) === String(v), onclick: () => onChange(v) },
     l, counts && counts[v] !== undefined && h('span', { class: 'cnt' }, counts[v]))));
 }
-export const statCard = (label, value, hint) => h('div', { class: 'stat' }, h('small', label), h('b', value), hint && h('span', { class: 'sm mut' }, hint));
-export function hero({ kicker, title, subtitle, actions, stats }) {
-  return h('section', { class: 'hero' }, h('div', { class: 'hero-main' }, kicker && h('div', { class: 'kicker' }, kicker), h('h1', title), subtitle && h('p', subtitle), actions && h('div', { class: 'row' }, actions)),
-    stats && h('div', { class: 'hero-stats' }, stats));
+export const statCard = (label, value, hint, ic) => h('div', { class: 'stat' }, ic && h('span', { class: 'sico' }, icon(ic)), h('div', { class: 'sbody' }, h('small', label), h('b', value), hint && h('span', { class: 'shint' }, hint)));
+/** Ilustração geométrica própria da Neva (sem arte de terceiros) para o bloco de abertura. */
+export function heroArt(kind = 'chart') {
+  const NS = 'http://www.w3.org/2000/svg';
+  const el = (t, a, ...k) => { const e = document.createElementNS(NS, t); for (const [x, v] of Object.entries(a || {})) e.setAttribute(x, v); k.forEach((c) => e.append(c)); return e; };
+  const svg = el('svg', { viewBox: '0 0 320 240', class: 'hero-art', 'aria-hidden': 'true' });
+  svg.append(el('circle', { cx: 190, cy: 120, r: 112, fill: 'none', stroke: 'rgba(255,255,255,.18)' }), el('circle', { cx: 190, cy: 120, r: 80, fill: 'none', stroke: 'rgba(255,255,255,.28)' }));
+  const card = (x, y, w, hh, o = '.16') => el('rect', { x, y, width: w, height: hh, rx: 14, fill: `rgba(255,255,255,${o})`, stroke: 'rgba(255,255,255,.55)' });
+  const bar = (x, y, w, o = '.7') => el('rect', { x, y, width: w, height: 8, rx: 4, fill: `rgba(255,255,255,${o})` });
+  if (kind === 'chart') { svg.append(card(110, 60, 170, 130), ...[0, 1, 2, 3, 4].map((i) => el('rect', { x: 132 + i * 28, y: 170 - (30 + i * 18), width: 18, height: 30 + i * 18, rx: 5, fill: 'rgba(255,255,255,.8)' })), el('path', { d: 'M128 150 L170 120 L200 132 L262 84', fill: 'none', stroke: '#fff', 'stroke-width': 3, 'stroke-linecap': 'round' })); }
+  else if (kind === 'people') { svg.append(card(120, 50, 150, 150), ...[0, 1, 2].flatMap((i) => [el('circle', { cx: 148, cy: 88 + i * 40, r: 12, fill: 'rgba(255,255,255,.85)' }), bar(172, 82 + i * 40, 70), bar(172, 96 + i * 40, 44, '.4')])); }
+  else if (kind === 'site') { svg.append(card(90, 56, 200, 136), el('line', { x1: 90, x2: 290, y1: 84, y2: 84, stroke: 'rgba(255,255,255,.55)' }), el('circle', { cx: 106, cy: 70, r: 4, fill: '#fff' }), el('circle', { cx: 120, cy: 70, r: 4, fill: 'rgba(255,255,255,.6)' }), card(106, 98, 80, 76, '.28'), bar(200, 100, 74), bar(200, 118, 56, '.45'), bar(200, 136, 66, '.45'), bar(200, 154, 40, '.45')); }
+  else { svg.append(...[0, 1, 2].map((i) => card(96 + i * 66, 56 + (i % 2) * 14, 58, 130, '.14')), ...[0, 1, 2].flatMap((i) => [0, 1].map((j) => el('rect', { x: 104 + i * 66, y: 76 + (i % 2) * 14 + j * 44, width: 42, height: 32, rx: 8, fill: `rgba(255,255,255,${j ? '.45' : '.85'})` })))); }
+  return svg;
+}
+export function hero({ kicker, title, subtitle, actions, stats, art, badge, aside, actionsClass = '' }) {
+  return h('section', { class: 'hero' }, h('div', { class: 'hero-main' },
+    h('div', { class: 'hero-head' }, h('div', kicker && h('div', { class: 'kicker' }, h('span', '/'), ' ', kicker), h('h1', title, badge)), actions && h('div', { class: 'hero-actions ' + actionsClass }, actions)),
+    subtitle && h('p', subtitle), stats && h('div', { class: 'hero-stats' }, stats)),
+    h('div', { class: 'hero-side' }, aside, art ? heroArt(art) : null));
 }
 export const copyText = async (text, okMsg = 'Copiado.') => {
   try { await navigator.clipboard.writeText(text); toast(okMsg, 'ok'); }

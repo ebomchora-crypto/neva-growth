@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, brl, money, dt, dtt, debounce, downloadFile, toCSV, parseCSV, pills, hero, statCard } from '../ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, brl, money, dt, dtt, debounce, downloadFile, toCSV, parseCSV, pills, hero, statCard, icon } from '../ui.js';
 
 const ACT = { nota: 'Nota', ligacao: 'Ligação', email: 'E-mail', reuniao: 'Reunião', whatsapp: 'WhatsApp', etapa: 'Etapa' };
 const PRI = [['baixa', 'Baixa'], ['media', 'Média'], ['alta', 'Alta']];
@@ -12,7 +12,7 @@ export default {
     let stages = await api.get('/pipeline/stages');
     const users = await api.get('/users/options');
     const st = { view: ss.get('leadsView') || 'kanban', tab: 'todas', q: '', archived: false, priority: '', source: '', owner: '', min: ss.get('crmMin') === '1' };
-    let leads = [];
+    let leads = []; let archivedCount = 0;
     const area = h('div'); const statsBox = h('div', { class: 'hero-stats' }); const heroBox = h('div'); const bar = h('div', { class: 'stack', style: 'margin-bottom:14px' });
     const stageLabel = (k) => stages.find((s) => s.key === k)?.label || k;
     const firstOpen = () => stages.find((s) => s.kind === 'open')?.key;
@@ -23,28 +23,30 @@ export default {
       if (st.priority) p.priority = st.priority; if (st.source) p.source = st.source; if (st.owner) p.owner_id = st.owner;
       if (st.tab === 'minhas') p.owner_id = ctx.user.id; if (st.tab === 'prioritarias') p.priority = 'alta'; if (st.tab === 'atraso') p.overdue = 1;
       leads = (await api.get('/leads', p)).items; draw();
+      api.get('/leads', { limit: 1, archived: 1 }).then((r) => { archivedCount = r.total; drawBar(); }).catch(() => {});
     }
     function drawHero() {
-      const open = leads.filter((l) => stages.find((s) => s.key === l.status)?.kind === 'open');
-      mount(heroBox, hero({ kicker: 'Neva Growth / Pipeline', title: 'CRM Kanban', subtitle: st.min ? null : `Organize o funil, priorize oportunidades e avance cada negociação com clareza. ${leads.length} oportunidade(s) no recorte.`,
-        actions: [h('button', { class: 'btn ghost sm', onclick: () => { st.min = !st.min; ss.set('crmMin', st.min ? '1' : '0'); drawHero(); } }, st.min ? 'Expandir header' : 'Minimizar header'),
-          isAdmin && h('button', { class: 'btn ghost sm', onclick: editFunnel }, 'Editar funil'), canWrite && h('button', { class: 'btn ghost sm', onclick: importCSV }, 'Importar carteira'), canWrite && h('button', { class: 'btn sm', onclick: () => form(null) }, '+ Nova oportunidade')],
-        stats: st.min ? null : h('div', { class: 'hero-stats' }, stages.slice(0, 5).map((s) => statCard(s.label, leads.filter((l) => l.status === s.key).length))) }));
+      mount(heroBox, hero({ kicker: 'Neva Growth / Pipeline Studio', title: 'CRM Kanban.', badge: h('span', { class: 'badge' }, `${leads.length} oportunidade${leads.length === 1 ? '' : 's'}`),
+        subtitle: st.min ? null : 'Organize o funil, priorize oportunidades e avance cada negociação com clareza.', art: st.min ? null : 'kanban', actionsClass: 'inflow',
+        actions: [h('div', { class: 'hero-group' },
+          isAdmin && h('button', { class: 'btn sm', onclick: editFunnel }, icon('filter'), 'Editar funil'), canWrite && h('button', { class: 'btn sm', onclick: importCSV }, icon('userplus'), 'Importar carteira'), canWrite && h('button', { class: 'btn sm white', onclick: () => form(null) }, icon('plus'), 'Nova oportunidade')),
+          h('button', { class: 'btn ghost sm', onclick: () => { st.min = !st.min; ss.set('crmMin', st.min ? '1' : '0'); drawHero(); } }, st.min ? 'Expandir header' : '▲ Minimizar header')],
+        stats: st.min ? null : h('div', { class: 'pstrip' }, stages.slice(0, 5).map((s, i) => h('div', { class: 'ps' }, h('div', h('em', String(i + 1).padStart(2, '0')), h('small', s.label)), h('span', leads.filter((l) => l.status === s.key).length)))) }));
     }
     function draw() {
       drawHero(); drawBar();
       mount(area, st.view === 'kanban' ? kanban() : list());
     }
     function drawBar() {
-      const counts = {};
-      mount(bar, h('div', { class: 'row', style: 'justify-content:space-between' },
-        pills({ items: [['todas', 'Todas'], ['minhas', 'Minhas'], ['atraso', 'Em atraso'], ['prioritarias', 'Prioritárias']], value: st.tab, counts, onChange: (v) => { st.tab = v; load(); } }),
-        h('div', { class: 'row' },
-          h('button', { class: 'btn ghost sm', onclick: () => { st.archived = !st.archived; load(); } }, st.archived ? '← Voltar ao quadro' : 'Arquivados'),
-          h('div', { class: 'seg' }, ['kanban', 'lista'].map((v) => h('button', { class: st.view === v ? 'on' : '', onclick: () => { st.view = v; ss.set('leadsView', v); draw(); } }, v === 'kanban' ? 'Quadro' : 'Lista'))),
-          h('input', { type: 'search', style: 'width:220px', placeholder: 'Buscar no quadro', 'aria-label': 'Buscar no quadro', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
-          h('button', { class: 'btn ghost sm', onclick: filtersModal }, `Filtros${[st.priority, st.source, st.owner].filter(Boolean).length ? ' •' : ''}`),
-          h('button', { class: 'btn ghost sm', onclick: exportCSV }, 'Exportar'))));
+      const menu = h('div', { class: 'menu hide' }, h('button', { onclick: () => { menu.classList.add('hide'); exportCSV(); } }, 'Exportar CSV'));
+      mount(bar, h('div', { class: 'card ktool' },
+        h('div', { class: 'ktabs' }, [['todas', 'Todas'], ['minhas', 'Minhas'], ['atraso', 'Em atraso'], ['prioritarias', 'Prioritárias']].map(([v, l]) => h('button', { class: st.tab === v ? 'on' : '', onclick: () => { st.tab = v; load(); } }, l))),
+        h('div', { class: 'kright' },
+          h('button', { class: 'kbtn', onclick: () => { st.archived = !st.archived; load(); } }, icon('archive'), st.archived ? '← Voltar ao quadro' : 'Arquivados', !st.archived && h('span', { class: 'n' }, archivedCount)),
+          h('div', { class: 'kseg' }, [['kanban', 'grid', 'Quadro'], ['lista', 'list', 'Lista']].map(([v, ic, l]) => h('button', { class: st.view === v ? 'on' : '', title: l, 'aria-label': l, onclick: () => { st.view = v; ss.set('leadsView', v); draw(); } }, icon(ic)))),
+          h('div', { class: 'ksearch' }, icon('search'), h('input', { type: 'search', placeholder: 'Buscar no quadro', 'aria-label': 'Buscar no quadro', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) })),
+          h('button', { class: 'kbtn', onclick: filtersModal }, icon('filter'), `Filtros${[st.priority, st.source, st.owner].filter(Boolean).length ? ' •' : ''}`),
+          h('div', { class: 'menuwrap' }, h('button', { class: 'kbtn', 'aria-label': 'Exportar', title: 'Exportar', onclick: () => menu.classList.toggle('hide') }, icon('download'), icon('chevron')), menu))));
     }
     function filtersModal() {
       const sources = [...new Set(leads.map((l) => l.source).filter(Boolean))];
@@ -63,15 +65,22 @@ export default {
       return el;
     }
     function kanban() {
-      return h('div', { class: 'kanban' }, stages.map((s) => {
+      return h('div', null, h('div', { class: 'kanban' }, stages.map((s) => {
         const items = leads.filter((l) => l.status === s.key);
-        const quick = h('input', { placeholder: '+ Adicionar oportunidade', 'aria-label': `Adicionar em ${s.label}`, onkeydown: async (e) => {
-          if (e.key !== 'Enter' || !quick.value.trim()) return;
-          try { await api.post('/leads', { name: quick.value.trim(), status: s.key }); toast('Oportunidade criada.', 'ok'); load(); } catch (x) { fail(x); } } });
+        const foot = h('div');
+        const openQuick = () => {
+          const quick = h('input', { placeholder: 'Nome da oportunidade e Enter', 'aria-label': `Adicionar em ${s.label}`, onkeydown: async (e) => {
+            if (e.key === 'Escape') { drawFoot(); return; }
+            if (e.key !== 'Enter' || !quick.value.trim()) return;
+            try { await api.post('/leads', { name: quick.value.trim(), status: s.key }); toast('Oportunidade criada.', 'ok'); load(); } catch (x) { fail(x); } } });
+          mount(foot, h('div', { class: 'qadd' }, quick)); quick.focus();
+        };
+        const drawFoot = () => mount(foot, canWrite && !st.archived && h('button', { class: 'addopp', onclick: openQuick }, icon('plus'), 'Adicionar oportunidade'));
+        drawFoot();
         const col = h('div', { class: 'col', dataset: { stage: s.key } },
-          h('h3', h('span', s.label), h('span', { class: 'mut sm' }, `${items.length} · `, money(items.reduce((a, l) => a + l.value, 0)))), items.map(card),
-          !items.length && h('p', { class: 'sm mut', style: 'text-align:center' }, st.archived ? 'Nada arquivado aqui' : 'Arraste cards para cá'),
-          canWrite && !st.archived && h('div', { class: 'qadd' }, quick));
+          h('div', { class: 'colhead' }, h('div', { class: 't' }, h('span', s.label), h('span', { class: 'cn' }, h('span', items.length), canWrite && !st.archived && h('button', { title: `Nova oportunidade em ${s.label}`, 'aria-label': `Nova oportunidade em ${s.label}`, onclick: openQuick }, icon('plus')))),
+            h('div', { class: 'v' }, money(items.reduce((a, l) => a + l.value, 0)), h('small', 'valor previsto'))),
+          h('div', { class: 'colbody' }, items.map(card), !items.length && h('p', { class: 'sm mut', style: 'text-align:center;margin:8px 0' }, st.archived ? 'Nada arquivado aqui' : 'Arraste cards para cá'), foot));
         if (canWrite && !st.archived) {
           col.addEventListener('dragover', (e) => { e.preventDefault(); col.classList.add('over'); });
           col.addEventListener('dragleave', () => col.classList.remove('over'));
@@ -84,7 +93,7 @@ export default {
           });
         }
         return col;
-      }));
+      })), h('div', { class: 'kfoot' }, h('span', `● Sincronizado com sua conta · ${archivedCount} arquivada(s)`), h('span', canWrite && !st.archived ? 'Arraste os cards entre etapas' : '')));
     }
     function list() {
       if (!leads.length) return h('div', { class: 'card empty' }, h('b', st.archived ? 'Nenhuma oportunidade arquivada' : 'Nenhuma oportunidade'), st.q || st.tab !== 'todas' ? 'Nada neste recorte.' : 'Cadastre, importe um CSV ou use a Prospecção.');

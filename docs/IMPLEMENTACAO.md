@@ -1,7 +1,7 @@
 # Acompanhamento da implementação
 
 Estados: **Não iniciado · Em desenvolvimento · Implementado · Testado · Bloqueado por dependência externa**.
-"Testado" = coberto por teste automatizado executado nesta entrega: **18 testes de API** (`npm test`, Postgres) e **31 verificações de interface no Chromium** (`npm run test:e2e`).
+"Testado" = coberto por teste automatizado executado nesta entrega: **18 testes de API** (`npm test`, Postgres) e **31 verificações de interface no Chromium** (`npm run test:e2e`, banco vazio).
 Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial da biblioteca é original da Neva e editável/removível por administradores.
 
 ## Plataforma e segurança
@@ -53,12 +53,23 @@ Nada abaixo usa dados fictícios: indicadores vêm do banco; o conteúdo inicial
 | Assistente de IA: histórico por projeto/usuário, contexto do projeto, revisão por diff, aplicar, desfazer, limites | Lógica de aplicar/desfazer/histórico: Testado. Respostas da IA: Bloqueado por dependência externa |
 | Terminal e execução de back-end | **Não iniciado — arquitetura em `docs/EXECUCAO_ISOLADA.md`** (exige infraestrutura isolada; não executamos código de usuário no servidor) |
 
+## Interface v3 (capturas 11–15: Dashboard, Clientes, Vendas, Sites, CRM Kanban)
+| Item | Estado |
+|---|---|
+| Menu lateral em trilho de ícones (rótulos em dica/tooltip; gaveta com rótulos no celular), topo com busca + atalho, indicador de sincronização, ocultar valores, atualizar, notificações e conta | Testado (e2e) |
+| Blocos de abertura com indicadores em faixa/chips, ilustração geométrica própria | Testado (e2e) |
+| Dashboard: lucro no período com períodos e resumo por IA, gráfico, "Sua próxima venda", "Lucro por período" com seletor, painel "Minha carteira" com cartão, Cliente/Venda e vendas recentes | Testado (e2e) |
+| CRM Kanban: faixa de etapas, Editar funil/Importar/Nova oportunidade, abas, Arquivados com contagem, quadro/lista, busca, Filtros, exportação, colunas com valor previsto e "Adicionar oportunidade" | Testado (e2e) |
+| Clientes (carteira com abas), Vendas (barra "Organizar projetos" com resumo), Sites (barra "Exibir", cota do Builder, contador) | Testado (e2e) |
+
+Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
+
 ## Deploy
 | Item | Estado |
 |---|---|
-| Configuração Vercel (`vercel.json`, função `api/index.js`, região gru1) | Implementado; **não testado na Vercel real** |
-| Publicação em system-nevagrowth.vercel.app | **Bloqueado por dependência externa**: a conexão desta sessão com a Vercel retorna 403 para a conta; veja `docs/DEPLOY_VERCEL.md` |
-| `DATABASE_URL` (Transaction pooler) e `SETUP_TOKEN` | Pendente: dependem de segredos que só o dono tem (senha do banco) |
+| Produção em https://neva-growth.vercel.app (função `api/index.js`, região gru1) com Postgres no Supabase (projeto dedicado, usuário `neva_app`, RLS ativo) | No ar; fumaça de produção (16 API + 24 UI) passou na versão anterior |
+| Pushes **não** disparam deploy automático; publicar com `create_deployment` (Vercel) | Procedimento atual |
+| Segredos (`DATABASE_URL`, `SETUP_TOKEN`) | Rotacionar: a senha do banco e o token passaram por conversas |
 
 ## Pendências conhecidas
 - Capturas ainda não enviadas: formulários originais, seções 7–8 de Configurações, benefícios de cada plano, botão amarelo/alerta do dashboard, telas com dados. Onde a imagem não bastava, implementei hipóteses coerentes (marcadas em `REFERENCIAS_VISUAIS.md`).

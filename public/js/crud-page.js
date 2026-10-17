@@ -1,17 +1,25 @@
 // Página CRUD genérica: busca, filtros, paginação, criar/editar/excluir, exportação CSV.
 import { api } from './api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, downloadFile, toCSV, pills, hero } from './ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, downloadFile, toCSV, pills, hero, icon } from './ui.js';
 
 export function crudPage(cfg) {
   return {
     async render(box, ctx) {
       const canWrite = ctx.user.role !== 'viewer';
       const st = { q: '', page: 1, filter: {}, limit: 20, pill: cfg.pills?.default ?? '' };
-      const pillsBox = h('div', { class: 'pad', style: 'padding-bottom:0' }); const statsBox = h('div', { class: 'hero-stats' });
+      const variant = cfg.pills?.variant || 'plain';
+      const pillsBox = h('div', variant === 'plain' ? { class: 'pad', style: 'padding-bottom:0' } : { class: variant === 'board' ? 'bigtabs' : 'grow' }); const statsBox = h('div', { class: 'hero-stats ' + (cfg.statsClass || '') });
+      let lastTotal = 0; let lastCounts = null; const sumBox = h('div', { class: 'sum' }); const boardInfo = h('small');
       async function refreshMeta() {
         if (cfg.stats) try { mount(statsBox, await cfg.stats(st)); } catch { /* indicadores são opcionais */ }
         if (cfg.pills) { let counts = null; if (cfg.pills.counts) try { counts = await cfg.pills.counts(st); } catch { /* sem contadores */ }
-          mount(pillsBox, pills({ items: cfg.pills.items, value: st.pill, counts, onChange: (v) => { st.pill = v; st.page = 1; load(); } })); }
+          lastCounts = counts;
+          mount(pillsBox, pills({ items: cfg.pills.items, value: st.pill, counts: variant === 'board' ? null : counts, onChange: (v) => { st.pill = v; st.page = 1; load(); } }));
+          drawSummary(); }
+      }
+      function drawSummary() {
+        if (variant === 'bar' && cfg.pills.summary) mount(sumBox, cfg.pills.summary(lastTotal, lastCounts || {}));
+        if (variant === 'board') mount(boardInfo, `${lastTotal} de ${lastCounts?.[''] ?? lastTotal} empresas no radar`);
       }
       const body = h('div'); const pager = h('div', { class: 'pager' });
       const search = h('input', { class: 'search', type: 'search', placeholder: cfg.searchPlaceholder || 'Buscar…', 'aria-label': 'Buscar',
@@ -45,13 +53,15 @@ export function crudPage(cfg) {
       async function load() {
         try {
           const r = await api.get(cfg.api, { q: st.q, page: st.page, limit: st.limit, ...st.filter, ...(cfg.pills ? { [cfg.pills.param]: st.pill } : {}) });
-          renderTable(r); refreshMeta();
+          lastTotal = r.total; renderTable(r); refreshMeta();
         } catch (e) { mount(body, h('div', { class: 'empty' }, e.message)); }
       }
       function renderTable(r) {
         if (!r.items.length) {
-          mount(body, h('div', { class: 'empty' }, h('b', st.q || Object.values(st.filter).some(Boolean) || (cfg.pills && st.pill !== cfg.pills.default) ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
-            st.q || (cfg.pills && st.pill !== cfg.pills.default) ? 'Nada neste recorte.' : (canWrite ? `Crie o primeiro ${cfg.singular} para começar.` : ''))); mount(pager); return;
+          const filtered = st.q || Object.values(st.filter).some(Boolean) || (cfg.pills && st.pill !== cfg.pills.default);
+          mount(body, h('div', { class: 'emptyart' }, (canWrite && !filtered && cfg.canCreate !== false ? h('button', { class: 'eico', style: 'cursor:pointer', title: `Novo ${cfg.singular}`, 'aria-label': `Novo ${cfg.singular}`, onclick: () => openForm(null) }, icon(cfg.emptyIcon || 'userplus')) : h('span', { class: 'eico' }, icon(cfg.emptyIcon || 'userplus'))), h('b', filtered ? 'Nenhum resultado' : cfg.emptyTitle || 'Nada por aqui ainda'),
+            filtered ? 'Nada neste recorte.' : (canWrite ? `Crie o primeiro ${cfg.singular} para começar.` : ''),
+            )); mount(pager); return;
         }
         mount(body, h('div', { class: 'tablewrap' }, h('table',
           h('thead', h('tr', cfg.columns.map((c) => h('th', { class: c.right ? 'right' : '' }, c.l)), canWrite ? h('th') : null)),
@@ -77,11 +87,15 @@ export function crudPage(cfg) {
         } catch (e) { fail(e); }
       }
       const actions = [cfg.csv !== false && h('button', { class: 'btn ghost', onclick: exportCSV }, 'Exportar CSV'),
-        canWrite && cfg.canCreate !== false && h('button', { class: 'btn', onclick: () => openForm(null) }, `+ Novo ${cfg.singular}`)];
+        canWrite && cfg.canCreate !== false && h('button', { class: 'btn', onclick: () => openForm(null) }, icon('plus'), cfg.newLabel || `Novo ${cfg.singular}`)];
+      const tools = h('div', { class: 'toolbar' }, search, filters);
+      const head = variant === 'board' ? h('div', { class: 'boardhead' }, h('div', h('div', { class: 'k' }, cfg.board?.kicker || 'Board'), h('h2', cfg.board?.title || cfg.title_page), boardInfo), pillsBox)
+        : variant === 'plain' && cfg.pills ? pillsBox : null;
+      const bar = variant === 'bar' ? h('div', { class: 'card orgbar' }, h('div', { class: 'lab' }, h('b', cfg.pills.bar?.label || 'Visões'), h('small', cfg.pills.bar?.sub || '')), pillsBox, sumBox) : null;
       mount(box,
-        cfg.hero ? hero({ kicker: cfg.hero.kicker, title: cfg.hero.title, subtitle: cfg.subtitle, actions, stats: cfg.stats ? statsBox : null })
+        cfg.hero ? hero({ kicker: cfg.hero.kicker, title: cfg.hero.title, subtitle: cfg.subtitle, actions, stats: cfg.stats ? statsBox : null, art: cfg.hero.art })
           : h('div', { class: 'pagehead' }, h('div', h('h1', cfg.title_page), cfg.subtitle && h('p', cfg.subtitle)), h('div', { class: 'row' }, actions)),
-        h('div', { class: 'card' }, cfg.pills ? pillsBox : null, h('div', { class: 'toolbar' }, search, filters), body, pager));
+        bar, h('div', { class: 'card' + (variant === 'board' ? ' board' : '') }, head, tools, body, pager));
       await load();
     }
   };

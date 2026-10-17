@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, brl, dt, dtt, money, toast, fail, pills } from '../ui.js';
+import { h, mount, brl, dt, dtt, money, toast, fail, pills, icon, heroArt } from '../ui.js';
 
 const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3 meses'], ['6m', '6 meses'], ['1a', '1 ano']];
 const SVG = 'http://www.w3.org/2000/svg';
@@ -42,7 +42,7 @@ export default {
     const area = h('div');
     const aiOn = (await api.get('/integrations/status').catch(() => null))?.ai.configured;
     async function load() {
-      mount(area, h('p', { class: 'mut' }, 'Carregando…'));
+      if (!area.firstChild) mount(area, h('p', { class: 'mut' }, 'Carregando…'));
       const d = await api.get('/dashboard', { period }); draw(d);
     }
     const summaryBox = h('div');
@@ -53,39 +53,48 @@ export default {
     }
     function draw(d) {
       const m = d.metrics; const k = d.kpis;
+      const monthsSel = h('select', { class: 'monthsel', 'aria-label': 'Período do gráfico', onchange: async (e) => { period = e.target.value; try { sessionStorage.setItem('dashPeriod', period); } catch { /* ok */ } drawBar(); await load().catch(fail); } },
+        [['3m', '3 meses'], ['6m', '6 meses'], ['1a', '12 meses']].map(([v, l]) => h('option', { value: v, selected: v === period }, l)));
       mount(area,
-        h('div', { class: 'grid dashgrid' },
-          h('div', { class: 'stack' },
-            h('section', { class: 'card pad stack' },
-              h('div', { class: 'row', style: 'justify-content:space-between' },
-                h('div', h('small', { class: 'mut' }, 'Lucro no período'), h('div', { class: 'row' }, h('b', { style: 'font-size:1.9rem' }, money(m.profit)), delta(m.profitVariation))),
-                h('div', { class: 'row' }, h('button', { class: 'btn ghost sm', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina ANTHROPIC_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, aiOn ? '✦ Gerar resumo do período' : 'Resumo por IA (não configurado)'))),
+        h('div', { class: 'dash3' },
+          h('div', { class: 'mainc' },
+            h('section', { class: 'card pad stack profit' },
+              h('div', { class: 'top' },
+                h('div', h('div', { class: 'sm', style: 'font-weight:600' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, h('span', { class: 'big' }, money(m.profit)), delta(m.profitVariation))),
+                h('div', { class: 'row' },
+                  h('button', { class: 'btn ghost sm pillbtn', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina ANTHROPIC_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, aiOn ? '✦ Gerar resumo do período' : 'Resumo por IA (não configurado)'),
+                  h('div', { id: 'periodbar' }))),
               summaryBox,
               lineChart(m.series),
-              h('div', { class: 'row', style: 'justify-content:space-between' }, h('div', { class: 'legend' }, h('span', h('i', { style: 'background:#2f7bbd' }), 'Lucro líquido'), h('span', h('i', { style: 'background:#aacfee' }), 'Receita total')),
-                h('div', { class: 'sm mut' }, 'Ticket médio ', money(m.ticket), ' · ', `${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}`)),
+              h('div', { class: 'foot' },
+                h('span', { class: 'chip' }, 'Ticket médio ', h('b', money(m.ticket)), h('span', { class: 'mut sm' }, ` · ${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}`)),
+                h('div', { class: 'row' }, h('span', { class: 'chip' }, h('i', { style: 'background:#2f7bbd' }), 'Lucro líquido'), h('span', { class: 'chip' }, h('i', { style: 'background:#aacfee' }), 'Receita total'))),
               !m.sales && h('p', { class: 'sm mut', style: 'margin:0' }, 'Nenhuma venda paga neste período. Registre vendas em Vendas e marque como pagas para ver lucro e receita.')),
-            h('div', { class: 'grid g2' },
-              h('section', { class: 'card pad stack' }, h('h2', 'Lucro por período'), barChart(m.series)),
-              h('section', { class: 'card pad funnel' }, h('h2', 'Funil de vendas'), (() => { const mx = Math.max(1, ...d.stages.map((s) => s.n));
-                return d.stages.map((s) => h('div', { class: 'fr', title: brl(s.total) }, h('span', s.label), h('div', { class: 'track' }, h('i', { style: `width:${(s.n / mx) * 100}%` })), h('b', s.n))); })()))),
-          h('aside', { class: 'stack' },
-            h('section', { class: 'wallet' }, h('div', { class: 'row', style: 'justify-content:space-between' }, h('b', 'Minha carteira'), canWrite && h('a', { class: 'btn ghost sm', href: '#/vendas' }, '+ Nova venda')),
-              h('small', 'Lucro acumulado (vendas pagas)'), h('b', money(d.wallet.profitTotal)), h('small', h('span', 'Receita '), money(d.wallet.revenueTotal), ' · a receber ', money(d.wallet.pending)),
-              canWrite && h('div', { class: 'row', style: 'margin-top:8px' }, h('a', { class: 'btn ghost sm', href: '#/clientes' }, 'Cliente'), h('a', { class: 'btn ghost sm', href: '#/vendas' }, 'Venda'))),
-            h('section', { class: 'card pad' }, h('div', { class: 'row', style: 'justify-content:space-between' }, h('h2', 'Vendas recentes'), h('a', { href: '#/vendas', class: 'sm' }, 'Ver todas')),
+            h('div', { class: 'row2' },
+              h('section', { class: 'promo' }, h('h2', 'Sua próxima venda começa agora.'), h('p', `${k.openLeads} empresa(s) esperando seu próximo movimento · ${brl(k.openValue)} em aberto`),
+                canWrite && h('a', { class: 'plus', href: '#/leads', title: 'Abrir o CRM', 'aria-label': 'Abrir o CRM' }, icon('plus')),
+                h('div', { class: 'go' }, h('a', { class: 'btn sm', href: '#/prospeccao' }, 'Prospectar'), h('a', { class: 'btn ghost sm', href: '#/leads' }, 'Abrir CRM')), heroArt('kanban')),
+              h('section', { class: 'card pad stack' },
+                h('div', { class: 'row', style: 'justify-content:space-between' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, h('b', { style: 'font-size:1.5rem' }, money(m.profit)), delta(m.profitVariation))), monthsSel),
+                barChart(m.series)))),
+          h('aside', { class: 'walletpanel' },
+            h('div', { class: 'wh' }, h('h2', 'Minha carteira'), canWrite && h('a', { class: 'btn sm', href: '#/vendas' }, '+ Nova venda')),
+            h('div', { class: 'cardvis' }, h('span', { class: 'chipic' }), h('span', { class: 'mk' }, 'NEVA'),
+              h('div', h('small', 'Lucro disponível'), h('div', h('b', money(d.wallet.profitTotal))), h('small', 'Receita ', money(d.wallet.revenueTotal), ' · a receber ', money(d.wallet.pending)))),
+            canWrite && h('div', { class: 'two' }, h('a', { class: 'btn', href: '#/clientes' }, icon('user'), 'Cliente'), h('a', { class: 'btn solid', href: '#/vendas' }, icon('trend'), 'Venda')),
+            h('div', { class: 'recent' }, h('div', { class: 'row', style: 'justify-content:space-between' }, h('h2', 'Vendas recentes'), h('a', { href: '#/vendas', class: 'sm' }, 'Ver todas')),
               d.recentSales.length ? h('ul', { class: 'list-plain' }, d.recentSales.map((s) => h('li', h('span', s.description, h('div', { class: 'sm mut' }, s.client_name || '')), h('b', money(s.amount)))))
-                : h('div', { class: 'empty' }, h('b', 'Nenhuma venda registrada'), h('a', { class: 'btn ghost sm', href: '#/vendas' }, 'Registrar primeira venda'))),
-            h('section', { class: 'card pad' }, h('h2', 'Sua próxima venda começa agora'), h('p', { class: 'mut' }, `${k.openLeads} oportunidade(s) abertas · ${brl(k.openValue)} em aberto`), h('div', { class: 'row' }, h('a', { class: 'btn sm', href: '#/prospeccao' }, 'Prospectar'), h('a', { class: 'btn ghost sm', href: '#/leads' }, 'Abrir CRM'))))),
-        h('div', { class: 'grid g3', style: 'margin-top:14px' },
+                : h('div', { class: 'empty' }, h('b', 'Nenhuma venda registrada'), 'Seus resultados aparecerão aqui.', h('div', { style: 'margin-top:10px' }, h('a', { class: 'btn sm', href: '#/vendas' }, 'Registrar primeira venda')))))),
+        h('div', { class: 'grid g4', style: 'margin-top:16px' },
+          h('section', { class: 'card pad funnel' }, h('h2', 'Funil de vendas'), (() => { const mx = Math.max(1, ...d.stages.map((s) => s.n));
+            return d.stages.map((s) => h('div', { class: 'fr', title: brl(s.total) }, h('span', s.label), h('div', { class: 'track' }, h('i', { style: `width:${(s.n / mx) * 100}%` })), h('b', s.n))); })()),
           h('section', { class: 'card pad' }, h('h2', 'Próximas tarefas'), d.tasksDue.length ? h('ul', { class: 'list-plain' }, d.tasksDue.map((t) => h('li', h('span', t.title), h('span', { class: 'sm mut nowrap' }, dt(t.due_date))))) : h('p', { class: 'mut' }, 'Nenhuma tarefa aberta.'), h('a', { href: '#/tarefas' }, 'Ver todas')),
           h('section', { class: 'card pad' }, h('h2', 'Atividade recente'), d.recentActivities.length ? h('ul', { class: 'list-plain' }, d.recentActivities.map((a) => h('li', h('span', `${a.lead_name || 'Lead'}: ${a.text}`), h('span', { class: 'sm mut nowrap' }, dtt(a.created_at))))) : h('p', { class: 'mut' }, 'Sem atividades ainda.')),
           h('section', { class: 'card pad' }, h('h2', 'Resumo'), h('dl', { class: 'kv' }, [['Leads', k.leads], ['Clientes', k.clients], ['Conversão', k.conversion + '%'], ['Projetos', k.projects], ['Sites publicados', k.publishedSites]].flatMap(([a, b]) => [h('dt', a), h('dd', b)])))));
+      drawBar();
     }
-    mount(box, h('div', { class: 'pagehead' }, h('div', h('h1', `Olá, ${ctx.user.name.split(' ')[0]}`), h('p', 'Resultados reais da sua operação, calculados a partir das vendas pagas.')),
-      h('div', { id: 'periodbar' })), area);
-    const bar = box.querySelector('#periodbar');
-    const drawBar = () => mount(bar, pills({ items: PERIODS, value: period, onChange: (v) => { period = v; try { sessionStorage.setItem('dashPeriod', v); } catch { /* ok */ } drawBar(); load().catch(fail); } }));
-    drawBar(); await load();
+    mount(box, area);
+    const drawBar = () => { const bar = box.querySelector('#periodbar'); if (bar) mount(bar, h('div', { class: 'periodbar' }, pills({ items: PERIODS, value: period, onChange: (v) => { period = v; try { sessionStorage.setItem('dashPeriod', v); } catch { /* ok */ } load().catch(fail); } }))); };
+    await load();
   }
 };

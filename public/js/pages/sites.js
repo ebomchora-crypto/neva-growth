@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, dt, pills, hero, statCard, debounce } from '../ui.js';
+import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, dt, pills, hero, statCard, debounce, icon } from '../ui.js';
 
 export const KINDS = [['site', 'Site institucional / landing page'], ['app', 'Aplicação (interface interativa)'], ['system', 'Sistema (CRUD com várias entidades)']];
 export const SECTIONS = [['beneficios', 'Benefícios'], ['servicos', 'Serviços'], ['depoimentos', 'Depoimentos'], ['faq', 'Perguntas frequentes'], ['contato', 'Contato']];
@@ -10,13 +10,15 @@ export default {
     const canWrite = ctx.user.role !== 'viewer';
     const [clients, st0] = await Promise.all([api.get('/clients', { limit: 500 }), api.get('/integrations/status')]);
     const st = { status: 'todos', q: '' };
-    const grid = h('div', { class: 'grid g3' }); const bar = h('div', { class: 'row', style: 'justify-content:space-between;margin-bottom:14px' }); const statsBox = h('div', { class: 'hero-stats' });
+    const grid = h('div', { class: 'grid g3' }); const bar = h('div', { class: 'card sitebar' }); const statsBox = h('div', { class: 'hero-stats big' }); const bu = ctx.me?.usage?.builder;
     async function load() {
       const { items, stats } = await api.get('/projects', { q: st.q, status: st.status === 'todos' ? '' : st.status });
-      mount(statsBox, statCard('No acervo', String(stats.acervo).padStart(2, '0')), statCard('Publicados', String(stats.publicados).padStart(2, '0')), statCard('Em desenvolvimento', String(stats.desenvolvimento).padStart(2, '0')));
-      mount(bar, pills({ items: [['todos', 'Todos'], ['publicado', 'Publicado'], ['desenvolvimento', 'Em desenvolvimento'], ['arquivado', 'Arquivado']], value: st.status, counts: { todos: stats.acervo, publicado: stats.publicados, desenvolvimento: stats.desenvolvimento, arquivado: stats.arquivados }, onChange: (v) => { st.status = v; load(); } }),
-        h('input', { type: 'search', style: 'width:280px', placeholder: 'Buscar site, domínio ou cliente', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }));
-      mount(grid, !items.length ? h('div', { class: 'card empty', style: 'grid-column:1/-1' }, h('b', st.q || st.status !== 'todos' ? 'Nenhum projeto neste recorte' : 'Seu próximo site merece uma vitrine'), canWrite && !st.q ? 'Crie um site, aplicação ou sistema a partir de um modelo ou com IA.' : '') :
+      mount(statsBox, statCard('No acervo', String(stats.acervo).padStart(2, '0')), statCard('Publicados', String(stats.publicados).padStart(2, '0')));
+      mount(bar, h('span', { class: 'ex' }, 'EXIBIR'), h('div', { class: 'grow' }, pills({ items: [['todos', 'Todos'], ['publicado', 'Publicado'], ['desenvolvimento', 'Em desenvolvimento'], ['arquivado', 'Arquivado']], value: st.status, onChange: (v) => { st.status = v; load(); } })),
+        h('input', { type: 'search', style: 'width:220px', placeholder: 'Buscar site, domínio ou cliente', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
+        h('a', { class: 'kbtn', href: '#/builder', title: st0.ai.configured ? 'Gerações com IA usadas neste mês' : 'Builder com IA (IA não configurada)' }, icon('layout'), 'Builder de Sites', bu && h('span', { class: 'n' }, `${bu.used}/${bu.limit}`)),
+        h('span', { class: 'found' }, h('b', String(items.length).padStart(2, '0')), 'projetos encontrados'));
+      mount(grid, !items.length ? h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('layout')), h('b', st.q || st.status !== 'todos' ? 'Nenhum projeto neste recorte' : 'Seu próximo site merece uma vitrine'), canWrite && !st.q ? 'Crie um site, aplicação ou sistema a partir de um modelo ou com IA.' : '') :
         items.map((p) => h('article', { class: 'card siteCard' },
           h('div', { class: 'row' }, h('span', { class: 'badge' }, { site: 'Site', app: 'Aplicação', system: 'Sistema' }[p.kind]), h('span', { class: 'badge ' + STATUS[p.status][1] }, STATUS[p.status][0])),
           h('h2', p.name), h('p', { class: 'mut sm', style: 'margin:0' }, p.description || 'Sem descrição.'),
@@ -50,9 +52,9 @@ export default {
           if (!f.reportValidity()) return false; const d = readForm(f, defs); const sections = SECTIONS.map((s) => s[0]).filter((k) => f.elements['sec_' + k]?.checked);
           const p = await api.post('/projects', { ...d, sections, blank: tab === 'blank' }); close(); location.hash = '#/ide/' + p.id; } }] });
     }
-    mount(box, hero({ kicker: 'Neva Growth / Portfólio web', title: 'Sites que falam por você.', subtitle: 'Acervo de sites, aplicações e sistemas: edite na IDE, vincule a clientes e domínios e publique.',
-      actions: [canWrite && h('button', { class: 'btn', onclick: wizard }, '+ Adicionar site'), canWrite && h('a', { class: 'btn ghost', href: '#/builder' }, st0.ai.configured ? '✦ Builder com IA' : 'Builder com IA')], stats: statsBox }),
-      h('div', { class: 'card pad' }, bar), h('div', { style: 'height:14px' }), grid);
+    mount(box, hero({ kicker: 'Neva Growth / Portfólio web', title: 'Sites que falam por você.', subtitle: 'Uma galeria viva para abrir, apresentar e organizar cada entrega.', art: 'site',
+      actions: [canWrite && h('button', { class: 'btn', onclick: wizard }, icon('plus'), 'Adicionar site')], stats: statsBox }),
+      bar, grid);
     await load();
   }
 };

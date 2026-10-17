@@ -7,16 +7,16 @@ const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m)
 
 const ROUTES = [
   { sec: 'Visão geral' },
-  { path: 'dashboard', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
+  { path: 'dashboard', search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
   { sec: 'Comercial' },
   { path: 'prospeccao', label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
-  { path: 'leads', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
-  { path: 'clientes', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
-  { path: 'vendas', label: 'Vendas', icon: 'cart', page: lazy('./pages/resources.js', 'sales') },
+  { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
+  { path: 'clientes', search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
+  { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'cart', page: lazy('./pages/resources.js', 'sales') },
   { path: 'tarefas', label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
   { path: 'produtos', label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
   { sec: 'Criação' },
-  { path: 'sites', label: 'Sites e sistemas', icon: 'globe', page: lazy('./pages/sites.js') },
+  { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'globe', page: lazy('./pages/sites.js') },
   { path: 'builder', label: 'Builder com IA', icon: 'sparkle', page: lazy('./pages/builder.js') },
   { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { path: 'design', label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
@@ -128,7 +128,7 @@ async function openNotifications(btn, badge) {
 let pollTimer = null;
 async function pollNotifications() {
   const badge = document.getElementById('notif-badge'); if (!badge || !state.user) return;
-  try { const r = await api.get('/me/notifications'); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.textContent = 'Sincronizado ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
+  try { const r = await api.get('/me/notifications'); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.lastChild.textContent = 'Sincronizado ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
 }
 
 function shell() {
@@ -136,26 +136,27 @@ function shell() {
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
-  side.append(h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'),
-    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.map((r) => r.sec ? h('div', { class: 'nav-sec' }, r.sec) :
-      h('a', { href: '#/' + r.path, dataset: { path: r.path }, onclick: () => toggle(false) }, icon(r.icon), r.label))),
-    h('div', { class: 'me' }, h('div', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),
-      h('div', { class: 'grow' }, h('div', { style: 'font-weight:600' }, state.user.name), h('div', { class: 'sm mut' }, `${{ admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[state.user.role]} · ${state.me?.plan?.name || ''}`)),
-      h('button', { class: 'btn ghost sm', title: 'Sair', 'aria-label': 'Sair', onclick: async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); } }, icon('logout'))));
+  const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
+  side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
+    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) :
+      h('a', { href: '#/' + r.path, dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label)))),
+    h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair')));
   const hidden = () => state.me?.settings.hide_values === '1';
   const eye = h('button', { class: 'iconbtn', title: 'Ocultar/mostrar valores', 'aria-label': 'Ocultar ou mostrar valores', onclick: async () => {
     const on = !hidden(); try { await api.put('/me/settings', { hide_values: on }); state.me.settings.hide_values = on ? '1' : '0'; applyPrivacy(on); eye.replaceChildren(icon(on ? 'eyeoff' : 'eye')); } catch (e) { fail(e); } } }, icon(hidden() ? 'eyeoff' : 'eye'));
   const bell = h('button', { class: 'iconbtn', 'aria-label': 'Notificações', onclick: () => openNotifications(bell) }, icon('bell'), h('span', { class: 'dot hide', id: 'notif-badge' }, '0'));
   const view = h('div', { id: 'view' });
+  const roleName = { admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[state.user.role];
   const top = h('div', { class: 'topbar2' },
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
-    h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', 'Buscar cliente, lead, venda ou projeto…'), h('span', { class: 'kbd' }, 'Ctrl + Espaço')),
-    h('span', { class: 'grow' }), h('span', { class: 'syncinfo', id: 'syncinfo' }), eye,
+    h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
+    h('span', { class: 'grow' }), h('span', { class: 'livepill', id: 'syncinfo', title: 'Os dados são atualizados a cada 30 s e ao abrir cada página; não há tempo real contínuo.' }, h('i'), h('span', 'Sincronizado')), eye,
     h('button', { class: 'iconbtn', title: 'Atualizar a página atual', 'aria-label': 'Atualizar dados', onclick: () => route() }, icon('refresh')),
-    h('div', { style: 'position:relative' }, bell));
+    h('div', { style: 'position:relative' }, bell),
+    h('a', { class: 'userpill', href: '#/configuracoes', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),
+      h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', `${roleName} · ${state.me?.plan?.name || ''}`))));
   mount(root, h('div', { class: 'shell' }, side, scrim, h('div', { class: 'main' }, top, view)));
-  document.querySelectorAll('.iconbtn svg,.searchbtn svg,.nav svg').forEach((s) => { s.style.cssText = 'width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none'; });
-  clearInterval(pollTimer); pollNotifications(); pollTimer = setInterval(pollNotifications, 30000);
+    clearInterval(pollTimer); pollNotifications(); pollTimer = setInterval(pollNotifications, 30000);
   route();
 }
 
@@ -165,6 +166,7 @@ async function route() {
   if (!r) { location.hash = '#/dashboard'; return; }
   if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
   document.querySelectorAll('.nav a').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
+  const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';
   state.cleanup?.(); state.cleanup = null;
   const box = h('div', { class: 'content' + (r.wide ? ' wide' : '') }, h('p', { class: 'mut' }, 'Carregando…'));
   mount(view, box);

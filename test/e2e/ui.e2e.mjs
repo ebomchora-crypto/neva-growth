@@ -12,7 +12,7 @@ const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error' && !/Failed to load resource|boom|cdn\.jsdelivr|openstreetmap|cdnjs/.test(m.text())) errors.push('console: ' + m.text().slice(0, 200) + ' @ ' + m.location().url.split('/').slice(-2).join('/')); });
 let pass = 0, fail = 0;
-const step = async (n, fn) => { try { await fn(); pass++; console.log('OK  ', n); } catch (e) { fail++; console.log('FAIL', n, '-', e.message.split('\n')[0]); try { await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); } catch {} } };
+const step = async (n, fn) => { try { await fn(); pass++; console.log('OK  ', n); } catch (e) { fail++; console.log('FAIL', n, '-', e.message.split('\n').slice(0,2).join(' | ')); try { await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); } catch {} } };
 const nav = async (p) => { await page.goto(`${base}/#/${p}`); await page.waitForTimeout(150); };
 const yesterday = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
 const tomorrow = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
@@ -20,7 +20,7 @@ const tomorrow = new Date(Date.now() + 2 * 864e5).toISOString().slice(0, 10);
 await page.goto(base);
 await step('setup admin + dashboard', async () => {
   await page.fill('input[name=name]', 'Ana Teste'); await page.fill('input[name=email]', 'ana@neva.test'); await page.fill('input[name=password]', 'senha-forte-123');
-  await page.click('button:has-text("Criar conta")'); await page.waitForSelector('text=Olá, Ana'); await page.waitForSelector('text=Minha carteira');
+  await page.click('button:has-text("Criar conta")'); await page.waitForSelector('text=Lucro no período'); await page.waitForSelector('text=Minha carteira');
 });
 await step('dashboard: períodos e estado vazio honesto', async () => {
   await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('text=Nenhuma venda paga neste período');
@@ -29,7 +29,7 @@ await step('dashboard: períodos e estado vazio honesto', async () => {
 });
 await step('ocultar valores persiste', async () => {
   await page.click('button[aria-label="Ocultar ou mostrar valores"]'); await page.waitForFunction(() => document.documentElement.classList.contains('hide-values'));
-  await page.reload(); await page.waitForSelector('text=Olá, Ana'); await page.waitForFunction(() => document.documentElement.classList.contains('hide-values'));
+  await page.reload(); await page.waitForSelector('text=Lucro no período'); await page.waitForFunction(() => document.documentElement.classList.contains('hide-values'));
   await page.click('button[aria-label="Ocultar ou mostrar valores"]'); await page.waitForFunction(() => !document.documentElement.classList.contains('hide-values'));
 });
 await step('paleta de comandos (Ctrl+Espaço)', async () => {
@@ -37,16 +37,16 @@ await step('paleta de comandos (Ctrl+Espaço)', async () => {
   await page.keyboard.press('Enter'); await page.waitForURL(/#\/vendas/); 
 });
 await step('CRM: criar oportunidade com prioridade e prazo', async () => {
-  await nav('leads'); await page.click('button:has-text("+ Nova oportunidade")');
+  await nav('leads'); await page.click('button:has-text("Nova oportunidade")');
   await page.fill('.modal input[name=name]', 'Clínica Aurora'); await page.fill('.modal input[name=value]', '3000'); await page.selectOption('.modal select[name=priority]', 'alta'); await page.fill('.modal input[name=due_date]', yesterday);
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")'); await page.waitForSelector('.lcard .late');
 });
 await step('CRM: quick-add na coluna + arrastar + abas', async () => {
-  await page.fill('.col[data-stage=novo] .qadd input', 'Padaria Sol'); await page.keyboard.press('Enter'); await page.waitForSelector('.lcard:has-text("Padaria Sol")');
+  await page.click('.col[data-stage=novo] .addopp'); await page.fill('.col[data-stage=novo] .qadd input', 'Padaria Sol'); await page.keyboard.press('Enter'); await page.waitForSelector('.lcard:has-text("Padaria Sol")');
   await page.dragAndDrop('.lcard:has-text("Padaria Sol")', '.col[data-stage=negociacao]'); await page.waitForSelector('.col[data-stage=negociacao] .lcard:has-text("Padaria Sol")');
-  await page.click('.pill:has-text("Em atraso")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
-  await page.click('.pill:has-text("Prioritárias")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")');
-  await page.click('.pill:has-text("Todas")');
+  await page.click('.ktabs button:has-text("Em atraso")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
+  await page.click('.ktabs button:has-text("Prioritárias")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")');
+  await page.click('.ktabs button:has-text("Todas")');
 });
 await step('CRM: arquivar e ver arquivados', async () => {
   await page.click('.lcard:has-text("Padaria Sol")'); await page.click('.modal button:has-text("Arquivar")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
@@ -56,12 +56,12 @@ await step('CRM: editar funil (renomear + nova etapa)', async () => {
   await page.click('button:has-text("Editar funil")');
   await page.fill('.modal input[aria-label="Nome da etapa"] >> nth=1', 'Qualificados'); await page.click('.modal button:has-text("+ Etapa")');
   await page.fill('.modal input[aria-label="Nome da etapa"] >> nth=6', 'Pós-venda'); await page.click('.modal button:has-text("Salvar funil")');
-  await page.waitForSelector('.col h3:has-text("Qualificados")'); await page.waitForSelector('.col h3:has-text("Pós-venda")');
-  await page.reload(); await page.waitForSelector('.col h3:has-text("Pós-venda")');
+  await page.waitForSelector('.col .colhead:has-text("Qualificados")'); await page.waitForSelector('.col .colhead:has-text("Pós-venda")');
+  await page.reload(); await page.waitForSelector('.col .colhead:has-text("Pós-venda")');
 });
 await step('CRM: minimizar header + lista + converter em cliente', async () => {
   await page.click('button:has-text("Minimizar header")'); await page.waitForSelector('button:has-text("Expandir header")'); await page.click('button:has-text("Expandir header")');
-  await page.click('.seg button:has-text("Lista")'); await page.waitForSelector('tbody tr:has-text("Clínica Aurora")'); await page.click('.seg button:has-text("Quadro")');
+  await page.click('.kseg button[aria-label="Lista"]'); await page.waitForSelector('tbody tr:has-text("Clínica Aurora")'); await page.click('.kseg button[aria-label="Quadro"]');
   await page.click('.lcard:has-text("Clínica Aurora")'); await page.click('.modal button:has-text("Converter em cliente")'); await page.waitForSelector('.col[data-stage=ganho] .lcard:has-text("Clínica Aurora")');
 });
 await step('Clientes: indicadores, abas por estágio, entrega digital', async () => {
@@ -70,7 +70,7 @@ await step('Clientes: indicadores, abas por estágio, entrega digital', async ()
   await page.waitForSelector('th:has-text("Entrega digital")'); await page.waitForSelector('th:has-text("Resultado")');
 });
 await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () => {
-  await nav('vendas'); await page.click('button:has-text("+ Novo venda")');
+  await nav('vendas'); await page.click('button:has-text("Nova venda")');
   await page.fill('.modal input[name=description]', 'Site Aurora'); await page.fill('.modal input[name=amount]', '3000'); await page.fill('.modal input[name=cost]', '1200'); await page.fill('.modal input[name=delivery_date]', yesterday);
   await page.selectOption('.modal select[name=client_id]', { label: 'Clínica Aurora' }); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('td:has-text("Site Aurora")');
   await page.waitForSelector('.pill:has-text("Atrasadas") .cnt:text-is("1")'); await page.waitForSelector('td:has-text("atrasada")');
@@ -84,7 +84,7 @@ await step('Dashboard com lucro real', async () => {
 await step('notificações (sino)', async () => { await page.click('button[aria-label="Notificações"]'); await page.waitForSelector('.dropdown'); await page.waitForSelector('text=Tudo em dia'); await page.click('button[aria-label="Notificações"]'); });
 let projUrl;
 await step('Sites: criar por modelo, abrir IDE', async () => {
-  await nav('sites'); await page.click('button:has-text("+ Adicionar site")'); await page.fill('.modal input[name=name]', 'Studio Aurora'); await page.fill('.modal input[name=tagline]', 'Sorrisos que encantam');
+  await nav('sites'); await page.click('button:has-text("Adicionar site")'); await page.fill('.modal input[name=name]', 'Studio Aurora'); await page.fill('.modal input[name=tagline]', 'Sorrisos que encantam');
   await page.click('.modal button:has-text("Criar projeto")'); await page.waitForURL(/#\/ide\/\d+/); projUrl = page.url();
 });
 await step('IDE: edição + autosave + preview', async () => {
@@ -137,10 +137,10 @@ await step('Referências de design: criar, filtrar, abrir', async () => {
 await step('Acervo: recursos iniciais e novo recurso', async () => {
   await nav('acervo'); await page.waitForSelector('.libitem:has-text("Direção de landing page")'); await page.click('.libitem:has-text("Direção de landing page")'); await page.waitForSelector('pre.code:has-text("designer de produto")');
   await page.click('.tabs button:has-text("Animações")'); await page.waitForSelector('.libitem:has-text("Revelar ao rolar")');
-  await page.click('button:has-text("+ Novo recurso")'); await page.fill('.modal input[name=title]', 'Pulse botão'); await page.fill('.modal textarea[name=content]', '.pulse{animation:p 1s}'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.libitem:has-text("Pulse botão")');
+  await page.click('button:has-text("Novo recurso")'); await page.fill('.modal input[name=title]', 'Pulse botão'); await page.fill('.modal textarea[name=content]', '.pulse{animation:p 1s}'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.libitem:has-text("Pulse botão")');
 });
 await step('Play: cadastrar vídeo e marcar como visto', async () => {
-  await nav('play'); await page.click('button:has-text("+ Novo conteúdo")'); await page.fill('.modal input[name=title]', 'Como vender sites'); await page.fill('.modal input[name=video_url]', 'https://youtu.be/dQw4w9WgXcQ'); await page.fill('.modal input[name=category]', 'Vendas');
+  await nav('play'); await page.click('button:has-text("Novo conteúdo")'); await page.fill('.modal input[name=title]', 'Como vender sites'); await page.fill('.modal input[name=video_url]', 'https://youtu.be/dQw4w9WgXcQ'); await page.fill('.modal input[name=category]', 'Vendas');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("Como vender sites")'); await page.click('article:has-text("Como vender sites") >> button:has-text("Assistir")');
   await page.waitForSelector('.modal iframe'); await page.click('.modal button:has-text("Marcar como visto")'); await page.waitForSelector('.stat:has-text("Conteúdos vistos") b:text-is("100%")'); await page.waitForSelector('.badge:has-text("visto")');
 });
@@ -153,7 +153,7 @@ await step('Associação: planos e edição por admin', async () => {
   await page.click('.plan:has-text("Creator") >> button:has-text("Editar plano")'); await page.fill('.modal input[name=ai_monthly_limit]', '200'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.plan:has-text("IA: 200/mês")');
 });
 await step('Usuários: plano e créditos', async () => {
-  await nav('usuarios'); await page.waitForSelector('th:has-text("Créditos")'); await page.click('text=+ Novo usuário'); await page.fill('.modal input[name=name]', 'Bia'); await page.fill('.modal input[name=email]', 'bia@neva.test'); await page.fill('.modal input[name=password]', 'senha-forte-456');
+  await nav('usuarios'); await page.waitForSelector('th:has-text("Créditos")'); await page.click('button:has-text("Novo usuário")'); await page.fill('.modal input[name=name]', 'Bia'); await page.fill('.modal input[name=email]', 'bia@neva.test'); await page.fill('.modal input[name=password]', 'senha-forte-456');
   await page.selectOption('.modal select[name=plan]', 'creator'); await page.fill('.modal input[name=credits]', '50'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('tr:has-text("bia@neva.test"):has-text("creator")');
 });
 await step('Configurações: 8 seções, perfil, sessões, notificações, privacidade, crm, dados', async () => {
@@ -182,7 +182,7 @@ await page.setViewportSize({ width: 1360, height: 900 });
 await nav('dashboard'); await page.waitForTimeout(900); await page.screenshot({ path: path.join(OUT, 'dash2.png') });
 await nav('leads'); await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, 'crm2.png') });
 await nav('vendas'); await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, 'vendas2.png') });
-await step('logout/login', async () => { await page.click('.me button'); await page.waitForSelector('input[name=password]'); await page.fill('input[name=email]', 'ana@neva.test'); await page.fill('input[name=password]', 'senha-forte-123'); await page.click('button:has-text("Entrar")'); await page.waitForSelector('.me'); });
+await step('logout/login', async () => { await page.click('.railbtn'); await page.waitForSelector('input[name=password]'); await page.fill('input[name=email]', 'ana@neva.test'); await page.fill('input[name=password]', 'senha-forte-123'); await page.click('button:has-text("Entrar")'); await page.waitForSelector('.side'); });
 console.log(`\nRESULTADO: ${pass} ok, ${fail} falhas`); console.log('Erros de console/página:', errors.length ? errors : 'nenhum');
 await browser.close();
 process.exit(fail ? 1 : 0);
