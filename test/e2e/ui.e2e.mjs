@@ -139,6 +139,7 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
 });
 await step('Builder: IA não configurada, criar de modelo', async () => {
   await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
+  await page.waitForSelector('canvas.mdots'); await page.mouse.move(400, 200); await page.mouse.move(520, 260, { steps: 5 }); await page.waitForFunction(() => { const c = document.querySelector('canvas.mdots'); return c && c.width > 0; });
   await page.click('.effchip'); await page.waitForSelector('.effpop:not(.hide)');
   const tb = await page.locator('.etrack').boundingBox();
   await page.mouse.move(tb.x + tb.width * 0.33, tb.y + tb.height / 2); await page.mouse.down(); await page.mouse.move(tb.x + tb.width * 0.7, tb.y + tb.height / 2, { steps: 6 }); await page.mouse.move(tb.x + tb.width + 20, tb.y + tb.height / 2, { steps: 4 }); await page.mouse.up();

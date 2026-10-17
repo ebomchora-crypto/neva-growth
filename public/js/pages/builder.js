@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { magneticDots } from '../magnetic-dots.js';
 import { h, mount, toast, fail, fieldEl, icon, mascotImg, modal } from '../ui.js';
 
 const TEMPLATES = [
@@ -96,5 +97,6 @@ export default {
       h('div', { class: 'composer' },
         h('div', { class: 'cleft' }, brief, details, status, h('div', { class: 'effwrap' }, pop, chip), h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
         h('div', { class: 'cright' }, models, pager))));
+    return magneticDots(box.querySelector('.bstage'));
   }
 };

@@ -623,3 +623,5 @@ html:not(.motion) .navind{display:none}
 .etick{position:absolute;top:0;transform:translateX(-50%);border:0;background:none;color:rgba(255,255,255,.6);font-size:.74rem;cursor:pointer;padding:4px 6px;border-radius:8px;white-space:nowrap}
 .etick:hover{color:#fff}.etick.on{color:#7fe0f0;font-weight:700}.etick:first-child{transform:translateX(-18%)}.etick:last-child{transform:translateX(-82%)}
 .effpop .ed{margin-top:6px;text-align:center;color:rgba(255,255,255,.72);font-size:.8rem}.effpop .ed.muted2{color:rgba(255,255,255,.5);font-size:.74rem}
+
+.bstage{isolation:isolate}.mdots{position:absolute!important;inset:0;z-index:0;pointer-events:none;border-radius:inherit}.bstage>*:not(.mdots){z-index:1}
