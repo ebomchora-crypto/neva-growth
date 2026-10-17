@@ -59,19 +59,33 @@ export default {
     }
     drawModels();
     // nível de esforço da IA (de verdade: muda o limite de saída e as instruções enviadas ao gerar)
-    const LEVELS = [{ k: 'low', l: 'Rápido', d: 'Projeto enxuto, mais veloz' }, { k: 'medium', l: 'Médio', d: 'Equilíbrio entre prazo e acabamento' }, { k: 'high', l: 'Alto', d: 'Acabamento caprichado, leva mais tempo' }];
+    const LEVELS = [{ k: 'low', l: 'Baixo', d: 'Projeto enxuto e mais veloz' }, { k: 'medium', l: 'Médio', d: 'Equilíbrio entre prazo e acabamento' }, { k: 'high', l: 'Alto', d: 'Acabamento caprichado, leva mais tempo' }, { k: 'xhigh', l: 'Extra-alto', d: 'Máximo de detalhe e arquivos; é o mais demorado' }];
     const effort = { k: (() => { try { return localStorage.getItem('neva-effort') || 'medium'; } catch { return 'medium'; } })() }; if (!LEVELS.some((x) => x.k === effort.k)) effort.k = 'medium';
-    const modelName = st.ai.model || 'Neva IA';
-    const chip = h('button', { type: 'button', class: 'effchip', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Nível de esforço da IA' }); const pop = h('div', { class: 'effpop hide', role: 'dialog', 'aria-label': 'Nível de esforço' });
-    const idx = () => LEVELS.findIndex((x) => x.k === effort.k);
-    const drawEff = () => {
-      const cur = LEVELS[idx()];
-      mount(chip, h('i', { class: 'slash' }), h('b', modelName.replace(/^claude-/i, '').replace(/-/g, ' ')), h('span', { class: 'sep' }, '/'), h('span', { class: 'lv' }, cur.l), h('span', { class: 'car' }, '⌃'));
-      const range = h('input', { type: 'range', min: 0, max: LEVELS.length - 1, step: 1, value: idx(), 'aria-label': 'Nível de esforço', style: `--p:${(idx() / (LEVELS.length - 1)) * 100}%`, oninput: (e) => { effort.k = LEVELS[Number(e.target.value)].k; try { localStorage.setItem('neva-effort', effort.k); } catch { /* ok */ } drawEff(); pop.classList.remove('hide'); pop.querySelector('input')?.focus(); } });
-      mount(pop, h('div', { class: 'eh' }, h('span'), h('b', cur.l), h('button', { type: 'button', class: 'erst', title: 'Voltar ao padrão (Médio)', 'aria-label': 'Voltar ao padrão', onclick: () => { effort.k = 'medium'; try { localStorage.setItem('neva-effort', 'medium'); } catch { /* ok */ } drawEff(); pop.classList.remove('hide'); } }, icon('refresh'))),
-        h('div', { class: 'em' }, modelName.replace(/^claude-/i, '').replace(/-/g, ' '), ' ›'), range, h('div', { class: 'ed' }, cur.d), !aiOn && h('div', { class: 'ed' }, 'Vale quando a IA estiver configurada.'));
-    };
-    drawEff();
+    const modelName = (st.ai.model || 'Neva IA').replace(/^claude-/i, '').replace(/-/g, ' ');
+    const N = LEVELS.length; const idx = () => LEVELS.findIndex((x) => x.k === effort.k);
+    const chip = h('button', { type: 'button', class: 'effchip', 'aria-haspopup': 'true', 'aria-expanded': 'false', title: 'Nível de esforço da IA' });
+    const eLabel = h('b', { class: 'elabel' }); const eDesc = h('div', { class: 'ed' }); const fill = h('i', { class: 'efill' }); const thumbEl = h('i', { class: 'ethumb' });
+    const track = h('div', { class: 'etrack', role: 'slider', tabindex: 0, 'aria-label': 'Nível de esforço da IA', 'aria-valuemin': 1, 'aria-valuemax': N, onkeydown: (e) => {
+      const d = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[e.key]; if (d) { e.preventDefault(); setLevel(idx() + d); } else if (e.key === 'Home') setLevel(0); else if (e.key === 'End') setLevel(N - 1); } },
+      fill, ...LEVELS.map((_, i) => h('span', { class: 'estop', style: `left:${(i / (N - 1)) * 100}%` })), thumbEl);
+    const ticks = h('div', { class: 'eticks' }, LEVELS.map((x, i) => h('button', { type: 'button', class: 'etick', style: `left:${(i / (N - 1)) * 100}%`, onclick: () => setLevel(i) }, x.l)));
+    function paint() {
+      const i = idx(); const pct = (i / (N - 1)) * 100; const cur = LEVELS[i];
+      fill.style.width = pct + '%'; thumbEl.style.left = pct + '%'; track.setAttribute('aria-valuenow', i + 1); track.setAttribute('aria-valuetext', cur.l);
+      eLabel.textContent = cur.l; eDesc.textContent = cur.d; ticks.querySelectorAll('.etick').forEach((t, j) => t.classList.toggle('on', j === i));
+      mount(chip, h('i', { class: 'slash' }), h('b', modelName), h('span', { class: 'sep' }, '/'), h('span', { class: 'lv' }, cur.l), h('span', { class: 'car' }, '⌃'));
+    }
+    function setLevel(i) { i = Math.max(0, Math.min(N - 1, i)); if (LEVELS[i].k === effort.k) return; effort.k = LEVELS[i].k; try { localStorage.setItem('neva-effort', effort.k); } catch { /* ok */ } paint(); }
+    // arrastar com o mouse/dedo: segue o ponteiro e encaixa no nível mais próximo
+    const fromPointer = (e) => { const r = track.getBoundingClientRect(); const x = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)); setLevel(Math.round(x * (N - 1))); };
+    track.addEventListener('pointerdown', (e) => { track.setPointerCapture(e.pointerId); track.classList.add('drag'); fromPointer(e); track.focus(); });
+    track.addEventListener('pointermove', (e) => { if (track.hasPointerCapture(e.pointerId)) fromPointer(e); });
+    const endDrag = (e) => { track.classList.remove('drag'); try { track.releasePointerCapture(e.pointerId); } catch { /* ok */ } };
+    track.addEventListener('pointerup', endDrag); track.addEventListener('pointercancel', endDrag);
+    const pop = h('div', { class: 'effpop hide', role: 'dialog', 'aria-label': 'Nível de esforço' },
+      h('div', { class: 'eh' }, h('span'), eLabel, h('button', { type: 'button', class: 'erst', title: 'Voltar ao padrão (Médio)', 'aria-label': 'Voltar ao padrão', onclick: () => setLevel(1) }, icon('refresh'))),
+      h('div', { class: 'em' }, modelName, ' ›'), h('div', { class: 'eslide' }, track, ticks), eDesc, !aiOn && h('div', { class: 'ed muted2' }, 'Vale quando a IA estiver configurada.'));
+    paint();
     chip.addEventListener('click', () => { const open = pop.classList.toggle('hide') === false; chip.setAttribute('aria-expanded', String(open)); });
     document.addEventListener('mousedown', (e) => { if (!pop.classList.contains('hide') && !pop.contains(e.target) && !chip.contains(e.target)) { pop.classList.add('hide'); chip.setAttribute('aria-expanded', 'false'); } });
     const status = aiOn ? h('span', { class: 'bstatus ok' }, h('i'), quota.textContent) : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: defina ', h('code', st.ai.envVar), ' no servidor. Os modelos funcionam sem IA.');

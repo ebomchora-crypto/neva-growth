@@ -113,7 +113,7 @@ r.post('/generate-ai', async (req, res) => {
   const kind = ['site', 'app', 'system'].includes(b.kind) ? b.kind : 'site';
   await S.checkAiQuota(req.user, 'builder');
   const style = String(b.style || '').slice(0, 200); const color = /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null;
-  const EFFORT = { low: [6000, ' Nível rápido: projeto enxuto, no máximo 3 arquivos e poucas seções, código curto e direto.'], medium: [12000, ''], high: [16000, ' Nível alto: acabamento caprichado, mais seções e estados (hover, foco, vazio), microinterações em CSS, copy cuidadosa e até 8 arquivos bem organizados.'] };
+  const EFFORT = { low: [6000, ' Nível rápido: projeto enxuto, no máximo 3 arquivos e poucas seções, código curto e direto.'], medium: [12000, ''], xhigh: [24000, ' Nível extra-alto: o máximo de capricho. Estrutura completa e bem separada em até 8 arquivos, muitas seções e estados (hover, foco, vazio, erro), animações sutis em CSS, acessibilidade cuidada, copy persuasiva e responsividade impecável.'], high: [16000, ' Nível alto: acabamento caprichado, mais seções e estados (hover, foco, vazio), microinterações em CSS, copy cuidadosa e até 8 arquivos bem organizados.'] };
   const [maxTokens, extra] = EFFORT[b.effort] || EFFORT.medium;
   const text = await ai.complete({
     maxTokens,
