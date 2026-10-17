@@ -6,7 +6,7 @@ const ai = require('../lib/ai');
 
 const r = express.Router();
 r.get('/status', async (_req, res) => res.json({
-  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODEL() : null, envVar: 'ANTHROPIC_API_KEY' },
+  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODEL() : null, models: ai.publicModels(), defaultModel: ai.MODEL(), envVar: 'ANTHROPIC_API_KEY' },
   places: { configured: Boolean(process.env.GOOGLE_PLACES_API_KEY), envVar: 'GOOGLE_PLACES_API_KEY' }
 }));
 
@@ -30,11 +30,12 @@ r.post('/ai/chat', async (req, res) => {
   let ctx = ''; let budget = 40000;
   const tree = files.map((f) => f.path).join(', ');
   for (const f of files) { if (budget <= 0) break; const chunk = `\n--- ${f.path} ---\n${f.content.slice(0, Math.min(budget, 12000))}`; ctx += chunk; budget -= chunk.length; }
+  const model = ai.resolveModel(req.body?.model); const effort = ai.resolveEffort(model, req.body?.effort);
   const reply = await ai.complete({
-    maxTokens: 8000,
+    model, maxTokens: ai.EFFORTS[effort].maxTokens,
     system: 'Você é o assistente de programação da IDE Neva Growth. Responda em português do Brasil, de forma objetiva. ' +
       'Ao criar ou modificar arquivos, devolva cada arquivo COMPLETO em um bloco de código cuja primeira linha é um comentário no formato "FILE: caminho/do/arquivo.ext" (ex.: <!-- FILE: index.html --> ou // FILE: main.js). ' +
-      'Nunca proponha excluir arquivos. Os projetos são estáticos (HTML/CSS/JS, sem build nem servidor). ' +
+      'Nunca proponha excluir arquivos. Os projetos são estáticos (HTML/CSS/JS, sem build nem servidor).' + ai.EFFORTS[effort].extra + ' ' +
       `Arquivo ativo: ${activePath || 'nenhum'}.\nEstrutura: ${tree || '(vazio)'}\nConteúdo:${ctx || ' (nenhum)'}`,
     messages: [...hist.map((m) => ({ role: m.role, content: m.content })), { role: 'user', content: message }]
   });

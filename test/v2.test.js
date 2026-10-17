@@ -220,3 +220,16 @@ test('Prospecção: histórico de buscas é por usuário e pode ser apagado', as
   await A('DELETE', `/api/integrations/prospect/searches/${mine[0].id}`); assert.equal((await M('GET', '/api/integrations/prospect/searches')).body.items.length, 1);
   await M('DELETE', `/api/integrations/prospect/searches/${mine[0].id}`); assert.equal((await M('GET', '/api/integrations/prospect/searches')).body.items.length, 0);
 });
+
+test('modelos e esforço: lista fixa, escolha validada no servidor', async () => {
+  const st = (await A('GET', '/api/integrations/status')).body.ai;
+  assert.deepEqual(st.models.map((m) => m.id), ['claude-opus-5-5', 'claude-sonnet-5-5', 'claude-haiku-5-5']);
+  assert.deepEqual(st.models.find((m) => m.id === 'claude-haiku-5-5').efforts.map((e) => e.id), ['low', 'medium']);
+  assert.equal(st.models.find((m) => m.id === 'claude-opus-5-5').efforts.length, 4);
+  const ai = require('../server/lib/ai');
+  assert.equal(ai.resolveModel('modelo-inventado'), ai.MODEL());          // nunca repassa um id arbitrário
+  assert.equal(ai.resolveModel('claude-opus-5-5'), 'claude-opus-5-5');
+  assert.equal(ai.resolveEffort('claude-haiku-5-5', 'xhigh'), 'low');     // nível inexistente no modelo cai para o padrão dele
+  assert.equal(ai.resolveEffort('claude-opus-5-5', 'xhigh'), 'xhigh');
+  assert.equal((await A('POST', '/api/projects/generate-ai', { name: 'Padaria', brief: 'um site para uma padaria', model: 'x', effort: 'zzz' })).body.code, 'ai_not_configured');
+});

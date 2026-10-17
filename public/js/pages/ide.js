@@ -1,5 +1,8 @@
 import { api } from '../api.js';
 import { h, mount, modal, confirmBox, promptBox, toast, fail, debounce, diffEl, dtt } from '../ui.js';
+import { modelSelector } from '../model-selector.js';
+import { aiLoading } from '../ai-loading.js';
+import { diffReview, hunksOf } from '../diff-review.js';
 
 const MONACO = 'https://cdn.jsdelivr.net/npm/monaco-editor@0.52.2/min/vs';
 const LANGS = { html: 'html', css: 'css', js: 'javascript', mjs: 'javascript', json: 'json', md: 'markdown', svg: 'xml', xml: 'xml', txt: 'plaintext' };
@@ -194,27 +197,32 @@ export default {
     }
     async function reviewEdits(edits) {
       const olds = await Promise.all(edits.map(async (e) => { try { return (await api.get(`/projects/${id}/file`, { path: e.file })).content; } catch { return null; } }));
-      const sel = edits.map(() => true);
-      const body = h('div', { class: 'stack' }, h('p', { class: 'sm mut' }, 'Revise as diferenças. Nada é alterado até você aplicar; depois é possível desfazer.'), edits.map((e, i) => h('div', h('label', { class: 'row' }, h('input', { type: 'checkbox', checked: true, onchange: (ev) => { sel[i] = ev.target.checked; } }), h('b', e.file), olds[i] == null && h('span', { class: 'badge ok' }, 'novo')), diffEl(olds[i], e.body))));
-      modal({ title: 'Revisar alterações da IA', size: 'lg', body, actions: [{ label: 'Cancelar', kind: 'ghost' }, { label: 'Aplicar selecionadas', keepOpen: true, onClick: async (close) => {
-        const chosen = edits.filter((_, i) => sel[i]).map((e) => ({ path: e.file, content: e.body })); if (!chosen.length) return false;
-        if (open.some(dirty)) await save(true);
-        const r = await api.post(`/projects/${id}/ai-apply`, { files: chosen }); lastUndo = r.undo; undoBtn.classList.remove('hide'); close();
-        for (const c of chosen) if (buffers.has(c.path)) setContent(c.path, c.content); await reloadFiles(); refreshPreview(); toast('Alterações aplicadas. Use "Desfazer última aplicação da IA" se precisar.', 'ok'); } }] });
+      const files = edits.map((e, i) => ({ path: e.file, created: olds[i] == null, body: e.body, hunks: hunksOf(olds[i], e.body) }));
+      let accepted = []; const dr = diffReview(files, { onChange: (a) => { accepted = a; } });
+      modal({ title: 'Revisar alterações da IA', size: 'lg', body: h('div', { class: 'stack' }, h('p', { class: 'sm mut', style: 'margin:0' }, 'Aceite ou rejeite cada arquivo. Nada é alterado até você aplicar as aceitas; depois é possível desfazer.'), dr.el),
+        actions: [{ label: 'Cancelar', kind: 'ghost' }, { label: 'Aplicar aceitas', keepOpen: true, onClick: async (close) => {
+          accepted = dr.accepted(); const chosen = files.filter((f) => accepted.includes(f.path)).map((f) => ({ path: f.path, content: f.body }));
+          if (!chosen.length) { toast('Aceite ao menos um arquivo para aplicar.', 'err'); return false; }
+          if (open.some(dirty)) await save(true);
+          const r = await api.post(`/projects/${id}/ai-apply`, { files: chosen }); lastUndo = r.undo; undoBtn.classList.remove('hide'); close();
+          for (const c of chosen) if (buffers.has(c.path)) setContent(c.path, c.content); await reloadFiles(); refreshPreview(); toast('Alterações aplicadas. Use "Desfazer última aplicação da IA" se precisar.', 'ok'); } }] });
     }
     async function undoAi() {
       if (!lastUndo || !(await confirmBox('Desfazer a última aplicação da IA? Os arquivos voltam ao estado anterior.', 'Desfazer'))) return;
       try { await api.post(`/projects/${id}/ai-undo`, { undo: lastUndo }); for (const u of lastUndo) { if (!u.existed) closeTabQuiet(u.path); else if (buffers.has(u.path)) setContent(u.path, (await api.get(`/projects/${id}/file`, { path: u.path })).content); }
         lastUndo = null; undoBtn.classList.add('hide'); await reloadFiles(); refreshPreview(); toast('Alterações desfeitas.', 'ok'); } catch (e) { fail(e); }
     }
+    const chatSel = modelSelector({ models: st.ai.models, defaultModel: st.ai.defaultModel, theme: 'light', placement: 'up' });
     const chatIn = h('input', { placeholder: 'Peça ajuda, explicações ou alterações no código…', 'aria-label': 'Mensagem para a IA' });
     const chatForm = h('form', { onsubmit: async (e) => {
       e.preventDefault(); const text = chatIn.value.trim(); if (!text) return; chatIn.value = '';
-      chatMsgs.append(h('div', { class: 'm u' }, text)); const wait = h('div', { class: 'm mut' }, 'Pensando…'); chatMsgs.append(wait); chatMsgs.scrollTop = chatMsgs.scrollHeight;
-      try { await save(true); const r = await api.post('/integrations/ai/chat', { projectId: id, activePath: active, message: text }); wait.replaceChildren(renderReply(r.reply)); wait.classList.remove('mut'); usageEl.textContent = `Uso mensal: ${r.usage.used}/${r.usage.limit}`; }
-      catch (x) { wait.textContent = x.message; wait.classList.add('err-text'); }
+      chatMsgs.append(h('div', { class: 'm u' }, text)); const wait = h('div', { class: 'm' }); chatMsgs.append(wait); chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      const mk = (a, b2, c) => [{ id: 'save', label: 'Salvando o arquivo aberto', status: a }, { id: 'ai', label: `Aguardando a IA (${chatSel.label()})`, status: b2 }, { id: 'ok', label: 'Preparando a resposta', status: c }];
+      const L = aiLoading(mk('running', 'pending', 'pending'), { collapseWhenDone: false }); mount(wait, L.el);
+      try { await save(true); L.update(mk('done', 'running', 'pending')); const r = await api.post('/integrations/ai/chat', { projectId: id, activePath: active, message: text, ...chatSel.get() }); L.update(mk('done', 'done', 'done')); L.stop(); wait.replaceChildren(renderReply(r.reply)); usageEl.textContent = `Uso mensal: ${r.usage.used}/${r.usage.limit}`; }
+      catch (x) { L.stop(); wait.textContent = x.message; wait.classList.add('err-text'); }
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
-    } }, h('div', { class: 'grow' }, chatIn), h('button', { class: 'btn' }, 'Enviar'));
+    } }, chatSel.el, h('div', { class: 'grow' }, chatIn), h('button', { class: 'btn' }, 'Enviar'));
     async function loadChat() {
       if (!st.ai.configured) return;
       try { const r = await api.get('/integrations/ai/history', { projectId: id }); usageEl.textContent = `Uso mensal: ${r.usage.used}/${r.usage.limit}`;

@@ -90,6 +90,15 @@ Não copiados do original: seletor de modelo "Syre / Medium" e botão de microfo
 
 Fundo da plataforma: shader WebGL de ondas (port em JavaScript puro do componente "ShaderBackground" do 21st.dev, `public/js/shader-bg.js`), com a paleta clara azul-gelo. Anima a 30 fps só com animações ligadas; com "reduzir movimento" ou o interruptor desligado fica um quadro estático; sem WebGL fica a cor sólida. O projeto não usa React/Tailwind/TypeScript, por isso o componente foi portado em vez de copiado para `components/ui`.
 
+Componentes de IA (KokonutUI/21st.dev, portados para JavaScript puro porque o projeto não usa React/Tailwind/TypeScript):
+| Item | Estado |
+|---|---|
+| Builder: orbe "Neva Studio" no lugar do mascote; fundo Dot Field (meio-tom com esteira ao passar o mouse e onda de choque no clique) | Testado (e2e) |
+| Seletor de modelo e esforço (Opus/Sonnet/Haiku; Baixo/Médio/Alto/Máximo conforme o modelo; arrastável e por teclado) no Builder e no chat da IDE. O servidor valida modelo e esforço numa lista fixa e usa o esforço para escolher o limite de saída e as instruções | Lista/validação: Testado (API). Efeito na resposta real: bloqueado (`ANTHROPIC_API_KEY`) |
+| Carregamento da IA em etapas (Builder e chat da IDE): etapas e tempos refletem estados reais (salvar, aguardar a IA, concluir) | Testado (e2e: Builder; componente isolado) |
+| Revisão de diff por arquivo (aceitar/rejeitar/desfazer, blocos expansíveis, aplicar só as aceitas) na IDE | Componente verificado isolado; fluxo completo depende da IA |
+| Mascote da Academia | Em uso |
+
 Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade visual (azul-gelo, logo "N", ilustrações) é própria da Neva. Não foram copiados logo, mascote, arte nem a paleta vermelha do sistema de referência. O indicador "AO VIVO" do original aparece como "Sincronizado hh:mm" porque não há tempo real (atualização a cada 30 s).
 
 ## Deploy
