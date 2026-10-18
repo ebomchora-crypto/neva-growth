@@ -1,6 +1,6 @@
 import { api } from './api.js';
 import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
-import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow } from './motion.js';
+import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill } from './motion.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
 initMotion();
@@ -65,10 +65,11 @@ function pwStrength(v) {
   return v ? Math.max(1, n) : 0;
 }
 
-function authScreen(mode, st = {}) {
+function authScreen(mode, st = {}, swapped = false) {
+  kill();
   snow(true);
   const setup = mode === 'setup', signup = mode === 'signup', forgot = mode === 'forgot';
-  const go = (m) => (e) => { e.preventDefault(); authScreen(m, st); };
+  const go = (m) => (e) => { e.preventDefault(); authScreen(m, st, true); };
   const err = h('p', { class: 'err-text', role: 'alert' });
   const ok = h('p', { class: 'notice', role: 'status', hidden: true });
   const fld = (label, name, type, ic, attrs, eyeBtn) => { const inp = h('input', { name, type, ...attrs }); return h('label', { class: 'field' }, h('span', label), h('span', { class: 'fwrap' }, h('i', { class: 'fico' }, icon(ic)), inp, eyeBtn && h('button', { type: 'button', class: 'pweye', 'aria-label': 'Mostrar ou ocultar a senha', onclick: () => { inp.type = inp.type === 'password' ? 'text' : 'password'; } }, icon('eye')))); };
@@ -83,7 +84,7 @@ function authScreen(mode, st = {}) {
       if (signup) authPending('O cadastro público');
       if (forgot) authPending('O envio do link de recuperação');
       const r = await api.post(setup ? '/auth/setup' : '/auth/login', d); state.user = r.user; await loadMe().catch(() => {}); shell();
-    } catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
+    } catch (ex) { err.textContent = ex.message; shake(form); } finally { btn.disabled = false; }
   } },
     setup && st.setupBlocked && h('div', { class: 'notice' }, 'Instalação bloqueada: defina SETUP_TOKEN nas variáveis de ambiente do servidor e faça um novo deploy.'),
     (setup || signup) && fld('Nome', 'name', 'text', 'user', { required: true, autocomplete: 'name', placeholder: 'Seu nome' }),
@@ -107,10 +108,12 @@ function authScreen(mode, st = {}) {
   const left = h('section', { class: 'auth-form' }, h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), alabel),
     h('h1', title[0], h('em', title[1])), h('p', { class: 'asub' }, sub), form, foot);
   const rev = setup || signup;
-  const right = h('section', { class: 'auth-art' }, h('i', { class: 'wave w1' }), h('i', { class: 'wave w2' }), h('i', { class: 'wave w3' }),
+  const right = h('section', { class: 'auth-art' }, h('i', { class: 'wave w1' }), h('i', { class: 'wave w2' }), h('i', { class: 'wave w3' }), h('div', { class: 'dust', 'aria-hidden': 'true' }, Array.from({ length: 14 }, (_, i) => h('i', { style: `left:${(i * 37 + 8) % 92}%;top:${(i * 53 + 10) % 88}%;--s:${4 + (i % 4) * 2}px` }))),
     h('div', { class: 'aart-in' }, h('div', { class: 'akick' }, 'NEVA GROWTH / OPERATING SYSTEM'), h('h2', rev ? 'Comece sua ' : forgot ? 'Acesso ' : 'Bem-vindo ', h('em', rev ? 'operação.' : forgot ? 'seguro.' : 'de volta.')),
       h('p', rev ? 'Clientes, projetos e resultados organizados desde o primeiro acesso.' : forgot ? 'Recupere sua conta sem perder nada do que já está na plataforma.' : 'Sua central continua exatamente do ponto em que você parou.'), h('div', { class: 'asafe' }, h('i'), 'AMBIENTE PROTEGIDO'), mascotImg('boas-vindas', true)));
-  mount(root, h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right));
+  const main = h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right);
+  mount(root, main); authIn(main, swapped);
+  main.querySelector('input:not([type=checkbox])')?.focus({ preventScroll: true });
 }
 
 // ---------- paleta de comandos / busca global (Ctrl/⌘ + Espaço ou Ctrl/⌘ + K)

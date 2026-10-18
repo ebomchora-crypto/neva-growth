@@ -810,3 +810,26 @@ body{background:#e6f0fa}
 .pwhint{display:grid;gap:6px;margin-top:-4px}.pwhint small{color:var(--mut);font-size:.74rem;line-height:1.4}
 .pwmeter{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.pwmeter i{height:4px;border-radius:4px;background:var(--line);transition:background .2s}
 .pwmeter[data-s="1"] i:nth-child(-n+1){background:#e5675b}.pwmeter[data-s="2"] i:nth-child(-n+2){background:#e8a94a}.pwmeter[data-s="3"] i:nth-child(-n+3){background:#5bb98a}.pwmeter[data-s="4"] i{background:#2f9e6e}
+
+/* auth: ajustes de layout e movimento */
+.auth2{height:100vh;min-height:0}
+.auth-form{overflow-y:auto;justify-content:center;padding-block:clamp(20px,3.5vh,48px);gap:4px}
+.auth-form .brand{padding-bottom:clamp(8px,2vh,22px)}
+.auth-form h1{font-size:clamp(1.9rem,4.4vh + .6vw,3rem)}
+.asub{margin-bottom:clamp(6px,1.6vh,16px)}
+.auth-form form{gap:clamp(8px,1.5vh,14px);width:100%}
+.afoot{margin-top:clamp(6px,1.4vh,14px)}
+.pwhint{margin-top:-2px}.pwmeter i{height:5px;background:#d3e2f1}
+.field .fwrap{transition:border-color .2s,box-shadow .25s,transform .25s}.field .fwrap:focus-within{transform:translateY(-1px)}
+.fwrap:focus-within .fico{filter:brightness(1.12)}
+.loginbtn{position:relative;--shine:-30%;transition:transform .2s,box-shadow .25s}.loginbtn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 16px 32px rgba(47,123,189,.45)}.loginbtn:active:not(:disabled){transform:translateY(0)}
+.loginbtn::after{content:"";position:absolute;inset:0;background:linear-gradient(105deg,transparent calc(var(--shine) - 14%),rgba(255,255,255,.35) var(--shine),transparent calc(var(--shine) + 14%));pointer-events:none}
+.loginbtn i .ico{transition:transform .25s}.loginbtn:hover i .ico{transform:translateX(4px)}
+.loginopts a,.afoot a{position:relative}.loginopts a::after,.afoot a::after{content:"";position:absolute;left:0;right:0;bottom:-2px;height:1px;background:currentColor;transform:scaleX(0);transform-origin:left;transition:transform .25s}.loginopts a:hover::after,.afoot a:hover::after{transform:scaleX(1)}
+.loginopts a:hover,.afoot a:hover{text-decoration:none}
+.aw{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.12em;margin-bottom:-.12em}.aw>span{display:inline-block}
+.dust{position:absolute;inset:0;pointer-events:none}.dust i{position:absolute;width:var(--s);height:var(--s);border-radius:50%;background:rgba(255,255,255,.55);box-shadow:0 0 12px rgba(190,230,255,.9)}
+.auth-art .mascot-img{max-width:min(260px,46%);max-height:32vh}
+@media(max-width:900px){.auth2{height:auto;min-height:100vh}.auth-form{overflow:visible}}
+.auth-form{justify-content:flex-start}.auth-form>.brand{margin-top:auto}.auth-form>:last-child{margin-bottom:auto}
+.err-text:empty,.auth-form .notice[hidden]{display:none}

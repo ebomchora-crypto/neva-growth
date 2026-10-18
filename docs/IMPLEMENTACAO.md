@@ -116,3 +116,6 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 ## Cadastro e recuperação de senha (somente interface)
 `authScreen` em `public/js/app.js` tem os modos `login`, `signup`, `forgot` e `setup`. Login: "Salvar sessão", "Esqueci a senha" e "Criar minha conta". Cadastro: Nome, Nome de usuário, E-mail, Senha (medidor + dica). Recuperação: só e-mail.
 **Backend pendente:** os envios de cadastro e recuperação passam por `authPending()` e mostram a mensagem "ainda não está ativo". Nada é criado nem enviado. O checkbox "Salvar sessão" é enviado como `remember`, que o servidor ainda ignora.
+
+### Animações das telas de acesso
+`authIn()` / `shake()` em `public/js/motion.js`: entrada dos dois painéis, títulos palavra a palavra, campos em cascata, partículas flutuantes, brilho no botão, paralaxe das ondas com o mouse e troca suave entre login/cadastro/recuperação. Respeitam "reduzir movimento"; o mascote continua fixo.

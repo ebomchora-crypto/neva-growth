@@ -154,6 +154,27 @@ export function shellIn() {
   G.from('.topbar2>*', { y: -18, opacity: 0, duration: 0.5, stagger: 0.06, delay: 0.1, ease: 'power3.out', clearProps: 'transform,opacity' });
 }
 
+// ---------- telas de acesso (login / cadastro / recuperação)
+const wordsOf = (el) => { const t = el.textContent; el.textContent = ''; return t.split(/(\s+)/).map((w) => { if (/^\s+$/.test(w)) { el.append(w); return null; } const o = document.createElement('span'); o.className = 'aw'; const i = document.createElement('span'); i.textContent = w; o.append(i); el.append(o); return i; }).filter(Boolean); };
+export function authIn(main, swapped) {
+  if (!motionEnabled() || !main) return;
+  const form = main.querySelector('.auth-form'), art = main.querySelector('.auth-art'), rev = main.classList.contains('rev');
+  const dir = rev ? 1 : -1, tl = G.timeline({ defaults: { ease: 'power3.out' } });
+  if (swapped) tl.from(form, { opacity: 0, x: 30 * -dir, duration: 0.45 }, 0);
+  else { tl.from(form, { opacity: 0, x: 80 * dir, duration: 0.8 }, 0).from(art, { opacity: 0, x: -80 * dir, scale: 0.97, duration: 0.9 }, 0); }
+  tl.from(form.querySelectorAll('.brand,.alabel,.asub,.field,.pwhint,.loginopts,.err-text,.loginbtn,.afoot'), { y: 22, opacity: 0, duration: 0.55, stagger: 0.06, clearProps: 'transform,opacity' }, 0.2);
+  const h1 = form.querySelector('h1'); if (h1) { const w = wordsOf(h1); tl.from(w, { yPercent: 110, duration: 0.7, stagger: 0.08, clearProps: 'transform' }, 0.15); }
+  const h2 = art.querySelector('h2'); if (h2) { const w = wordsOf(h2); tl.from(w, { yPercent: 110, rotate: 4, duration: 0.9, stagger: 0.1, ease: 'power4.out', clearProps: 'transform' }, 0.35); }
+  tl.from(art.querySelectorAll('.akick,.aart-in p,.asafe,.mascot-img'), { y: 18, opacity: 0, duration: 0.6, stagger: 0.08, clearProps: 'transform,opacity' }, 0.5);
+  tl.from(art.querySelectorAll('.dust i'), { scale: 0, opacity: 0, duration: 0.8, stagger: 0.05, ease: 'back.out(2)' }, 0.4);
+  art.querySelectorAll('.dust i').forEach((d, i) => loops.add(G.to(d, { y: -(14 + (i % 4) * 8), x: (i % 2 ? 1 : -1) * (8 + (i % 3) * 5), duration: 4 + (i % 5), ease: 'sine.inOut', yoyo: true, repeat: -1 })));
+  // brilho do botão e inclinação suave do painel de arte seguindo o mouse
+  const btn = form.querySelector('.loginbtn'); if (btn && !btn.disabled) loops.add(G.fromTo(btn, { '--shine': '-30%' }, { '--shine': '130%', duration: 2.4, ease: 'power1.inOut', repeat: -1, repeatDelay: 2.4 }));
+  if (!small()) { const mv = (e) => { const r = art.getBoundingClientRect(), nx = (e.clientX - r.left) / r.width - 0.5, ny = (e.clientY - r.top) / r.height - 0.5; G.to(art.querySelectorAll('.wave'), { x: nx * 40, y: ny * 30, duration: 1.2, ease: 'power2.out', overwrite: 'auto' }); G.to(art.querySelector('.aart-in'), { x: nx * -10, y: ny * -8, duration: 1.2, ease: 'power2.out' }); };
+    main.addEventListener('pointermove', mv); }
+}
+export function shake(el) { if (motionEnabled() && el) G.fromTo(el, { x: -10 }, { x: 0, duration: 0.6, ease: 'elastic.out(1.2,0.25)', clearProps: 'transform' }); }
+
 // ---------- micro-interações
 export function pop(el) { if (motionEnabled() && el) G.fromTo(el, { scale: 0.94, boxShadow: '0 0 0 0 rgba(47,123,189,.5)' }, { scale: 1, boxShadow: '0 0 0 14px rgba(47,123,189,0)', duration: 0.6, ease: 'back.out(3)', clearProps: 'transform,boxShadow' }); }
 export function modalIn(back, box) {
