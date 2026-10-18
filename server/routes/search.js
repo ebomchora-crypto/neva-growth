@@ -8,13 +8,14 @@ r.get('/', async (req, res) => {
   if (q.length < 2) return res.json({ groups: [] });
   const l = '%' + q.replace(/[\\%_]/g, '\\$&') + '%';
   const E = " ESCAPE '\\'";
+  const ws = req.user.ws;
   const find = async (label, sql, params, link) => ({ label, items: (await all(sql, ...params)).map((x) => ({ ...x, link: typeof link === 'function' ? link(x) : link })) });
   const groups = (await Promise.all([
-    find('Leads', `SELECT id, name AS title, COALESCE(company,email,phone,'') AS sub FROM leads WHERE (name LIKE ?${E} OR company LIKE ?${E} OR email LIKE ?${E} OR phone LIKE ?${E}) AND archived=0 LIMIT 5`, [l, l, l, l], '#/leads'),
-    find('Clientes', `SELECT id, name AS title, COALESCE(company,email,phone,'') AS sub FROM clients WHERE name LIKE ?${E} OR company LIKE ?${E} OR email LIKE ?${E} OR phone LIKE ?${E} LIMIT 5`, [l, l, l, l], '#/clientes'),
-    find('Vendas', `SELECT id, description AS title, status AS sub FROM sales WHERE description LIKE ?${E} LIMIT 5`, [l], '#/vendas'),
-    find('Projetos e sites', `SELECT id, name AS title, COALESCE(domain,slug) AS sub FROM projects WHERE name LIKE ?${E} OR domain LIKE ?${E} LIMIT 5`, [l, l], (x) => `#/ide/${x.id}`),
-    find('Tarefas', `SELECT id, title, COALESCE(due_date,'') AS sub FROM tasks WHERE title LIKE ?${E} LIMIT 5`, [l], '#/tarefas'),
+    find('Leads', `SELECT id, name AS title, COALESCE(company,email,phone,'') AS sub FROM leads WHERE (name LIKE ?${E} OR company LIKE ?${E} OR email LIKE ?${E} OR phone LIKE ?${E}) AND archived=0 AND ws=? LIMIT 5`, [l, l, l, l, ws], '#/leads'),
+    find('Clientes', `SELECT id, name AS title, COALESCE(company,email,phone,'') AS sub FROM clients WHERE (name LIKE ?${E} OR company LIKE ?${E} OR email LIKE ?${E} OR phone LIKE ?${E}) AND ws=? LIMIT 5`, [l, l, l, l, ws], '#/clientes'),
+    find('Vendas', `SELECT id, description AS title, status AS sub FROM sales WHERE description LIKE ?${E} AND ws=? LIMIT 5`, [l, ws], '#/vendas'),
+    find('Projetos e sites', `SELECT id, name AS title, COALESCE(domain,slug) AS sub FROM projects WHERE (name LIKE ?${E} OR domain LIKE ?${E}) AND ws=? LIMIT 5`, [l, l, ws], (x) => `#/ide/${x.id}`),
+    find('Tarefas', `SELECT id, title, COALESCE(due_date,'') AS sub FROM tasks WHERE title LIKE ?${E} AND ws=? LIMIT 5`, [l, ws], '#/tarefas'),
     find('Biblioteca', `SELECT id, title, kind AS sub FROM library_items WHERE published=1 AND (title LIKE ?${E} OR summary LIKE ?${E}) LIMIT 5`, [l, l], '#/acervo')
   ])).filter((g) => g.items.length);
   res.json({ groups });

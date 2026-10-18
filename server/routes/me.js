@@ -89,13 +89,16 @@ r.put('/plans/:key', A.requireRole('admin'), async (req, res) => {
 });
 
 // ---- Exportação dos dados do workspace (admin)
-r.get('/export', A.requireRole('admin'), async (_req, res) => {
-  const t = (sql) => all(sql);
+r.get('/export', A.requireRole('admin'), async (req, res) => {
+  const ws = req.user.ws; const t = (sql, ...p) => all(sql, ...p);   // só os dados do próprio espaço de trabalho
   const data = { exported_at: new Date().toISOString(), schema_version: (await get("SELECT value FROM meta WHERE key='schema_version'"))?.value,
-    pipeline_stages: await t('SELECT * FROM pipeline_stages'), leads: await t('SELECT * FROM leads'), clients: await t('SELECT * FROM clients'), activities: await t('SELECT * FROM activities'),
-    tasks: await t('SELECT * FROM tasks'), products: await t('SELECT * FROM products'), sales: await t('SELECT * FROM sales'), courses: await t('SELECT * FROM courses'), lessons: await t('SELECT * FROM lessons'),
-    projects: await t('SELECT * FROM projects'), project_files: await t('SELECT project_id,path,content FROM project_files'), library_items: await t('SELECT * FROM library_items'), play_items: await t('SELECT * FROM play_items'),
-    users: await t('SELECT id,name,email,role,active,username,plan,credits,created_at FROM users') };   // sem hashes de senha
+    pipeline_stages: await t('SELECT * FROM pipeline_stages'), leads: await t('SELECT * FROM leads WHERE ws=?', ws), clients: await t('SELECT * FROM clients WHERE ws=?', ws),
+    activities: await t('SELECT * FROM activities WHERE lead_id IN (SELECT id FROM leads WHERE ws=?) OR client_id IN (SELECT id FROM clients WHERE ws=?)', ws, ws),
+    tasks: await t('SELECT * FROM tasks WHERE ws=?', ws), products: await t('SELECT * FROM products WHERE ws=?', ws), sales: await t('SELECT * FROM sales WHERE ws=?', ws),
+    courses: await t('SELECT * FROM courses'), lessons: await t('SELECT * FROM lessons'),
+    projects: await t('SELECT * FROM projects WHERE ws=?', ws), project_files: await t('SELECT project_id,path,content FROM project_files WHERE project_id IN (SELECT id FROM projects WHERE ws=?)', ws),
+    library_items: await t('SELECT * FROM library_items'), play_items: await t('SELECT * FROM play_items'),
+    users: await t('SELECT id,name,email,role,active,username,plan,credits,created_at FROM users WHERE ws=?', ws) };   // sem hashes de senha
   res.set({ 'content-disposition': 'attachment; filename="neva-export.json"' }).json(data);
 });
 

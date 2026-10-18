@@ -11,19 +11,19 @@ r.get('/status', async (_req, res) => res.json({
 }));
 
 // ---- Assistente de código com histórico persistente por projeto/usuário
-const canAccess = async (pid) => { const p = await get('SELECT id FROM projects WHERE id=?', Number(pid)); if (!p) throw new HttpError(404, 'Projeto não encontrado.'); return p.id; };
+const canAccess = async (pid, req) => { const p = await get('SELECT id FROM projects WHERE id=? AND ws=?', Number(pid), req.user.ws); if (!p) throw new HttpError(404, 'Projeto não encontrado.'); return p.id; };
 r.get('/ai/history', async (req, res) => {
-  const pid = await canAccess(req.query.projectId);
+  const pid = await canAccess(req.query.projectId, req);
   res.json({ items: (await all('SELECT id, role, content, created_at FROM ai_conversations WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 60', pid, req.user.id)).reverse(), usage: (await S.usageOf(req.user)).ai });
 });
-r.delete('/ai/history', async (req, res) => { const pid = await canAccess(req.query.projectId); await run('DELETE FROM ai_conversations WHERE project_id=? AND user_id=?', pid, req.user.id); res.json({ ok: true }); });
+r.delete('/ai/history', async (req, res) => { const pid = await canAccess(req.query.projectId, req); await run('DELETE FROM ai_conversations WHERE project_id=? AND user_id=?', pid, req.user.id); res.json({ ok: true }); });
 
 r.post('/ai/chat', async (req, res) => {
   const { projectId, activePath } = req.body || {};
   const message = String(req.body?.message || '').trim();
   if (!message) throw bad('Mensagem vazia.'); if (message.length > 20000) throw bad('Mensagem muito longa.');
   if (!ai.configured()) throw new HttpError(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
-  const pid = await canAccess(projectId);
+  const pid = await canAccess(projectId, req);
   await S.checkAiQuota(req.user, 'chat');
   const hist = (await all('SELECT role, content FROM ai_conversations WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 16', pid, req.user.id)).reverse();
   const files = await all('SELECT path, content FROM project_files WHERE project_id=? ORDER BY (path=?) DESC, path', pid, String(activePath || ''));
@@ -86,7 +86,7 @@ r.post('/prospect/search', async (req, res) => {
     const name = p.displayName?.text || ''; const phone = p.nationalPhoneNumber || null;
     return { id: p.id, name, address: p.formattedAddress || null, phone, website: p.websiteUri || null, rating: p.rating ?? null, reviews: p.userRatingCount ?? null,
       lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null, maps_url: p.googleMapsUri || null,
-      exists: Boolean(await get("SELECT 1 x FROM leads WHERE name=? AND COALESCE(phone,'')=?", name, phone || '')) };
+      exists: Boolean(await get("SELECT 1 x FROM leads WHERE name=? AND COALESCE(phone,'')=? AND ws=?", name, phone || '', req.user.ws)) };
   }));
   const qualifies = (i) => (!onlyNoSite || !i.website) && (i.rating ?? 0) >= minRating;
   const qualified = items.filter(qualifies);

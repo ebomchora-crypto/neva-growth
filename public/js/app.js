@@ -12,13 +12,13 @@ const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m)
 const ROUTES = [
   { sec: 'Principal' },
   { path: 'associacao', label: 'Associação', icon: 'card', page: lazy('./pages/membership.js') },
-  { path: 'dashboard', team: true, search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
-  { path: 'clientes', team: true, search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
-  { path: 'vendas', team: true, search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/resources.js', 'sales') },
-  { path: 'sites', team: true, search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
-  { path: 'leads', team: true, search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
-  { path: 'builder', team: true, search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
-  { path: 'ide/:id', team: true, hidden: true, wide: true, page: lazy('./pages/ide.js') },
+  { path: 'dashboard', search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
+  { path: 'clientes', search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
+  { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/resources.js', 'sales') },
+  { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
+  { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
+  { path: 'builder', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { sec: 'Ferramentas' },
   { path: 'design', search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
   { path: 'acervo', search: 'Buscar recurso, prompt ou animação', tool: true, label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
@@ -26,18 +26,15 @@ const ROUTES = [
   { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
   { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
   { sec: 'Gestão' },
-  { path: 'tarefas', team: true, norail: true, label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
-  { path: 'produtos', team: true, norail: true, label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
+  { path: 'tarefas', norail: true, label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
+  { path: 'produtos', norail: true, label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
   { path: 'cursos', norail: true, label: 'Academia', icon: 'book', page: lazy('./pages/courses.js') },
-  { path: 'usuarios', team: true, norail: true, label: 'Usuários', icon: 'shield', admin: true, page: lazy('./pages/resources.js', 'users') },
+  { path: 'usuarios', norail: true, label: 'Usuários', icon: 'shield', admin: true, page: lazy('./pages/resources.js', 'users') },
   { path: 'configuracoes', label: 'Configurações', icon: 'cog', page: lazy('./pages/settings.js') }
 ];
 
-const isStudent = () => state.user?.role === 'student';
-const home = () => (isStudent() ? 'play' : 'dashboard');
-
 function match() {
-  const hash = location.hash.replace(/^#\/?/, '') || home();
+  const hash = location.hash.replace(/^#\/?/, '') || 'dashboard';
   const [base, ...rest] = hash.split('/');
   return { route: ROUTES.find((x) => x.path && x.path.split('/')[0] === base), params: rest };
 }
@@ -77,7 +74,7 @@ function authScreen(mode, st = {}, swapped = false) {
     return h('label', { class: 'field' }, h('span', { class: 'flabel' }, h('span', label), h('b', { class: 'fidx' }, String(++idx).padStart(2, '0'))),
       h('span', { class: 'fwrap' + (ic ? '' : ' noico') }, ic && h('i', { class: 'fico' }, icon(ic)), inp, eyeBtn && h('button', { type: 'button', class: 'pweye', 'aria-label': 'Mostrar ou ocultar a senha', onclick: () => { inp.type = inp.type === 'password' ? 'text' : 'password'; } }, icon('eye'))));
   };
-  const enter = async (r) => { state.user = r.user; await loadMe().catch(() => {}); if (reset) history.replaceState(null, '', location.pathname + location.search); location.hash = '#/' + home(); shell(); };
+  const enter = async (r) => { state.user = r.user; await loadMe().catch(() => {}); if (reset) history.replaceState(null, '', location.pathname + location.search); location.hash = '#/dashboard'; shell(); };
   const submitLabel = setup ? 'Criar conta de administrador' : signup ? 'Criar minha conta' : forgot ? 'Enviar link de recuperação' : reset ? 'Salvar nova senha' : 'Entrar na dashboard';
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
     e.preventDefault(); err.textContent = ''; ok.hidden = true;
@@ -142,11 +139,11 @@ function openPalette() {
     mount(res, groups.length ? groups.map((g) => [h('div', { class: 'grp' }, g.label), g.items.map((i) => h('a', { href: i.link, onclick: close }, h('span', i.title), h('span', { class: 'mut sm' }, i.sub || '')))]) : h('div', { class: 'empty' }, 'Nada encontrado.'));
     links = [...res.querySelectorAll('a')]; sel = 0; highlight();
   };
-  const pages = () => ROUTES.filter((r) => r.path && !r.hidden && (!r.admin || state.user.role === 'admin') && !(r.team && isStudent()));
+  const pages = () => ROUTES.filter((r) => r.path && !r.hidden && (!r.admin || state.user.role === 'admin'));
   const showPages = (q) => draw([{ label: 'Ir para', items: pages().filter((r) => r.label.toLowerCase().includes(q.toLowerCase())).map((r) => ({ title: r.label, link: '#/' + r.path })) }].filter((g) => g.items.length));
   const search = debounce(async () => {
     const q = input.value.trim();
-    if (q.length < 2 || isStudent()) return showPages(q);
+    if (q.length < 2) return showPages(q);
     try { const r = await api.get('/search', { q }); const pg = pages().filter((p) => p.label.toLowerCase().includes(q.toLowerCase())).map((p) => ({ title: p.label, link: '#/' + p.path }));
       draw([...(pg.length ? [{ label: 'Ir para', items: pg }] : []), ...r.groups]); } catch (e) { mount(res, h('div', { class: 'empty' }, e.message)); }
   }, 200);
@@ -191,11 +188,11 @@ function shell() {
   const side = h('aside', { class: 'side', id: 'side' });
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
-  const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin') && !(r.team && isStudent()));
+  const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
   const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
-  side.append(h('a', { class: 'brand', href: '#/' + home(), title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
+  side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),
     h('div', { class: 'railfoot' }, cfg && navLink(cfg), h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair'))));
   const hidden = () => state.me?.settings.hide_values === '1';
@@ -203,7 +200,7 @@ function shell() {
     const on = !hidden(); try { await api.put('/me/settings', { hide_values: on }); state.me.settings.hide_values = on ? '1' : '0'; applyPrivacy(on); eye.replaceChildren(icon(on ? 'eyeoff' : 'eye')); } catch (e) { fail(e); } } }, icon(hidden() ? 'eyeoff' : 'eye'));
   const bell = h('button', { class: 'iconbtn', 'aria-label': 'Notificações', onclick: () => openNotifications(bell) }, icon('bell'), h('span', { class: 'dot hide', id: 'notif-badge' }, '0'));
   const view = h('div', { id: 'view' });
-  const roleName = { admin: 'Administrador', member: 'Membro', viewer: 'Leitura', student: 'Aluno' }[state.user.role];
+  const roleName = { admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[state.user.role];
   const top = h('div', { class: 'topbar2' },
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
     h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
@@ -220,8 +217,8 @@ function shell() {
 async function route() {
   const view = document.getElementById('view'); if (!view) return;
   const { route: r, params } = match();
-  if (!r || (r.team && isStudent())) { location.hash = '#/' + home(); return; }
-  if (r.admin && state.user.role !== 'admin') { location.hash = '#/' + home(); return; }
+  if (!r) { location.hash = '#/dashboard'; return; }
+  if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
   document.querySelectorAll('.side a[data-path]').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
   navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on'));
   const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';

@@ -38,31 +38,32 @@ async function uniqueSlug(base) {
   while (await get('SELECT 1 x FROM projects WHERE slug=?', slug)) slug = `${base}-${i++}`;
   return slug;
 }
-async function createProject({ name, description, kind, owner, files }) {
+async function createProject({ name, description, kind, owner, files, ws }) {
   return await tx(async () => {
-    const info = await run('INSERT INTO projects(name,description,kind,slug,owner_id) VALUES (?,?,?,?,?)', name, description || null, kind, await uniqueSlug(slugify(name)), owner);
+    const info = await run('INSERT INTO projects(name,description,kind,slug,owner_id,ws) VALUES (?,?,?,?,?,?)', name, description || null, kind, await uniqueSlug(slugify(name)), owner, ws);
     const id = Number(info.lastInsertRowid);
     for (const [p, c] of Object.entries(files)) await run('INSERT INTO project_files(project_id,path,content) VALUES (?,?,?)', id, cleanPath(p), String(c));
     return await get('SELECT * FROM projects WHERE id=?', id);
   });
 }
-async function extraMeta(id, b, old = {}) {
+async function extraMeta(id, b, old = {}, ws) {
   const domain = b.domain !== undefined ? (String(b.domain).trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '') || null) : old.domain;
   if (domain && !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw bad('Domínio inválido (ex.: meusite.com.br).');
   let client_id = b.client_id !== undefined ? (b.client_id === '' || b.client_id === null ? null : Number(b.client_id)) : old.client_id;
-  if (client_id != null && !await get('SELECT 1 x FROM clients WHERE id=?', client_id)) throw bad('Cliente não encontrado.');
+  if (client_id != null && !await get('SELECT 1 x FROM clients WHERE id=? AND ws=?', client_id, ws)) throw bad('Cliente não encontrado.');
   await run('UPDATE projects SET domain=?, client_id=? WHERE id=?', domain ?? null, client_id ?? null, id);
 }
-async function projectOr404(id) {
+// `req` ausente só no preview público (token assinado); com req, o projeto precisa ser do espaço de trabalho do usuário.
+async function projectOr404(id, req) {
   const p = await get('SELECT * FROM projects WHERE id=?', Number(id));
-  if (!p) throw new HttpError(404, 'Projeto não encontrado.');
+  if (!p || (req && p.ws !== req.user.ws)) throw new HttpError(404, 'Projeto não encontrado.');
   return p;
 }
 function assertEdit(req, p) {
   if (req.user.role === 'admin' || p.owner_id == null || p.owner_id === req.user.id) return;
   throw new HttpError(403, 'Somente o responsável pelo projeto ou um administrador pode alterá-lo.', 'forbidden');
 }
-const editable = async (req) => { const p = await projectOr404(req.params.id); assertEdit(req, p); return p; };
+const editable = async (req) => { const p = await projectOr404(req.params.id, req); assertEdit(req, p); return p; };
 const statusOf = (p) => (p.archived ? 'arquivado' : p.published ? 'publicado' : 'desenvolvimento');
 async function saveVersion(projectId, filePath, oldContent, source, userId) {
   await run('INSERT INTO file_versions(project_id,path,content,source,user_id) VALUES (?,?,?,?,?)', projectId, filePath, oldContent, source, userId);
@@ -81,7 +82,7 @@ const touch = async (id) => await run("UPDATE projects SET updated_at=datetime('
 
 r.get('/', async (req, res) => {
   const rows = (await all(`SELECT p.*, u.name owner_name, c.name client_name, (SELECT COUNT(*) FROM project_files f WHERE f.project_id=p.id) files_count
-    FROM projects p LEFT JOIN users u ON u.id=p.owner_id LEFT JOIN clients c ON c.id=p.client_id ORDER BY p.updated_at DESC`)).map((p) => ({ ...p, status: statusOf(p), can_edit: req.user.role === 'admin' || p.owner_id == null || p.owner_id === req.user.id }));
+    FROM projects p LEFT JOIN users u ON u.id=p.owner_id LEFT JOIN clients c ON c.id=p.client_id WHERE p.ws=? ORDER BY p.updated_at DESC`, req.user.ws)).map((p) => ({ ...p, status: statusOf(p), can_edit: req.user.role === 'admin' || p.owner_id == null || p.owner_id === req.user.id }));
   const q = String(req.query.q || '').toLowerCase();
   let items = rows.filter((p) => !q || [p.name, p.domain, p.client_name, p.slug].some((x) => x && x.toLowerCase().includes(q)));
   const stats = { acervo: rows.filter((p) => !p.archived).length, publicados: rows.filter((p) => p.status === 'publicado').length,
@@ -98,8 +99,8 @@ r.post('/', async (req, res) => {
   if (name.length < 2 || name.length > 80) throw bad('Informe um nome (2 a 80 caracteres).');
   const kind = ['site', 'app', 'system'].includes(b.kind) ? b.kind : 'site';
   const files = generate(kind, { name, description: b.description, tagline: b.tagline, color: b.color, blank: b.blank === true, sections: b.sections, whatsapp: b.whatsapp, email: b.email });
-  const proj = await createProject({ name, description: b.description, kind, owner: req.user.id, files });
-  await extraMeta(proj.id, b);
+  const proj = await createProject({ name, description: b.description, kind, owner: req.user.id, files, ws: req.user.ws });
+  await extraMeta(proj.id, b, {}, req.user.ws);
   res.status(201).json(await get('SELECT * FROM projects WHERE id=?', proj.id));
 });
 
@@ -130,9 +131,9 @@ r.post('/generate-ai', async (req, res) => {
   try { files = JSON.parse(m[0]).files; } catch { throw new HttpError(502, 'A IA não retornou um projeto válido. Tente novamente.', 'ai_bad_output'); }
   if (!files || typeof files !== 'object' || !files['index.html']) throw new HttpError(502, 'A IA não retornou um index.html.', 'ai_bad_output');
   const clean = {}; for (const [p, c] of Object.entries(files).slice(0, 8)) clean[cleanPath(p)] = String(c).slice(0, MAX_FILE);
-  const proj = await createProject({ name, description: brief.slice(0, 300), kind, owner: req.user.id, files: clean });
-  await extraMeta(proj.id, b);
-  res.status(201).json({ ...get('SELECT * FROM projects WHERE id=?', proj.id), usage: (await S.usageOf(req.user)).builder });
+  const proj = await createProject({ name, description: brief.slice(0, 300), kind, owner: req.user.id, files: clean, ws: req.user.ws });
+  await extraMeta(proj.id, b, {}, req.user.ws);
+  res.status(201).json({ ...(await get('SELECT * FROM projects WHERE id=?', proj.id)), usage: (await S.usageOf(req.user)).builder });
 });
 
 // Otimizar prompt do builder (IA)
@@ -146,18 +147,18 @@ r.post('/optimize-prompt', async (req, res) => {
   res.json({ brief: out.trim(), usage: (await S.usageOf(req.user)).ai });
 });
 
-r.get('/:id', async (req, res) => res.json(await projectOr404(req.params.id)));
+r.get('/:id', async (req, res) => res.json(await projectOr404(req.params.id, req)));
 r.put('/:id', async (req, res) => {
   const p = await editable(req); const b = req.body || {};
   const name = b.name !== undefined ? String(b.name).trim() : p.name;
   if (name.length < 2 || name.length > 80) throw bad('Nome inválido.');
   const archived = b.archived === undefined ? p.archived : (b.archived ? 1 : 0);
   await run("UPDATE projects SET name=?, description=?, archived=?, published=CASE WHEN ?=1 THEN 0 ELSE published END, updated_at=datetime('now') WHERE id=?", name, b.description !== undefined ? String(b.description).slice(0, 500) : p.description, archived, archived, p.id);
-  await extraMeta(p.id, b, p);
+  await extraMeta(p.id, b, p, req.user.ws);
   res.json(await get('SELECT * FROM projects WHERE id=?', p.id));
 });
 r.delete('/:id', async (req, res) => { const p = await editable(req); await run('DELETE FROM projects WHERE id=?', p.id); res.json({ ok: true }); });
-r.post('/:id/preview-token', async (req, res) => { const p = await projectOr404(req.params.id); res.json({ url: `/preview/${previewToken(p.id)}/` }); });
+r.post('/:id/preview-token', async (req, res) => { const p = await projectOr404(req.params.id, req); res.json({ url: `/preview/${previewToken(p.id)}/` }); });
 r.post('/:id/publish', async (req, res) => {
   const p = await editable(req);
   if (p.archived) throw bad('Desarquive o projeto antes de publicar.');
@@ -167,18 +168,18 @@ r.post('/:id/publish', async (req, res) => {
   res.json(await get('SELECT * FROM projects WHERE id=?', p.id));
 });
 r.post('/:id/duplicate', async (req, res) => {
-  const p = await projectOr404(req.params.id);
+  const p = await projectOr404(req.params.id, req);
   const files = Object.fromEntries((await all('SELECT path,content FROM project_files WHERE project_id=?', p.id)).map((f) => [f.path, f.content]));
-  res.status(201).json(await createProject({ name: `${p.name} (cópia)`.slice(0, 80), description: p.description, kind: p.kind, owner: req.user.id, files }));
+  res.status(201).json(await createProject({ name: `${p.name} (cópia)`.slice(0, 80), description: p.description, kind: p.kind, owner: req.user.id, files, ws: req.user.ws }));
 });
 
 // ---- Arquivos
 r.get('/:id/files', async (req, res) => {
-  const p = await projectOr404(req.params.id);
+  const p = await projectOr404(req.params.id, req);
   res.json(await all('SELECT path, length(content) size, updated_at FROM project_files WHERE project_id=? ORDER BY path', p.id));
 });
 r.get('/:id/file', async (req, res) => {
-  const p = await projectOr404(req.params.id);
+  const p = await projectOr404(req.params.id, req);
   const f = await get('SELECT path, content, updated_at FROM project_files WHERE project_id=? AND path=?', p.id, cleanPath(req.query.path));
   if (!f) throw new HttpError(404, 'Arquivo não encontrado.');
   res.json(f);
@@ -211,12 +212,12 @@ r.post('/:id/rename', async (req, res) => {
 
 // ---- Histórico de versões
 r.get('/:id/versions', async (req, res) => {
-  const p = await projectOr404(req.params.id); const fp = cleanPath(req.query.path);
+  const p = await projectOr404(req.params.id, req); const fp = cleanPath(req.query.path);
   res.json(await all(`SELECT v.id, v.source, v.created_at, length(v.content) size, u.name user_name FROM file_versions v LEFT JOIN users u ON u.id=v.user_id
     WHERE v.project_id=? AND v.path=? ORDER BY v.id DESC`, p.id, fp));
 });
 r.get('/:id/versions/:vid', async (req, res) => {
-  const p = await projectOr404(req.params.id);
+  const p = await projectOr404(req.params.id, req);
   const v = await get('SELECT id, path, content, source, created_at FROM file_versions WHERE id=? AND project_id=?', Number(req.params.vid), p.id);
   if (!v) throw new HttpError(404, 'Versão não encontrada.'); res.json(v);
 });
@@ -294,7 +295,7 @@ r.post('/:id/ai-undo', async (req, res) => {
 });
 
 r.get('/:id/search', async (req, res) => {
-  const p = await projectOr404(req.params.id); const q = String(req.query.q || '');
+  const p = await projectOr404(req.params.id, req); const q = String(req.query.q || '');
   if (q.length < 2) throw bad('Digite ao menos 2 caracteres.');
   const out = [];
   for (const f of await all('SELECT path, content FROM project_files WHERE project_id=? ORDER BY path', p.id)) {
@@ -303,7 +304,7 @@ r.get('/:id/search', async (req, res) => {
   res.json(out);
 });
 r.get('/:id/zip', async (req, res) => {
-  const p = await projectOr404(req.params.id);
+  const p = await projectOr404(req.params.id, req);
   const files = Object.fromEntries((await all('SELECT path, content FROM project_files WHERE project_id=?', p.id)).map((f) => [f.path, f.content]));
   res.set({ 'content-type': 'application/zip', 'content-disposition': `attachment; filename="${p.slug}.zip"` }).send(zip(files));
 });

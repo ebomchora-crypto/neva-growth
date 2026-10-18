@@ -2,6 +2,9 @@ const express = require('express');
 const { all, get, run } = require('./db');
 const { HttpError, bad } = require('./http');
 
+// Tabelas com dados por espaço de trabalho (coluna ws). Toda leitura e escrita filtra por req.user.ws.
+const SCOPED = new Set(['leads', 'clients', 'tasks', 'products', 'sales', 'projects', 'users']);
+
 /**
  * Fábrica de CRUD declarativo.
  * fields: { col: { type: 'string'|'text'|'number'|'int'|'bool'|'date'|'enum'|'ref'|'email', required, max, values, min } }
@@ -48,6 +51,7 @@ function crud(cfg) {
   const { table, fields, search = [], alias = 't', select, filters = [], order = `${alias}.id DESC`, touch = true } = cfg;
   const base = select || `SELECT ${alias}.* FROM ${table} ${alias}`;
   const names = Object.keys(fields);
+  const sc = SCOPED.has(table); // tabela por espaço de trabalho?
 
   async function parse(body, partial) {
     const out = {};
@@ -57,14 +61,17 @@ function crud(cfg) {
     }
     return out;
   }
-  async function checkRefs(data) {
+  async function checkRefs(data, req) {
     for (const n of names) if (fields[n].type === 'ref' && data[n] != null && fields[n].table) {
-      if (!(await get(`SELECT id FROM ${fields[n].table} WHERE id=?`, data[n]))) throw bad(`${fields[n].label || n}: registro não encontrado.`);
+      const t = fields[n].table;
+      const row = SCOPED.has(t) ? await get(`SELECT id FROM ${t} WHERE id=? AND ws=?`, data[n], req.user.ws) : await get(`SELECT id FROM ${t} WHERE id=?`, data[n]);
+      if (!row) throw bad(`${fields[n].label || n}: registro não encontrado.`);
     }
   }
 
   r.get('/', async (req, res) => {
     const where = []; const p = [];
+    if (sc) { where.push(`${alias}.ws = ?`); p.push(req.user.ws); }
     if (req.query.q && search.length) {
       where.push('(' + search.map((c) => `${alias}.${c} LIKE ? ESCAPE '\\'`).join(' OR ') + ')');
       const like = '%' + String(req.query.q).replace(/[\\%_]/g, '\\$&') + '%';
@@ -84,7 +91,7 @@ function crud(cfg) {
   });
 
   r.get('/:id', async (req, res) => {
-    const row = await get(`${base} WHERE ${alias}.id=?`, Number(req.params.id));
+    const row = sc ? await get(`${base} WHERE ${alias}.id=? AND ${alias}.ws=?`, Number(req.params.id), req.user.ws) : await get(`${base} WHERE ${alias}.id=?`, Number(req.params.id));
     if (!row) throw new HttpError(404, 'Registro não encontrado.');
     res.json(row);
   });
@@ -92,7 +99,8 @@ function crud(cfg) {
   r.post('/', async (req, res) => {
     const data = await parse(req.body || {}, false);
     if (cfg.beforeCreate) await cfg.beforeCreate(data, req);
-    await checkRefs(data);
+    await checkRefs(data, req);
+    if (sc) data.ws = req.user.ws;
     const cols = Object.keys(data);
     const info = await run(`INSERT INTO ${table}(${cols.join(',')}) VALUES (${cols.map(() => '?').join(',')})`, ...cols.map((c) => data[c]));
     const row = await get(`${base} WHERE ${alias}.id=?`, Number(info.lastInsertRowid));
@@ -102,16 +110,16 @@ function crud(cfg) {
 
   r.put('/:id', async (req, res) => {
     const id = Number(req.params.id);
-    const existing = await get(`SELECT * FROM ${table} WHERE id=?`, id);
+    const existing = sc ? await get(`SELECT * FROM ${table} WHERE id=? AND ws=?`, id, req.user.ws) : await get(`SELECT * FROM ${table} WHERE id=?`, id);
     if (!existing) throw new HttpError(404, 'Registro não encontrado.');
     const data = await parse(req.body || {}, true);
     req.prev = existing;
     if (cfg.beforeUpdate) await cfg.beforeUpdate(data, req, existing);
-    await checkRefs(data);
+    await checkRefs(data, req);
     const cols = Object.keys(data);
     if (cols.length) {
       const set = cols.map((c) => `${c}=?`).join(',') + (touch ? ",updated_at=datetime('now')" : '');
-      await run(`UPDATE ${table} SET ${set} WHERE id=?`, ...cols.map((c) => data[c]), id);
+      await run(`UPDATE ${table} SET ${set} WHERE id=?${sc ? ' AND ws=?' : ''}`, ...cols.map((c) => data[c]), id, ...(sc ? [req.user.ws] : []));
     }
     const row = await get(`${base} WHERE ${alias}.id=?`, id);
     if (cfg.afterSave) await cfg.afterSave(row, req, 'update');
@@ -120,7 +128,7 @@ function crud(cfg) {
 
   r.delete('/:id', async (req, res) => {
     const id = Number(req.params.id);
-    const info = await run(`DELETE FROM ${table} WHERE id=?`, id);
+    const info = await run(`DELETE FROM ${table} WHERE id=?${sc ? ' AND ws=?' : ''}`, id, ...(sc ? [req.user.ws] : []));
     if (!info.changes) throw new HttpError(404, 'Registro não encontrado.');
     res.json({ ok: true });
   });

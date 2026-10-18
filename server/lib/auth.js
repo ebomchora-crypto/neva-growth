@@ -3,7 +3,7 @@ const { get, run } = require('./db');
 const { HttpError, bad } = require('./http');
 
 const COOKIE = 'neva_sid';
-const ROLES = ['admin', 'member', 'viewer', 'student'];
+const ROLES = ['admin', 'member', 'viewer'];
 const REMEMBER_DAYS = 30;
 
 function hashPassword(pw) {
@@ -59,10 +59,10 @@ async function loadUser(req, _res, next) {
   const t = readCookie(req, COOKIE);
   if (t) {
     const row = await get(
-      `SELECT u.id,u.name,u.email,u.role,u.active,u.username,u.plan,s.expires_at,s.token_hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?`,
+      `SELECT u.id,u.name,u.email,u.role,u.active,u.username,u.plan,u.ws,s.expires_at,s.token_hash FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=?`,
       sha(t));
     if (row && row.expires_at > Date.now() && row.active) {
-      req.user = { id: row.id, name: row.name, email: row.email, role: row.role, username: row.username, plan: row.plan };
+      req.user = { id: row.id, name: row.name, email: row.email, role: row.role, username: row.username, plan: row.plan, ws: row.ws };
       req.sid = row.token_hash;
     } else if (row) await run('DELETE FROM sessions WHERE token_hash=?', sha(t));
   }
@@ -88,17 +88,6 @@ function csrfGuard(req, _res, next) {
   next();
 }
 
-// Contas de cadastro público (role 'student') só alcançam as áreas abertas: perfil, biblioteca, Play, prompts, Academia e prospecção própria.
-// Todo o resto (CRM, vendas, sites, usuários, painel, busca) são dados da operação e ficam restritos à equipe.
-const STUDENT_READ = /^\/(me|library|play|prompts|courses|lessons|integrations\/status|integrations\/prospect)(\/|$)/;
-const STUDENT_WRITE = /^\/(me|prompts|integrations\/prospect|play\/\d+\/seen|lessons\/\d+\/complete)(\/|$)/;
-function studentGuard(req, _res, next) {
-  if (req.user?.role !== 'student') return next();
-  const ok = ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? STUDENT_READ.test(req.path) : STUDENT_WRITE.test(req.path);
-  if (!ok) return next(new HttpError(403, 'Esta área é exclusiva da equipe.', 'team_only'));
-  next();
-}
-
 // Limite simples de tentativas de login por IP+e-mail
 const attempts = new Map();
 function loginThrottle(key, max = 8, windowMs = 15 * 60e3) {
@@ -111,5 +100,5 @@ function loginThrottle(key, max = 8, windowMs = 15 * 60e3) {
 const countUsers = async () => (await get('SELECT COUNT(*) n FROM users')).n;
 module.exports = {
   ROLES, hashPassword, verifyPassword, validatePassword, validateEmail, createSession, destroySession,
-  loadUser, studentGuard, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers
+  loadUser, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers
 };

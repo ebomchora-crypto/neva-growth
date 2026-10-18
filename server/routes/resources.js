@@ -15,7 +15,7 @@ const r = express.Router();
 
 
 // ---- Etapas do funil personalizáveis
-r.get('/pipeline/stages', async (_req, res) => res.json(await all(`SELECT s.*, (SELECT COUNT(*) FROM leads l WHERE l.status=s.key) AS leads_count FROM pipeline_stages s ORDER BY position, id`)));
+r.get('/pipeline/stages', async (req, res) => res.json(await all(`SELECT s.*, (SELECT COUNT(*) FROM leads l WHERE l.status=s.key AND l.ws=?) AS leads_count FROM pipeline_stages s ORDER BY position, id`, req.user.ws)));
 r.put('/pipeline/stages', A.requireRole('admin'), async (req, res) => {
   const list = req.body?.stages;
   if (!Array.isArray(list) || list.length < 2 || list.length > 12) throw bad('Defina de 2 a 12 etapas.');
@@ -60,7 +60,7 @@ const leads = crud({
     owner_id: { type: 'ref', table: 'users', label: 'Responsável' }
   },
   async beforeCreate(d, req) { d.status = d.status || await firstOpen(); d.priority = d.priority || 'media'; d.value = d.value ?? 0; d.owner_id = d.owner_id ?? req.user.id; },
-  async afterSave(row, req, op) { if (op === 'create') await notify({ type: 'lead', pref: 'notify_leads', text: `Novo lead: ${row.name}`, link: '#/leads', exceptUserId: req.user.id }); }
+  async afterSave(row, req, op) { if (op === 'create') await notify({ type: 'lead', pref: 'notify_leads', text: `Novo lead: ${row.name}`, link: '#/leads', exceptUserId: req.user.id, ws: req.user.ws }); }
 });
 // rotas específicas antes do CRUD genérico
 r.post('/leads/import', async (req, res) => {
@@ -70,9 +70,9 @@ r.post('/leads/import', async (req, res) => {
   await tx(async () => { for (let i = 0; i < rows.length; i++) { const x = rows[i];
     const name = String(x.name || '').trim();
     if (!name) { skipped.push(i + 1); continue; }
-    await run('INSERT INTO leads(name,company,email,phone,website,source,value,notes,owner_id,status) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    await run('INSERT INTO leads(name,company,email,phone,website,source,value,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
       name.slice(0, 300), x.company || null, x.email || null, x.phone || null, x.website || null,
-      x.source || 'importação', Number(x.value) || 0, x.notes || null, req.user.id, await firstOpen());
+      x.source || 'importação', Number(x.value) || 0, x.notes || null, req.user.id, await firstOpen(), req.user.ws);
     created++;
   } });
   res.json({ created, skipped });
@@ -81,20 +81,20 @@ r.post('/leads/:id/stage', async (req, res) => {
   const { status } = req.body || {};
   if (!(await stageKeys()).includes(status)) throw bad('Etapa inválida.');
   const id = Number(req.params.id);
-  const l = await get('SELECT * FROM leads WHERE id=?', id);
+  const l = await get('SELECT * FROM leads WHERE id=? AND ws=?', id, req.user.ws);
   if (!l) throw new HttpError(404, 'Lead não encontrado.');
   await run("UPDATE leads SET status=?, updated_at=datetime('now') WHERE id=?", status, id);
   if (l.status !== status) {
     await run('INSERT INTO activities(lead_id,type,text,user_id) VALUES (?,?,?,?)', id, 'etapa', `Etapa alterada: ${l.status} → ${status}`, req.user.id);
-    if (await stageKind(status) === 'won') await notify({ type: 'lead', pref: 'notify_sales', text: `Oportunidade conquistada: ${l.name}`, link: '#/leads', exceptUserId: req.user.id });
+    if (await stageKind(status) === 'won') await notify({ type: 'lead', pref: 'notify_sales', text: `Oportunidade conquistada: ${l.name}`, link: '#/leads', exceptUserId: req.user.id, ws: req.user.ws });
   }
   res.json(await get('SELECT * FROM leads WHERE id=?', id));
 });
 r.get('/leads/:id/activities', async (req, res) =>
-  res.json(await all(`SELECT a.*, u.name AS user_name FROM activities a LEFT JOIN users u ON u.id=a.user_id WHERE a.lead_id=? ORDER BY a.id DESC`, Number(req.params.id))));
+  res.json(await all(`SELECT a.*, u.name AS user_name FROM activities a LEFT JOIN users u ON u.id=a.user_id WHERE a.lead_id=? AND a.lead_id IN (SELECT id FROM leads WHERE ws=?) ORDER BY a.id DESC`, Number(req.params.id), req.user.ws)));
 r.post('/leads/:id/activities', async (req, res) => {
   const id = Number(req.params.id);
-  if (!await get('SELECT id FROM leads WHERE id=?', id)) throw new HttpError(404, 'Lead não encontrado.');
+  if (!await get('SELECT id FROM leads WHERE id=? AND ws=?', id, req.user.ws)) throw new HttpError(404, 'Lead não encontrado.');
   const text = String(req.body?.text || '').trim();
   const type = ['nota', 'ligacao', 'email', 'reuniao', 'whatsapp'].includes(req.body?.type) ? req.body.type : 'nota';
   if (!text) throw bad('Escreva o conteúdo da atividade.');
@@ -102,23 +102,23 @@ r.post('/leads/:id/activities', async (req, res) => {
   res.status(201).json(await get('SELECT * FROM activities WHERE id=?', Number(info.lastInsertRowid)));
 });
 r.delete('/activities/:id', async (req, res) => {
-  await run('DELETE FROM activities WHERE id=?', Number(req.params.id)); res.json({ ok: true });
+  await run('DELETE FROM activities WHERE id=? AND (lead_id IN (SELECT id FROM leads WHERE ws=?) OR client_id IN (SELECT id FROM clients WHERE ws=?))', Number(req.params.id), req.user.ws, req.user.ws); res.json({ ok: true });
 });
 // Converter lead em cliente (e opcionalmente registrar venda)
 r.post('/leads/:id/convert', async (req, res) => {
   const id = Number(req.params.id);
-  const l = await get('SELECT * FROM leads WHERE id=?', id);
+  const l = await get('SELECT * FROM leads WHERE id=? AND ws=?', id, req.user.ws);
   if (!l) throw new HttpError(404, 'Lead não encontrado.');
   const existing = await get('SELECT * FROM clients WHERE lead_id=?', id);
   if (existing) throw bad('Este lead já foi convertido em cliente.');
   const out = await tx(async () => {
-    const c = await run("INSERT INTO clients(name,company,email,phone,notes,lead_id,stage) VALUES (?,?,?,?,?,?,'cliente')", l.name, l.company, l.email, l.phone, l.notes, id);
+    const c = await run("INSERT INTO clients(name,company,email,phone,notes,lead_id,stage,ws) VALUES (?,?,?,?,?,?,'cliente',?)", l.name, l.company, l.email, l.phone, l.notes, id, req.user.ws);
     const clientId = Number(c.lastInsertRowid);
     await run("UPDATE leads SET status=COALESCE((SELECT key FROM pipeline_stages WHERE kind='won' ORDER BY position LIMIT 1), status), updated_at=datetime('now') WHERE id=?", id);
     await run('INSERT INTO activities(lead_id,client_id,type,text,user_id) VALUES (?,?,?,?,?)', id, clientId, 'etapa', 'Lead convertido em cliente', req.user.id);
     let saleId = null;
     if (req.body?.createSale && l.value > 0) {
-      const s = await run('INSERT INTO sales(client_id,description,amount,created_by) VALUES (?,?,?,?)', clientId, `Venda — ${l.company || l.name}`, l.value, req.user.id);
+      const s = await run('INSERT INTO sales(client_id,description,amount,created_by,ws) VALUES (?,?,?,?,?)', clientId, `Venda — ${l.company || l.name}`, l.value, req.user.id, req.user.ws);
       saleId = Number(s.lastInsertRowid);
     }
     return { clientId, saleId };
@@ -129,10 +129,11 @@ r.use('/leads', leads);
 
 // ---- Clientes
 const CLIENT_STAGES = ['lead', 'negociacao', 'proposta', 'cliente'];
-r.get('/clients/summary', async (_req, res) => {
-  const total = (await get('SELECT COUNT(*) n FROM clients')).n;
-  const byStage = {}; for (const k of CLIENT_STAGES) byStage[k] = (await get('SELECT COUNT(*) n FROM clients WHERE stage=?', k)).n;
-  const sales = await get("SELECT COUNT(*) n, COALESCE(SUM(amount),0) rev FROM sales WHERE status='pago' AND client_id IS NOT NULL");
+r.get('/clients/summary', async (req, res) => {
+  const ws = req.user.ws;
+  const total = (await get('SELECT COUNT(*) n FROM clients WHERE ws=?', ws)).n;
+  const byStage = {}; for (const k of CLIENT_STAGES) byStage[k] = (await get('SELECT COUNT(*) n FROM clients WHERE stage=? AND ws=?', k, ws)).n;
+  const sales = await get("SELECT COUNT(*) n, COALESCE(SUM(amount),0) rev FROM sales WHERE status='pago' AND client_id IS NOT NULL AND ws=?", ws);
   res.json({ total, byStage, emNegociacao: byStage.negociacao + byStage.proposta, fechados: byStage.cliente,
     conversao: total ? Math.round((byStage.cliente / total) * 100) : 0, receita: sales.rev, vendasPagas: sales.n });
 });
@@ -163,7 +164,7 @@ r.use('/tasks', crud({
     lead_id: { type: 'ref', table: 'leads', label: 'Lead' }, assignee_id: { type: 'ref', table: 'users', label: 'Responsável' }, notes: { type: 'text' }
   },
   async beforeCreate(d, req) { d.assignee_id = d.assignee_id ?? req.user.id; d.priority = d.priority || 'media'; },
-  async afterSave(row, req, op) { if (op === 'create' && row.assignee_id && row.assignee_id !== req.user.id) await notify({ type: 'task', pref: 'notify_tasks', text: `Nova tarefa para você: ${row.title}`, link: '#/tarefas', only: [row.assignee_id] }); }
+  async afterSave(row, req, op) { if (op === 'create' && row.assignee_id && row.assignee_id !== req.user.id) await notify({ type: 'task', pref: 'notify_tasks', text: `Nova tarefa para você: ${row.title}`, link: '#/tarefas', only: [row.assignee_id], ws: req.user.ws }); }
 }));
 
 // ---- Produtos
@@ -185,19 +186,19 @@ const SALE_VIEWS = {
   entregues: "s.delivery_status='entregue'",
   sem_cliente: 's.client_id IS NULL'
 };
-const saleWhere = (req, view) => {
-  const w = [SALE_VIEWS[view] || '1=1']; const p = [];
+const saleWhere = (req, view, ws) => {
+  const w = [SALE_VIEWS[view] || '1=1', 's.ws=?']; const p = [ws];
   if (req.query.q) { w.push("(s.description LIKE ? ESCAPE '\\' OR c.name LIKE ? ESCAPE '\\')"); const l = '%' + String(req.query.q).replace(/[\\%_]/g, '\\$&') + '%'; p.push(l, l); }
   if (req.query.status) { w.push('s.status=?'); p.push(req.query.status); }
   return [w.join(' AND '), p];
 };
 const SALE_FROM = 'FROM sales s LEFT JOIN clients c ON c.id=s.client_id';
 r.get('/sales/summary', async (req, res) => {
-  const [w, p] = saleWhere(req, req.query.view);
+  const [w, p] = saleWhere(req, req.query.view, req.user.ws);
   const k = await get(`SELECT COALESCE(SUM(s.amount),0) fat, COALESCE(SUM(s.amount-s.cost),0) lucro, COUNT(*) n ${SALE_FROM} WHERE ${w} AND s.status='pago'`, ...p);
   const pend = (await get(`SELECT COALESCE(SUM(s.amount),0) v ${SALE_FROM} WHERE ${w} AND s.status='pendente'`, ...p)).v;
   const counts = {};
-  for (const v of Object.keys(SALE_VIEWS)) { const [w2, p2] = saleWhere({ query: { q: req.query.q, status: req.query.status } }, v); counts[v] = (await get(`SELECT COUNT(*) n ${SALE_FROM} WHERE ${w2}`, ...p2)).n; }
+  for (const v of Object.keys(SALE_VIEWS)) { const [w2, p2] = saleWhere({ query: { q: req.query.q, status: req.query.status } }, v, req.user.ws); counts[v] = (await get(`SELECT COUNT(*) n ${SALE_FROM} WHERE ${w2}`, ...p2)).n; }
   res.json({ faturamento: k.fat, lucro: k.lucro, margem: k.fat ? Math.round((k.lucro / k.fat) * 1000) / 10 : 0, ticket: k.n ? k.fat / k.n : 0, pagas: k.n, pendente: pend, counts,
     atrasadas: counts.atrasadas });
 });
@@ -230,7 +231,7 @@ r.use('/sales', crud({
     if (row.status === 'pago' && !row.paid_at) await run("UPDATE sales SET paid_at=date('now') WHERE id=?", row.id);
     if (row.status !== 'pago' && row.paid_at) await run('UPDATE sales SET paid_at=NULL WHERE id=?', row.id);
     if (row.status === 'pago' && (op === 'create' || req.prev?.status !== 'pago'))
-      await notify({ type: 'sale', pref: 'notify_sales', text: `Venda paga: ${row.description} — R$ ${Number(row.amount).toFixed(2).replace('.', ',')}`, link: '#/vendas', exceptUserId: req.user.id });
+      await notify({ type: 'sale', pref: 'notify_sales', text: `Venda paga: ${row.description} — R$ ${Number(row.amount).toFixed(2).replace('.', ',')}`, link: '#/vendas', exceptUserId: req.user.id, ws: req.user.ws });
   }
 }));
 
@@ -258,7 +259,8 @@ r.post('/lessons/:id/complete', async (req, res) => {
   else await run('DELETE FROM lesson_progress WHERE user_id=? AND lesson_id=?', req.user.id, id);
   res.json({ ok: true, completed: done });
 });
-r.use('/courses', crud({
+const adminWrites = (req, _res, next) => (['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? next() : A.requireRole('admin')(req, _res, next));
+r.use('/courses', adminWrites, crud({
   table: 'courses', alias: 'c', search: ['title', 'description'],
   fields: {
     title: { type: 'string', required: true, label: 'Título' }, description: { type: 'text' },
@@ -266,7 +268,7 @@ r.use('/courses', crud({
   },
   async beforeCreate(d) { d.level = d.level || 'iniciante'; if (d.published === undefined) d.published = 1; }
 }));
-r.use('/lessons', crud({
+r.use('/lessons', adminWrites, crud({
   table: 'lessons', alias: 'l', search: ['title'], filters: ['course_id'], order: 'l.position, l.id',
   fields: {
     course_id: { type: 'ref', table: 'courses', required: true, label: 'Curso' }, title: { type: 'string', required: true, label: 'Título' },

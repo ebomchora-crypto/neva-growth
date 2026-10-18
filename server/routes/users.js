@@ -5,7 +5,7 @@ const { HttpError, bad } = require('../lib/http');
 
 const r = express.Router();
 // Lista básica (para selects de responsável) — qualquer usuário autenticado
-r.get('/options', async (_req, res) => res.json(await all('SELECT id,name FROM users WHERE active=1 ORDER BY name')));
+r.get('/options', async (req, res) => res.json(await all('SELECT id,name FROM users WHERE active=1 AND ws=? ORDER BY name', req.user.ws)));
 const COLS = 'id,name,email,role,active,plan,credits,username,created_at';
 
 r.use(A.requireRole('admin'));
@@ -21,7 +21,7 @@ r.post('/', async (req, res) => {
   const plan = req.body?.plan ?? 'member'; if (!(await get('SELECT 1 x FROM plans WHERE key=?', plan))) throw bad('Plano inválido.');
   const credits = req.body?.credits === undefined || req.body.credits === null || req.body.credits === '' ? 100 : Number(req.body.credits);
   if (!Number.isInteger(credits) || credits < 0 || credits > 1000000) throw bad('Créditos devem ser um inteiro ≥ 0.');
-  const info = await run('INSERT INTO users(name,email,password_hash,role,plan,credits) VALUES (?,?,?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role, plan, credits);
+  const info = await run('INSERT INTO users(name,email,password_hash,role,plan,credits,ws) VALUES (?,?,?,?,?,?,?)', String(name).trim(), email, A.hashPassword(password), role, plan, credits, req.user.ws);
   res.status(201).json(await get(`SELECT ${COLS} FROM users WHERE id=?`, info.lastInsertRowid));
 });
 

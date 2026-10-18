@@ -206,6 +206,23 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.password_resets FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.password_resets FROM authenticated'; END IF;
 END $$;
+` }
+, { v: 4, name: 'v4-espacos-de-trabalho-por-conta', sql: `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE tasks ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE products ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+CREATE INDEX IF NOT EXISTS idx_leads_ws ON leads(ws);
+CREATE INDEX IF NOT EXISTS idx_clients_ws ON clients(ws);
+CREATE INDEX IF NOT EXISTS idx_tasks_ws ON tasks(ws);
+CREATE INDEX IF NOT EXISTS idx_products_ws ON products(ws);
+CREATE INDEX IF NOT EXISTS idx_sales_ws ON sales(ws);
+CREATE INDEX IF NOT EXISTS idx_projects_ws ON projects(ws);
+-- Contas do cadastro público (perfil 'student' da v anterior) passam a ter espaço próprio e funções completas.
+UPDATE users SET ws=id, role='member' WHERE role='student';
 ` }];
 
 async function migrate() {

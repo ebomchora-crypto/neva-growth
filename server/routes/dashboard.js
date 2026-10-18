@@ -16,10 +16,10 @@ function range(period) {
   const prevEnd = addDays(start, -1); const prevStart = addDays(prevEnd, -(cfg.days - 1));
   return { cfg, start: iso(start), end: iso(end), prevStart: iso(prevStart), prevEnd: iso(prevEnd), startD: start, endD: end };
 }
-const totals = (a, b) => get(`SELECT COALESCE(SUM(amount),0) revenue, COALESCE(SUM(amount-cost),0) profit, COUNT(*) n FROM sales WHERE status='pago' AND ${PAID_DATE} BETWEEN ? AND ?`, a, b);
+const totals = (a, b, ws) => get(`SELECT COALESCE(SUM(amount),0) revenue, COALESCE(SUM(amount-cost),0) profit, COUNT(*) n FROM sales WHERE status='pago' AND ws=? AND ${PAID_DATE} BETWEEN ? AND ?`, ws, a, b);
 const variation = (cur, prev) => (prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : (cur > 0 ? null : 0)); // null = sem base de comparação
 
-async function series(rg) {
+async function series(rg, ws) {
   const buckets = [];
   if (rg.cfg.bucket === 'day') for (let d = rg.startD; d <= rg.endD; d = addDays(d, 1)) buckets.push({ key: iso(d), label: iso(d).slice(8) + '/' + iso(d).slice(5, 7) });
   else { // meses cobertos pelo intervalo
@@ -27,39 +27,41 @@ async function series(rg) {
     while (d <= rg.endD) { buckets.push({ key: d.toISOString().slice(0, 7), label: d.toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' }).replace('.', '') }); d.setUTCMonth(d.getUTCMonth() + 1); }
   }
   const fmt = rg.cfg.bucket === 'day' ? 10 : 7;
-  const rows = await all(`SELECT substr(${PAID_DATE},1,${fmt}) k, SUM(amount) revenue, SUM(amount-cost) profit FROM sales WHERE status='pago' AND ${PAID_DATE} BETWEEN ? AND ? GROUP BY k`, rg.start, rg.end);
+  const rows = await all(`SELECT substr(${PAID_DATE},1,${fmt}) k, SUM(amount) revenue, SUM(amount-cost) profit FROM sales WHERE status='pago' AND ws=? AND ${PAID_DATE} BETWEEN ? AND ? GROUP BY k`, ws, rg.start, rg.end);
   return buckets.map((b) => ({ ...b, revenue: rows.find((x) => x.k === b.key)?.revenue || 0, profit: rows.find((x) => x.k === b.key)?.profit || 0 }));
 }
 
-async function metrics(period) {
+async function metrics(period, ws) {
   const rg = range(period);
-  const cur = await totals(rg.start, rg.end); const prev = await totals(rg.prevStart, rg.prevEnd);
+  const cur = await totals(rg.start, rg.end, ws); const prev = await totals(rg.prevStart, rg.prevEnd, ws);
   return { period: PERIODS[period] ? period : '6m', range: { start: rg.start, end: rg.end },
     revenue: cur.revenue, profit: cur.profit, sales: cur.n, ticket: cur.n ? cur.revenue / cur.n : 0,
     profitVariation: variation(cur.profit, prev.profit), revenueVariation: variation(cur.revenue, prev.revenue), previous: { revenue: prev.revenue, profit: prev.profit },
-    series: await series(rg) };
+    series: await series(rg, ws) };
 }
 
 r.get('/', async (req, res) => {
-  const m = await metrics(req.query.period);
+  const ws = req.user.ws;
+  const m = await metrics(req.query.period, ws);
   const stages = await all(`SELECT s.key, s.label, s.kind, s.position, COUNT(l.id) n, COALESCE(SUM(l.value),0) total FROM pipeline_stages s
-    LEFT JOIN leads l ON l.status=s.key AND l.archived=0 GROUP BY s.id, s.key, s.label, s.kind, s.position ORDER BY s.position`);
+    LEFT JOIN leads l ON l.status=s.key AND l.archived=0 AND l.ws=? GROUP BY s.id, s.key, s.label, s.kind, s.position ORDER BY s.position`, ws);
   const won = stages.filter((s) => s.kind === 'won').reduce((a, s) => a + s.n, 0), lost = stages.filter((s) => s.kind === 'lost').reduce((a, s) => a + s.n, 0);
   const open = stages.filter((s) => s.kind === 'open');
   res.json({
     metrics: m,
-    wallet: { profitTotal: (await get("SELECT COALESCE(SUM(amount-cost),0) n FROM sales WHERE status='pago'")).n, revenueTotal: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pago'")).n,
-      pending: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pendente'")).n },
+    wallet: { profitTotal: (await get("SELECT COALESCE(SUM(amount-cost),0) n FROM sales WHERE status='pago' AND ws=?", ws)).n, revenueTotal: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pago' AND ws=?", ws)).n,
+      pending: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pendente' AND ws=?", ws)).n },
     kpis: {
       leads: stages.reduce((a, s) => a + s.n, 0), openLeads: open.reduce((a, s) => a + s.n, 0), openValue: open.reduce((a, s) => a + s.total, 0),
-      clients: (await get('SELECT COUNT(*) n FROM clients')).n, conversion: won + lost ? Math.round((won / (won + lost)) * 100) : 0,
-      projects: (await get('SELECT COUNT(*) n FROM projects WHERE archived=0')).n, publishedSites: (await get('SELECT COUNT(*) n FROM projects WHERE published=1 AND archived=0')).n
+      clients: (await get('SELECT COUNT(*) n FROM clients WHERE ws=?', ws)).n, conversion: won + lost ? Math.round((won / (won + lost)) * 100) : 0,
+      projects: (await get('SELECT COUNT(*) n FROM projects WHERE archived=0 AND ws=?', ws)).n, publishedSites: (await get('SELECT COUNT(*) n FROM projects WHERE published=1 AND archived=0 AND ws=?', ws)).n
     },
     stages,
-    tasksDue: await all(`SELECT t.id,t.title,t.due_date,t.priority FROM tasks t WHERE t.done=0 ORDER BY COALESCE(t.due_date,'9999'), t.id LIMIT 6`),
+    tasksDue: await all(`SELECT t.id,t.title,t.due_date,t.priority FROM tasks t WHERE t.done=0 AND t.ws=? ORDER BY COALESCE(t.due_date,'9999'), t.id LIMIT 6`, ws),
     recentActivities: await all(`SELECT a.id,a.type,a.text,a.created_at,l.name lead_name,u.name user_name FROM activities a
-      LEFT JOIN leads l ON l.id=a.lead_id LEFT JOIN users u ON u.id=a.user_id ORDER BY a.id DESC LIMIT 8`),
-    recentSales: await all(`SELECT s.id,s.description,s.amount,s.cost,s.status,s.sold_at,c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id ORDER BY s.id DESC LIMIT 5`)
+      LEFT JOIN leads l ON l.id=a.lead_id LEFT JOIN users u ON u.id=a.user_id
+      WHERE a.lead_id IN (SELECT id FROM leads WHERE ws=?) OR a.client_id IN (SELECT id FROM clients WHERE ws=?) ORDER BY a.id DESC LIMIT 8`, ws, ws),
+    recentSales: await all(`SELECT s.id,s.description,s.amount,s.cost,s.status,s.sold_at,c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id WHERE s.ws=? ORDER BY s.id DESC LIMIT 5`, ws)
   });
 });
 
@@ -67,9 +69,9 @@ r.get('/', async (req, res) => {
 r.post('/summary', async (req, res) => {
   if (!ai.configured()) throw new (require('../lib/http').HttpError)(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
   await S.checkAiQuota(req.user, 'summary');
-  const m = await metrics(req.body?.period);
-  const top = await all(`SELECT s.description, s.amount, s.amount-s.cost AS profit FROM sales s WHERE s.status='pago' AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY profit DESC LIMIT 5`, m.range.start, m.range.end);
-  const open = await get("SELECT COUNT(*) n, COALESCE(SUM(value),0) v FROM leads WHERE archived=0 AND status IN (SELECT key FROM pipeline_stages WHERE kind='open')");
+  const m = await metrics(req.body?.period, req.user.ws);
+  const top = await all(`SELECT s.description, s.amount, s.amount-s.cost AS profit FROM sales s WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY profit DESC LIMIT 5`, req.user.ws, m.range.start, m.range.end);
+  const open = await get("SELECT COUNT(*) n, COALESCE(SUM(value),0) v FROM leads WHERE archived=0 AND ws=? AND status IN (SELECT key FROM pipeline_stages WHERE kind='open')", req.user.ws);
   const text = await ai.complete({ maxTokens: 700,
     system: 'Você é analista comercial. Escreva em português do Brasil, em no máximo 6 linhas, um resumo objetivo do período com base SOMENTE nos números fornecidos. Não invente dados; se algo for zero ou ausente, diga isso. Termine com 1 sugestão prática.',
     messages: [{ role: 'user', content: JSON.stringify({ periodo: m.range, receita: m.revenue, lucro: m.profit, vendas_pagas: m.sales, ticket_medio: m.ticket, variacao_lucro_pct: m.profitVariation, periodo_anterior: m.previous, maiores_vendas: top, oportunidades_abertas: open }) }] });

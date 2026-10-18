@@ -119,7 +119,7 @@ export const users = crudPage({
   fields: [
     { k: 'name', l: 'Nome', req: true }, { k: 'email', l: 'E-mail', type: 'email', req: true, createOnly: true },
     { k: 'password', l: 'Senha (mín. 8) — em branco mantém', type: 'password', reqCreate: true },
-    { k: 'role', l: 'Perfil', type: 'select', opts: [['admin', 'Administrador'], ['member', 'Membro'], ['viewer', 'Somente leitura'], ['student', 'Aluno (cadastro público)']], default: 'member' },
+    { k: 'role', l: 'Perfil', type: 'select', opts: [['admin', 'Administrador'], ['member', 'Membro'], ['viewer', 'Somente leitura']], default: 'member' },
     { k: 'plan', l: 'Plano', type: 'select', opts: [['member', 'Member'], ['creator', 'Creator'], ['elite', 'Elite']], default: 'member' },
     { k: 'credits', l: 'Créditos de prospecção', type: 'number', default: 100 },
     { k: 'active', l: 'Ativo', type: 'checkbox', default: 1 }

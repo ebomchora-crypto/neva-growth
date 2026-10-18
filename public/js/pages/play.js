@@ -32,7 +32,7 @@ export default {
       drawAsk();
     }
     function drawAsk() {
-      const canAsk = !['viewer', 'student'].includes(ctx.user.role);
+      const canAsk = ctx.user.role !== 'viewer';
       mount(askBand, h('div', { class: 'ab-l' }, h('h2', 'O que você quer aprender?'), h('p', { class: 'sm mut', style: 'margin:6px 0 0;max-width:60ch' }, 'Conte o tema e o resultado que gostaria de alcançar. A equipe editorial recebe cada pedido dentro do painel do Play.')),
         h('div', { class: 'ab-r' }, h('div', { class: 'ab-n' }, h('b', String(sug.remaining)), h('span', h('b', { style: 'display:block' }, 'sugestões disponíveis'), h('small', `limite de ${sug.limit} por semana`))),
           canAsk && h('button', { class: 'btn', disabled: sug.remaining < 1, title: sug.remaining < 1 ? 'Você usou as sugestões desta semana.' : '', onclick: suggest }, 'Sugerir uma aula →')));

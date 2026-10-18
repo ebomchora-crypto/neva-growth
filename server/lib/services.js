@@ -14,8 +14,9 @@ const setSetting = (userId, key, value) =>
   run('INSERT INTO user_settings(user_id,key,value) VALUES (?,?,?) ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value', userId, key, String(value));
 
 /** Cria notificação in-app para os usuários ativos (exceto `exceptUserId`) que não desativaram esse tipo. */
-async function notify({ type, pref, text, link, only, exceptUserId }) {
-  const users = only ? only.map((id) => ({ id })) : await all('SELECT id FROM users WHERE active=1');
+async function notify({ type, pref, text, link, only, exceptUserId, ws }) {
+  // sem `only`, avisa só quem está no mesmo espaço de trabalho (ws) — nunca outras contas
+  const users = only ? only.map((id) => ({ id })) : await all('SELECT id FROM users WHERE active=1 AND ws=?', ws ?? -1);
   for (const u of users) {
     if (u.id === exceptUserId) continue;
     if (pref && (await getSettings(u.id))[pref] === '0') continue;
