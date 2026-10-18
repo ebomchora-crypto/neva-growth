@@ -58,6 +58,7 @@ function authScreen(mode, st = {}) {
   snow(true);
   const setup = mode === 'setup';
   const err = h('p', { class: 'err-text', role: 'alert' });
+  const fld = (label, name, type, ic, attrs, eyeBtn) => { const inp = h('input', { name, type, ...attrs }); return h('label', { class: 'field' }, h('span', label), h('span', { class: 'fwrap' }, h('i', { class: 'fico' }, icon(ic)), inp, eyeBtn && h('button', { type: 'button', class: 'pweye', 'aria-label': 'Mostrar ou ocultar a senha', onclick: () => { inp.type = inp.type === 'password' ? 'text' : 'password'; } }, icon('eye')))); };
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
     e.preventDefault(); err.textContent = '';
     const d = Object.fromEntries(new FormData(form));
@@ -66,14 +67,19 @@ function authScreen(mode, st = {}) {
     catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
   } },
     setup && st.setupBlocked && h('div', { class: 'notice' }, 'Instalação bloqueada: defina SETUP_TOKEN nas variáveis de ambiente do servidor e faça um novo deploy.'),
-    setup && h('label', { class: 'field' }, h('span', 'Seu nome'), h('input', { name: 'name', required: true, autocomplete: 'name' })),
-    h('label', { class: 'field' }, h('span', 'E-mail'), h('input', { name: 'email', type: 'email', required: true, autocomplete: 'username' })),
-    h('label', { class: 'field' }, h('span', 'Senha' + (setup ? ' (mín. 8 caracteres)' : '')), h('input', { name: 'password', type: 'password', required: true, minlength: setup ? 8 : null, autocomplete: setup ? 'new-password' : 'current-password' })),
-    setup && st.setupTokenRequired && h('label', { class: 'field' }, h('span', 'Token de instalação (SETUP_TOKEN)'), h('input', { name: 'setupToken', type: 'password', required: true, autocomplete: 'off' })),
-    err, h('button', { class: 'btn', disabled: setup && st.setupBlocked }, setup ? 'Criar conta de administrador' : 'Entrar'));
-  mount(root, h('main', { class: 'auth' }, mascotImg('boas-vindas', true), h('div', { class: 'card' },
-    h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('h1', setup ? 'Bem-vindo' : 'Entrar'),
-    h('p', { class: 'mut' }, setup ? 'Primeiro acesso: crie a conta do administrador para configurar a plataforma.' : 'Acesse sua conta para continuar.'), form)));
+    setup && fld('Nome', 'name', 'text', 'user', { required: true, autocomplete: 'name', placeholder: 'Seu nome' }),
+    fld('E-mail', 'email', 'email', 'mail', { required: true, autocomplete: 'username', placeholder: 'voce@empresa.com' }),
+    fld('Senha' + (setup ? ' (mín. 8 caracteres)' : ''), 'password', 'password', 'lock', { required: true, minlength: setup ? 8 : null, autocomplete: setup ? 'new-password' : 'current-password', placeholder: '••••••••' }, true),
+    setup && st.setupTokenRequired && fld('Token de instalação (SETUP_TOKEN)', 'setupToken', 'password', 'shield', { required: true, autocomplete: 'off' }),
+    err, h('button', { class: 'btn loginbtn', disabled: setup && st.setupBlocked }, h('span', setup ? 'Criar conta de administrador' : 'Entrar na plataforma'), h('i', icon('arrow'))));
+  const left = h('section', { class: 'auth-form' }, h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), setup ? ' COMECE SUA OPERAÇÃO' : ' ACESSE SUA CONTA'),
+    h('h1', setup ? 'Crie seu ' : 'Entre na ', h('em', setup ? 'acesso.' : 'plataforma.')),
+    h('p', { class: 'asub' }, setup ? 'Primeiro acesso: configure a conta do administrador para começar com uma operação organizada.' : 'Use suas credenciais para abrir a sua central Neva Growth.'), form,
+    h('div', { class: 'afoot' }, setup ? 'Depois de criar, convide a equipe em Usuários.' : 'Contas novas são criadas pelo administrador, em Usuários.'));
+  const right = h('section', { class: 'auth-art' }, h('i', { class: 'wave w1' }), h('i', { class: 'wave w2' }), h('i', { class: 'wave w3' }),
+    h('div', { class: 'aart-in' }, h('div', { class: 'akick' }, 'NEVA GROWTH / OPERATING SYSTEM'), h('h2', setup ? 'Comece sua ' : 'Bem-vindo ', h('em', setup ? 'operação.' : 'de volta.')),
+      h('p', setup ? 'Clientes, projetos e resultados organizados desde o primeiro acesso.' : 'Sua central continua exatamente do ponto em que você parou.'), h('div', { class: 'asafe' }, h('i'), 'AMBIENTE PROTEGIDO'), mascotImg('boas-vindas', true)));
+  mount(root, h('main', { class: 'auth2' + (setup ? ' rev' : '') }, left, right));
 }
 
 // ---------- paleta de comandos / busca global (Ctrl/⌘ + Espaço ou Ctrl/⌘ + K)
