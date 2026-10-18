@@ -802,3 +802,11 @@ body{background:#e6f0fa}
 .auth-art .mascot-img{max-width:min(220px,40%);max-height:26vh;border-radius:20px;margin:6px 0 0}
 @media(max-width:900px){.auth2{grid-template-columns:1fr;padding:10px}.auth2.rev .auth-form{order:0}.auth-art{min-height:300px;order:2}.auth-form{padding:26px 22px;border-radius:26px}.auth-form::before{display:none}.auth-art{border-radius:26px}.auth-art .mascot-img{max-height:140px}}
 @media(prefers-reduced-motion:reduce){.wave{animation:none}}
+
+/* auth: cadastro / recuperação */
+.loginopts{display:flex;justify-content:space-between;align-items:center;font-size:.82rem}
+.loginopts a,.afoot a{color:var(--ice-600);font-weight:600;text-decoration:none}.loginopts a:hover,.afoot a:hover{text-decoration:underline}
+.chk{display:flex;align-items:center;gap:8px;cursor:pointer;color:var(--mut)}.chk input{width:16px;height:16px;accent-color:var(--ice-500);margin:0}
+.pwhint{display:grid;gap:6px;margin-top:-4px}.pwhint small{color:var(--mut);font-size:.74rem;line-height:1.4}
+.pwmeter{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}.pwmeter i{height:4px;border-radius:4px;background:var(--line);transition:background .2s}
+.pwmeter[data-s="1"] i:nth-child(-n+1){background:#e5675b}.pwmeter[data-s="2"] i:nth-child(-n+2){background:#e8a94a}.pwmeter[data-s="3"] i:nth-child(-n+3){background:#5bb98a}.pwmeter[data-s="4"] i{background:#2f9e6e}

@@ -112,3 +112,7 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 - Capturas ainda não enviadas: formulários originais, seções 7–8 de Configurações, benefícios de cada plano, botão amarelo/alerta do dashboard, telas com dados. Onde a imagem não bastava, implementei hipóteses coerentes (marcadas em `REFERENCIAS_VISUAIS.md`).
 - Integrações Anthropic e Google Places nunca foram exercitadas contra os serviços reais.
 - Dados do workspace são compartilhados entre membros (modelo de equipe); só projetos têm dono com restrição de edição.
+
+## Cadastro e recuperação de senha (somente interface)
+`authScreen` em `public/js/app.js` tem os modos `login`, `signup`, `forgot` e `setup`. Login: "Salvar sessão", "Esqueci a senha" e "Criar minha conta". Cadastro: Nome, Nome de usuário, E-mail, Senha (medidor + dica). Recuperação: só e-mail.
+**Backend pendente:** os envios de cadastro e recuperação passam por `authPending()` e mostram a mensagem "ainda não está ativo". Nada é criado nem enviado. O checkbox "Salvar sessão" é enviado como `remember`, que o servidor ainda ignora.
