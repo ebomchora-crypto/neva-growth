@@ -2,9 +2,9 @@ const crypto = require('node:crypto');
 const { get, run } = require('./db');
 const { HttpError, bad } = require('./http');
 
-const SESSION_DAYS = 14;
 const COOKIE = 'neva_sid';
-const ROLES = ['admin', 'member', 'viewer'];
+const ROLES = ['admin', 'member', 'viewer', 'student'];
+const REMEMBER_DAYS = 30;
 
 function hashPassword(pw) {
   const salt = crypto.randomBytes(16);
@@ -29,12 +29,14 @@ function validateEmail(e) {
   return e.trim().toLowerCase();
 }
 
-async function createSession(res, userId, req) {
+// remember=true: cookie persistente por 30 dias. false: cookie de sessão (some ao fechar o navegador) e validade de 1 dia no servidor.
+async function createSession(res, userId, req, remember = true) {
   const token = crypto.randomBytes(32).toString('base64url');
-  const exp = Date.now() + SESSION_DAYS * 864e5;
+  const days = remember ? REMEMBER_DAYS : 1;
+  const exp = Date.now() + days * 864e5;
   await run('INSERT INTO sessions(token_hash,user_id,expires_at,created_at,user_agent,ip) VALUES (?,?,?,?,?,?)', sha(token), userId, exp, Date.now(), String(req?.headers?.['user-agent'] || '').slice(0, 200), String(req?.ip || '').slice(0, 64));
   res.cookie(COOKIE, token, {
-    httpOnly: true, sameSite: 'lax', secure: Boolean(req?.secure) || process.env.COOKIE_SECURE === '1', maxAge: SESSION_DAYS * 864e5, path: '/'
+    httpOnly: true, sameSite: 'lax', secure: Boolean(req?.secure) || process.env.COOKIE_SECURE === '1', path: '/', ...(remember ? { maxAge: days * 864e5 } : {})
   });
 }
 async function destroySession(req, res) {
@@ -86,17 +88,28 @@ function csrfGuard(req, _res, next) {
   next();
 }
 
+// Contas de cadastro público (role 'student') só alcançam as áreas abertas: perfil, biblioteca, Play, prompts, Academia e prospecção própria.
+// Todo o resto (CRM, vendas, sites, usuários, painel, busca) são dados da operação e ficam restritos à equipe.
+const STUDENT_READ = /^\/(me|library|play|prompts|courses|lessons|integrations\/status|integrations\/prospect)(\/|$)/;
+const STUDENT_WRITE = /^\/(me|prompts|integrations\/prospect|play\/\d+\/seen|lessons\/\d+\/complete)(\/|$)/;
+function studentGuard(req, _res, next) {
+  if (req.user?.role !== 'student') return next();
+  const ok = ['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? STUDENT_READ.test(req.path) : STUDENT_WRITE.test(req.path);
+  if (!ok) return next(new HttpError(403, 'Esta área é exclusiva da equipe.', 'team_only'));
+  next();
+}
+
 // Limite simples de tentativas de login por IP+e-mail
 const attempts = new Map();
-function loginThrottle(key) {
+function loginThrottle(key, max = 8, windowMs = 15 * 60e3) {
   const now = Date.now();
-  const a = (attempts.get(key) || []).filter((t) => now - t < 15 * 60e3);
-  if (a.length >= 8) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos.', 'throttled');
+  const a = (attempts.get(key) || []).filter((t) => now - t < windowMs);
+  if (a.length >= max) throw new HttpError(429, 'Muitas tentativas. Aguarde alguns minutos.', 'throttled');
   return { fail() { a.push(now); attempts.set(key, a); }, ok() { attempts.delete(key); } };
 }
 
 const countUsers = async () => (await get('SELECT COUNT(*) n FROM users')).n;
 module.exports = {
   ROLES, hashPassword, verifyPassword, validatePassword, validateEmail, createSession, destroySession,
-  loadUser, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers
+  loadUser, studentGuard, requireAuth, requireRole, blockViewerWrites, csrfGuard, loginThrottle, countUsers
 };

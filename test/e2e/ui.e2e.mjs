@@ -215,15 +215,24 @@ await page.setViewportSize({ width: 1360, height: 900 });
 await nav('dashboard'); await page.waitForTimeout(900); await page.screenshot({ path: path.join(OUT, 'dash2.png') });
 await nav('leads'); await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, 'crm2.png') });
 await nav('vendas'); await page.waitForTimeout(700); await page.screenshot({ path: path.join(OUT, 'vendas2.png') });
-await step('cadastro/esqueci a senha (só interface)', async () => {
-  await page.click('.railbtn'); await page.waitForSelector('input[name=password]');
-  await page.waitForSelector('text=Salvar sessão');
+await step('cadastro público: aluno entra e só vê as áreas abertas', async () => {
+  await page.click('.railbtn'); await page.waitForSelector('text=Salvar sessão');
   await page.click('text=Criar minha conta'); await page.waitForSelector('input[name=username]'); await page.waitForSelector('text=Use 8 caracteres ou mais');
   await page.screenshot({ path: path.join(OUT, 'signup.png') });
-  await page.fill('input[name=name]', 'Teste'); await page.fill('input[name=username]', 'teste.ui'); await page.fill('input[name=email]', 'x@y.com'); await page.fill('input[name=password]', 'Abcd1234!x');
-  await page.click('button:has-text("Criar minha conta")'); await page.waitForSelector('.err-text:has-text("próxima etapa")');
-  await page.click('text=Voltar para o login'); await page.click('text=Esqueci a senha'); await page.waitForSelector('button:has-text("Enviar link de recuperação")');
+  await page.fill('input[name=name]', 'Aluno Teste'); await page.fill('input[name=username]', 'aluno.ui'); await page.fill('input[name=email]', 'aluno@y.com'); await page.fill('input[name=password]', 'Abcd1234!x');
+  await page.click('button:has-text("Criar minha conta")'); await page.waitForSelector('.side');
+  await page.waitForFunction(() => location.hash.startsWith('#/play'));
+  const paths = await page.$$eval('.side a[data-path]', (as) => as.map((a) => a.dataset.path));
+  if (paths.includes('clientes') || paths.includes('leads') || paths.includes('dashboard') || paths.includes('usuarios')) throw new Error('aluno vê áreas da equipe: ' + paths);
+  if (!paths.includes('play') || !paths.includes('acervo')) throw new Error('faltam áreas abertas: ' + paths);
+  await page.evaluate(() => { location.hash = '#/clientes'; }); await page.waitForFunction(() => location.hash.startsWith('#/play'));
+  await page.click('.railbtn'); await page.waitForSelector('text=Salvar sessão');
+});
+await step('esqueci a senha: pede e-mail e avisa quando o envio não está configurado', async () => {
+  await page.click('text=Esqueci a senha'); await page.waitForSelector('button:has-text("Enviar link de recuperação")');
   await page.screenshot({ path: path.join(OUT, 'forgot.png') });
+  await page.fill('input[name=email]', 'aluno@y.com'); await page.click('button:has-text("Enviar link de recuperação")');
+  await page.waitForSelector('.err-text:has-text("não foi configurado")');
   await page.click('text=Voltar para o login'); await page.waitForSelector('text=Salvar sessão');
 });
 await step('logout/login', async () => { await page.waitForSelector('input[name=password]'); await page.fill('input[name=email]', 'ana@neva.test'); await page.fill('input[name=password]', 'senha-forte-123'); await page.click('button:has-text("Entrar")'); await page.waitForSelector('.side'); });

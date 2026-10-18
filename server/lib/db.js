@@ -197,6 +197,15 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.play_suggestions, public.prospect_searches FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.play_suggestions, public.prospect_searches FROM authenticated'; END IF;
 END $$;
+` }
+, { v: 3, name: 'v3-redefinicao-de-senha', sql: `
+CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, expires_at BIGINT NOT NULL, created_at BIGINT NOT NULL);
+CREATE INDEX IF NOT EXISTS idx_pwreset_user ON password_resets(user_id);
+ALTER TABLE public.password_resets ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.password_resets FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.password_resets FROM authenticated'; END IF;
+END $$;
 ` }];
 
 async function migrate() {

@@ -39,7 +39,7 @@ function createApp() {
   const api = express.Router();
   api.use(A.csrfGuard);
   api.use('/auth', require('./routes/auth'));
-  api.use(A.requireAuth, A.blockViewerWrites);
+  api.use(A.requireAuth, A.blockViewerWrites, A.studentGuard);
   api.use('/me', require('./routes/me'));
   api.use('/users', require('./routes/users'));
   api.use('/dashboard', require('./routes/dashboard'));

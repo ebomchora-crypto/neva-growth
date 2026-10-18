@@ -125,3 +125,11 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 
 ### Telas de acesso v3 (igual à referência)
 Painel grande + cartão interno com faixa de acento, rótulos com índice (01–04), Nome e Nome de usuário lado a lado, rodapé com texto à esquerda e link à direita, entalhe central com três pontos que navegam entre Entrar / Criar conta / Recuperar acesso. Sem mascote no painel de arte. Sem o widget Cloudflare da referência (não há verificação real por trás). Os títulos animados preservam o destaque em cor (`wordsOf` percorre os nós).
+
+## Cadastro público, recuperação de senha e "Salvar sessão" (ativos)
+- **Cadastro** (`POST /api/auth/signup`): cria usuário com perfil `student` ("Aluno"), plano Member e **0 créditos**. Valida nome, `username` único, e-mail único, senha (≥ 8, sem senhas óbvias), campo-isca anti-robô e limite de 6 contas/hora por IP. `SIGNUP_OPEN=0` fecha o cadastro.
+- **Isolamento:** `studentGuard` (server/lib/auth.js) restringe o aluno a Perfil, Biblioteca (Design/Acervo), Play, Gerador de prompts, Academia e prospecção própria. CRM, clientes, vendas, tarefas, produtos, sites/IDE/Builder, usuários, painel e busca global são da equipe e devolvem 403; o front esconde essas áreas e leva o aluno ao Play. O admin pode promover o aluno em Usuários (perfil Membro).
+- **Esqueci a senha** (`/api/auth/forgot` → e-mail → `#/redefinir-senha?token=…` → `/api/auth/reset`): token de 32 bytes guardado só como hash, 1 hora, uso único; resposta igual exista ou não a conta; ao redefinir, todas as sessões antigas são encerradas. **Exige e-mail configurado:** defina `RESEND_API_KEY` e `MAIL_FROM` (e, se o domínio público for outro, `PUBLIC_URL`). Sem isso a tela avisa que o envio não está configurado (o admin ainda redefine em Usuários).
+- **Salvar sessão:** marcado = cookie persistente por 30 dias; desmarcado = cookie de sessão (some ao fechar o navegador) e validade de 1 dia no servidor.
+- Migração v3 cria `password_resets` (com RLS). Testes: `test/auth.test.js` e e2e.
+- **Ainda não existe:** verificação do e-mail no cadastro (a conta já entra ativa) e verificação anti-robô tipo Turnstile.
