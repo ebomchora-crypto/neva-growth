@@ -140,3 +140,6 @@ Cards, modais e paleta têm borda externa + filete interno recuado (`inset box-s
 Acesso: moldura em volta da tela inteira (`.auth2::after`), com os dois painéis dentro, além do filete interno de cada painel.
 
 Moldura no app todo: `.shell::after` (janela inteira), filete interno no rail, duplo contorno em painéis (cards, filtros, itens de biblioteca, dropdowns, busca). Colunas do kanban ficam só com a borda externa (o cabeçalho colorido cobre o filete).
+
+### Configurações v2 (igual à referência)
+Casca única `.setshell`: cabeçalho com "Configurações." e monograma NG/, botão × (volta ao Dashboard), navegação à esquerda com ícone/título/subtítulo e atalhos de gestão, e painel com "/ CONFIGURAÇÕES / 01 DE 08", título grande, número fantasma e cartões `01 / IDENTIDADE`. Meu perfil: Nome completo + Nome de usuário (+ Telefone) e **Acesso** com troca de e-mail (`PUT /api/me/email`, confirma pela senha atual e vale na hora — a referência confirma por e-mail, o que depende do envio de e-mail ainda não configurado). Sem o cartão de Discord da referência (não há integração).

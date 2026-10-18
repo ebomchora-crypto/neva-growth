@@ -29,6 +29,19 @@ r.put('/', async (req, res) => {
   res.json({ user: await get('SELECT id,name,email,role,username,phone,plan,credits FROM users WHERE id=?', u.id) });
 });
 
+// Troca de e-mail de acesso: exige a senha atual (não depende de envio de e-mail) e vale na hora.
+r.put('/email', async (req, res) => {
+  const th = A.loginThrottle(`email|${req.user.id}`, 5, 15 * 60e3);
+  const u = await get('SELECT * FROM users WHERE id=?', req.user.id);
+  if (!A.verifyPassword(String(req.body?.password || ''), u.password_hash)) { th.fail(); throw bad('Senha atual incorreta.'); }
+  const email = A.validateEmail(req.body?.email);
+  if (email === u.email) throw bad('Este já é o seu e-mail de acesso.');
+  if (await get('SELECT id FROM users WHERE email=? AND id<>?', email, u.id)) throw bad('Já existe uma conta com este e-mail.');
+  await run('UPDATE users SET email=? WHERE id=?', email, u.id);
+  th.ok();
+  res.json({ user: await get('SELECT id,name,email,role,username,phone,plan,credits FROM users WHERE id=?', u.id) });
+});
+
 r.put('/password', async (req, res) => {
   const { current, next } = req.body || {};
   const u = await get('SELECT * FROM users WHERE id=?', req.user.id);

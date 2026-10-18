@@ -192,6 +192,7 @@ await step('Usuários: plano e créditos', async () => {
 await step('Configurações: 8 seções, perfil, sessões, notificações, privacidade, crm, dados', async () => {
   await nav('configuracoes'); await page.waitForSelector('.snav button >> nth=7');
   await page.fill('input[name=username]', 'ana.teste'); await page.fill('input[name=phone]', '41999990000'); await page.click('button:has-text("Salvar perfil")'); await page.waitForSelector('text=Perfil salvo');
+  for (const novo of ['ana2@neva.test', 'ana@neva.test']) { await page.fill('input[name=email]', novo); await page.fill('input[name=password]', 'senha-forte-123'); await page.click('button:has-text("Alterar e-mail")'); await page.waitForSelector(`.srow:has-text("${novo}")`); }
   await page.click('.snav button:has-text("Segurança")'); await page.waitForSelector('text=Esta sessão');
   await page.click('.snav button:has-text("Notificações")'); await page.click('.switch:has-text("Vendas") input'); await page.waitForSelector('text=Preferência salva');
   await page.click('.snav button:has-text("Privacidade")'); await page.waitForSelector('text=Ocultar valores no painel');

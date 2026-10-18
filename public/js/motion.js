@@ -136,7 +136,7 @@ export function routeEnd() {
 // ---------- indicador deslizante do menu
 export function navIndicator(nav, link) {
   if (!nav) return;
-  if (!link) { const o = nav.querySelector('.navind'); if (o) o.style.opacity = '0'; return; }
+  if (!link) { const o = nav.querySelector('.navind'); if (o) { if (G) G.to(o, { opacity: 0, duration: 0.2 }); else o.style.opacity = '0'; } return; }
   let ind = nav.querySelector('.navind');
   if (!ind) { ind = document.createElement('i'); ind.className = 'navind'; nav.prepend(ind); G.set(ind, { opacity: 0 }); }
   const go = (animate) => {

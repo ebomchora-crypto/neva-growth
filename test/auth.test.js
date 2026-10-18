@@ -171,3 +171,14 @@ test('admin vê a conta pública em Usuários e gerencia', async () => {
   const bia = list.find((u) => u.email === 'bia@x.com'); assert.equal(bia.role, 'member');
   assert.equal((await call('PUT', `/api/users/${bia.id}`, { plan: 'creator' }, admin)).status, 200);
 });
+
+test('troca de e-mail exige a senha atual e e-mail livre', async () => {
+  const c = (await call('POST', '/api/auth/login', { email: 'bia@x.com', password: 'NovaSenha123!' })).cookie;
+  assert.equal((await call('PUT', '/api/me/email', { email: 'novo@x.com', password: 'errada' }, c)).status, 400);
+  assert.equal((await call('PUT', '/api/me/email', { email: 'ana@x.com', password: 'NovaSenha123!' }, c)).status, 400); // já usado
+  assert.equal((await call('PUT', '/api/me/email', { email: 'ruim', password: 'NovaSenha123!' }, c)).status, 400);
+  const ok = await call('PUT', '/api/me/email', { email: 'Bia.Nova@x.com', password: 'NovaSenha123!' }, c);
+  assert.equal(ok.status, 200); assert.equal(ok.body.user.email, 'bia.nova@x.com');
+  assert.equal((await call('POST', '/api/auth/login', { email: 'bia.nova@x.com', password: 'NovaSenha123!' })).status, 200);
+  assert.equal((await call('POST', '/api/auth/login', { email: 'bia@x.com', password: 'NovaSenha123!' })).status, 401);
+});
