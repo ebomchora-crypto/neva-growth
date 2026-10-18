@@ -1037,3 +1037,4 @@ select.monthsel{border-radius:12px;background:var(--ice-50)}
 .profit .periodbar .pill.on{background:var(--grad);color:#fff;box-shadow:0 4px 10px rgba(47,123,189,.3)}
 .profit .periodbar .pill{padding:5px 8px;font-size:.7rem}.aibtn{font-size:.7rem}
 @media(max-width:1320px){.aibtn{max-width:44px;overflow:hidden;padding:6px;color:transparent;gap:0}.aibtn i{flex:none;color:#fff}}
+.resitem .contacts{display:flex;gap:10px;flex-wrap:wrap;margin-top:2px}.resitem .contacts a{font-weight:600}

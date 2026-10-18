@@ -27,6 +27,7 @@ function createApp() {
       res.status(503).json({ error: missing ? e.message : 'Banco de dados indisponível. Verifique DATABASE_URL (use a string do Transaction pooler do Supabase) e a senha do banco.', code: missing ? 'db_not_configured' : 'db_unavailable', detail: missing ? undefined : `${e.code || e.name || ''} ${String(e.message || '').replace(/postgres(ql)?:\/\/\S+/gi, '[url]')}`.trim().slice(0, 200) });
     }
   });
+  app.use(async (_req, _res, next) => { await require('./lib/config').refresh(); next(); });
   app.use(A.loadUser);
   if (process.env.LOG_REQUESTS === '1') app.use((req, res, next) => { const t = Date.now(); res.on('finish', () => { if (req.path.startsWith('/api')) console.log(`${req.method} ${req.originalUrl.split('?')[0]} ${res.statusCode} ${Date.now() - t}ms ${req.user ? 'u' + req.user.id : '-'}`); }); next(); });
 

@@ -223,6 +223,27 @@ CREATE INDEX IF NOT EXISTS idx_sales_ws ON sales(ws);
 CREATE INDEX IF NOT EXISTS idx_projects_ws ON projects(ws);
 -- Contas do cadastro público (perfil 'student' da v anterior) passam a ter espaço próprio e funções completas.
 UPDATE users SET ws=id, role='member' WHERE role='student';
+` }
+, { v: 5, name: 'v5-configuracoes-de-integracao-e-prospeccao-apify', sql: `
+CREATE TABLE IF NOT EXISTS app_settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '', description TEXT, updated_at ${TS});
+INSERT INTO app_settings(key, value, description) VALUES
+  ('APIFY_API_TOKEN', '', 'Token da Apify usado na Prospecção (Google Maps Scraper). Troque aqui quando quiser.'),
+  ('APIFY_MAX_PLACES', '', 'Máximo de empresas por área/busca. Vazio = sem limite (o máximo que o Google Maps mostrar).'),
+  ('APIFY_MAX_USD_PER_RUN', '', 'Gasto máximo em US$ por área/busca na Apify. Vazio = sem limite.'),
+  ('APIFY_SCRAPE_CONTACTS', 'true', 'true/false: buscar e-mails e redes sociais no site de cada empresa (custa a mais por empresa).'),
+  ('RIVER_API_KEY', '', 'Chave da River (IA). Vazio = usa a variável de ambiente da Vercel.'),
+  ('RIVER_MODEL', '', 'Modelo da River (ex.: deepseek-ai/DeepSeek-V4.1-Flash). Vazio = variável de ambiente.')
+ON CONFLICT (key) DO NOTHING;
+ALTER TABLE prospect_searches ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'done';
+ALTER TABLE prospect_searches ADD COLUMN IF NOT EXISTS run_ids TEXT;
+ALTER TABLE prospect_searches ADD COLUMN IF NOT EXISTS params TEXT;
+ALTER TABLE prospect_searches ADD COLUMN IF NOT EXISTS results TEXT;
+ALTER TABLE prospect_searches ADD COLUMN IF NOT EXISTS error TEXT;
+ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.app_settings FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.app_settings FROM authenticated'; END IF;
+END $$;
 ` }];
 
 async function migrate() {

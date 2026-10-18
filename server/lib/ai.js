@@ -1,8 +1,9 @@
 const { HttpError } = require('./http');
+const config = require('./config');
 // Provedor de IA: River (API compatível com OpenAI) quando RIVER_API_KEY existe; senão Anthropic (legado).
-const river = () => Boolean(process.env.RIVER_API_KEY);
-const RIVER_URL = () => (process.env.RIVER_BASE_URL || 'https://api.river.ai/v1').replace(/\/$/, '');
-const RIVER_MODEL = () => process.env.RIVER_MODEL || 'deepseek-ai/DeepSeek-V4.1-Flash';
+const river = () => Boolean(config.get('RIVER_API_KEY'));
+const RIVER_URL = () => (config.get('RIVER_BASE_URL') || 'https://api.river.ai/v1').replace(/\/$/, '');
+const RIVER_MODEL = () => config.get('RIVER_MODEL') || 'deepseek-ai/DeepSeek-V4.1-Flash';
 const MODEL = () => process.env.NEVA_AI_MODEL || 'claude-sonnet-5-5';
 const configured = () => river() || Boolean(process.env.ANTHROPIC_API_KEY);
 const NOT_CONFIGURED = 'IA não configurada. Defina RIVER_API_KEY (e RIVER_MODEL) no servidor.';
@@ -41,7 +42,7 @@ async function completeRiver({ system, messages, maxTokens, model }) {
     messages: [...(system ? [{ role: 'system', content: system }] : []), ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: asText(m.content) }))] };
   let resp, data;
   for (let attempt = 0; attempt < 3; attempt++) {
-    resp = await fetch(`${RIVER_URL()}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${process.env.RIVER_API_KEY}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(170000) });
+    resp = await fetch(`${RIVER_URL()}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.get('RIVER_API_KEY')}` }, body: JSON.stringify(body), signal: AbortSignal.timeout(170000) });
     data = await resp.json().catch(() => ({}));
     if (![429, 500, 502, 503, 504].includes(resp.status)) break;
     await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));

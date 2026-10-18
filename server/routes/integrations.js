@@ -2,12 +2,13 @@ const express = require('express');
 const { all, get, run } = require('../lib/db');
 const { HttpError, bad } = require('../lib/http');
 const S = require('../lib/services');
+const config = require('../lib/config');
 const ai = require('../lib/ai');
 
 const r = express.Router();
 r.get('/status', async (_req, res) => res.json({
   ai: { configured: ai.configured(), model: ai.configured() ? ai.MODELS.find((m) => m.id === ai.DEFAULT_ID()).name : null, models: ai.publicModels(), defaultModel: ai.DEFAULT_ID(), envVar: 'RIVER_API_KEY' },
-  places: { configured: Boolean(process.env.GOOGLE_PLACES_API_KEY), envVar: 'GOOGLE_PLACES_API_KEY' }
+  places: { configured: Boolean(config.get('APIFY_API_TOKEN')), envVar: 'APIFY_API_TOKEN', provider: 'Apify (Google Maps)' }
 }));
 
 // ---- Assistente de código com histórico persistente por projeto/usuário
@@ -52,59 +53,93 @@ const km = (a, b) => { const t = (x) => (x * Math.PI) / 180; const dLat = t(b.la
 
 r.get('/prospect/credits', async (req, res) => res.json({ credits: (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits }));
 
-r.get('/prospect/searches', async (req, res) => res.json({ items: (await all('SELECT * FROM prospect_searches WHERE user_id=? ORDER BY id DESC LIMIT 30', req.user.id)).map((x) => ({ ...x, areas: JSON.parse(x.areas || '[]') })) }));
+r.get('/prospect/searches', async (req, res) => res.json({ items: (await all('SELECT id,user_id,query,location,areas,radius_km,only_no_site,min_rating,found,qualified,delivered,no_site,potential,status,created_at FROM prospect_searches WHERE user_id=? ORDER BY id DESC LIMIT 30', req.user.id)).map((x) => ({ ...x, areas: JSON.parse(x.areas || '[]') })) }));
 r.delete('/prospect/searches/:id', async (req, res) => { await run('DELETE FROM prospect_searches WHERE id=? AND user_id=?', Number(req.params.id), req.user.id); res.json({ ok: true }); });
 
+// ---- Busca na Apify (actor compass/crawler-google-places). Assíncrona: inicia uma execução por área,
+// o navegador consulta o andamento e, quando todas terminam, os resultados são processados uma única vez.
+const APIFY = 'https://api.apify.com/v2';
+const ACTOR = 'compass~crawler-google-places';
+const TERMINAL = ['SUCCEEDED', 'FAILED', 'ABORTED', 'TIMED-OUT'];
+async function apify(path, opts = {}) {
+  const resp = await fetch(APIFY + path, { ...opts, headers: { authorization: `Bearer ${config.get('APIFY_API_TOKEN')}`, 'content-type': 'application/json', ...(opts.headers || {}) }, signal: AbortSignal.timeout(25000) });
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok) throw new HttpError(502, `Apify: ${data?.error?.message || resp.status}`, 'places_upstream');
+  return data;
+}
+const parse = (x, d) => { try { return JSON.parse(x); } catch { return d; } };
+
 r.post('/prospect/search', async (req, res) => {
-  const key = process.env.GOOGLE_PLACES_API_KEY;
-  if (!key) throw new HttpError(503, 'Prospecção não configurada. Defina GOOGLE_PLACES_API_KEY no servidor.', 'places_not_configured');
+  if (!config.get('APIFY_API_TOKEN')) throw new HttpError(503, 'Prospecção não configurada. Preencha APIFY_API_TOKEN na tabela app_settings do banco (ou na Vercel).', 'places_not_configured');
   const b = req.body || {};
-  const query = String(b.query || '').trim(); const location = String(b.location || '').trim();
+  const query = String(b.query || '').trim().slice(0, 120); const location = String(b.location || '').trim().slice(0, 160);
   const areas = Array.isArray(b.areas) ? b.areas.slice(0, 3).map((a) => ({ lat: Number(a.lat), lng: Number(a.lng), radius_km: Number(a.radius_km) })) : [];
   if (areas.some((a) => !(Math.abs(a.lat) <= 90 && Math.abs(a.lng) <= 180 && a.radius_km >= 1 && a.radius_km <= 50))) throw bad('Área inválida (raio de 1 a 50 km).');
   if (!areas.length && !location) throw bad('Marque ao menos uma área no mapa ou informe a localidade.');
   if (!areas.length && query.length < 2) throw bad('Informe o segmento.');
   const onlyNoSite = b.onlyNoSite === true || b.onlyNoSite === '1'; const minRating = Math.max(0, Math.min(5, Number(b.minRating) || 0));
-  const credits = (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits;
-  if (credits <= 0) throw new HttpError(402, 'Você não tem créditos de prospecção. Peça a um administrador para ampliar seu saldo.', 'no_credits');
-  const mask = 'places.id,places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.websiteUri,places.rating,places.userRatingCount,places.location,places.googleMapsUri';
-  const call = async (body) => {
-    const resp = await fetch('https://places.googleapis.com/v1/places:searchText', { method: 'POST', signal: AbortSignal.timeout(30000),
-      headers: { 'content-type': 'application/json', 'X-Goog-Api-Key': key, 'X-Goog-FieldMask': mask }, body: JSON.stringify({ languageCode: 'pt-BR', pageSize: 20, ...body }) });
-    const data = await resp.json().catch(() => ({}));
-    if (!resp.ok) throw new HttpError(502, `Google Places: ${data?.error?.message || resp.status}`, 'places_upstream');
-    return data.places || [];
-  };
-  const raw = new Map();
-  if (areas.length) for (const a of areas) {
-    const places = await call({ textQuery: query || 'empresas', locationBias: { circle: { center: { latitude: a.lat, longitude: a.lng }, radius: Math.round(a.radius_km * 1000) } } });
-    for (const p of places) { const loc = p.location && { lat: p.location.latitude, lng: p.location.longitude };
-      if (loc && km({ lat: a.lat, lng: a.lng }, loc) <= a.radius_km * 1.02) raw.set(p.id, p); }
-  } else for (const p of await call({ textQuery: `${query} em ${location}` })) raw.set(p.id, p);
-  const found = [...raw.values()];
-  let items = await Promise.all(found.map(async (p) => {
-    const name = p.displayName?.text || ''; const phone = p.nationalPhoneNumber || null;
-    return { id: p.id, name, address: p.formattedAddress || null, phone, website: p.websiteUri || null, rating: p.rating ?? null, reviews: p.userRatingCount ?? null,
-      lat: p.location?.latitude ?? null, lng: p.location?.longitude ?? null, maps_url: p.googleMapsUri || null,
-      exists: Boolean(await get("SELECT 1 x FROM leads WHERE name=? AND COALESCE(phone,'')=? AND ws=?", name, phone || '', req.user.ws)) };
-  }));
-  const qualifies = (i) => (!onlyNoSite || !i.website) && (i.rating ?? 0) >= minRating;
-  const qualified = items.filter(qualifies);
-  items = qualified.slice(0, credits);                          // 1 crédito por resultado entregue
-  if (items.length) { await run('UPDATE users SET credits=credits-? WHERE id=?', items.length, req.user.id); await run('INSERT INTO credit_ledger(user_id,delta,reason) VALUES (?,?,?)', req.user.id, -items.length, `busca: ${query || location}`.slice(0, 120)); }
-  // Importação automática (Configurações > CRM): resultados entregues entram na 1ª etapa aberta do funil, uma única vez por nome+telefone.
-  let imported = 0;
-  if ((await S.getSettings(req.user.id)).prospect_auto_import === '1') {
-    const first = (await get("SELECT key FROM pipeline_stages WHERE kind='open' ORDER BY position, id LIMIT 1"))?.key;
-    for (const i of items) {
-      if (i.exists || !i.name) continue;
-      await run('INSERT INTO leads(name,phone,website,source,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?)', i.name.slice(0, 300), i.phone, i.website, 'Prospecção (Google Places)', [i.address, i.maps_url].filter(Boolean).join('\n') || null, req.user.id, first, req.user.ws);
-      i.exists = true; imported++;
+  if (await get("SELECT 1 x FROM prospect_searches WHERE user_id=? AND status='running'", req.user.id)) throw new HttpError(409, 'Você já tem uma busca em andamento. Aguarde ela terminar.', 'search_running');
+  const max = Number(config.get('APIFY_MAX_PLACES')) || 0; const usd = Number(config.get('APIFY_MAX_USD_PER_RUN')) || 0;
+  const base = { searchStringsArray: [query || 'empresas'], language: 'pt-BR', countryCode: 'br', scrapeContacts: config.get('APIFY_SCRAPE_CONTACTS') !== 'false', ...(max ? { maxCrawledPlacesPerSearch: max } : {}) };
+  const inputs = areas.length ? areas.map((a) => ({ ...base, customGeolocation: { type: 'Point', coordinates: [a.lng, a.lat], radiusKm: a.radius_km } })) : [{ ...base, locationQuery: location }];
+  const runs = [];
+  for (const input of inputs) runs.push((await apify(`/acts/${ACTOR}/runs${usd ? `?maxTotalChargeUsd=${usd}` : ''}`, { method: 'POST', body: JSON.stringify(input) })).data.id);
+  const info = await run('INSERT INTO prospect_searches(user_id,query,location,areas,radius_km,only_no_site,min_rating,status,run_ids,params) VALUES (?,?,?,?,?,?,?,?,?,?)',
+    req.user.id, query || null, location || null, JSON.stringify(areas), areas[0]?.radius_km ?? null, onlyNoSite ? 1 : 0, minRating, 'running', JSON.stringify(runs), JSON.stringify({ onlyNoSite, minRating }));
+  res.status(202).json({ id: Number(info.lastInsertRowid), status: 'running', runs: runs.length });
+});
+
+// Andamento / resultado de uma busca
+r.get('/prospect/search/:id', async (req, res) => {
+  const row = await get('SELECT * FROM prospect_searches WHERE id=? AND user_id=?', Number(req.params.id), req.user.id);
+  if (!row) throw new HttpError(404, 'Busca não encontrada.');
+  if (row.status === 'done') return res.json({ status: 'done', ...parse(row.results, { items: [] }) });
+  if (row.status === 'failed') return res.json({ status: 'failed', error: row.error || 'A busca falhou.' });
+  const runIds = parse(row.run_ids, []);
+  const states = await Promise.all(runIds.map((id) => apify(`/actor-runs/${id}`).then((x) => x.data)));
+  const counts = await Promise.all(states.map((s) => apify(`/datasets/${s.defaultDatasetId}`).then((x) => x.data.itemCount || 0).catch(() => 0)));
+  const found = counts.reduce((a, n) => a + n, 0);
+  if (!states.every((s) => TERMINAL.includes(s.status))) return res.json({ status: 'running', found, runs: states.map((s) => s.status) });
+  // só um processamento por busca, mesmo com consultas simultâneas
+  const lock = await run("UPDATE prospect_searches SET status='processing' WHERE id=? AND status='running'", row.id);
+  if (!Number(lock.changes)) return res.json({ status: 'running', found });
+  try {
+    if (!states.some((s) => s.status === 'SUCCEEDED') && !found) throw new Error(`A busca na Apify terminou com status ${states.map((s) => s.status).join(', ')}.`);
+    const fields = 'placeId,title,address,phone,website,totalScore,reviewsCount,location,url,permanentlyClosed,categoryName,emails,instagrams,facebooks,linkedIns,whatsapps,neighborhood,city';
+    const areas = parse(row.areas, []); const raw = new Map();
+    for (let i = 0; i < states.length; i++) {
+      const items = await apify(`/datasets/${states[i].defaultDatasetId}/items?clean=true&format=json&fields=${fields}`).catch(() => []);
+      for (const p of Array.isArray(items) ? items : []) {
+        const a = areas[i]; const loc = p.location && { lat: p.location.lat, lng: p.location.lng };
+        if (a && loc && km({ lat: a.lat, lng: a.lng }, loc) > a.radius_km * 1.05) continue;
+        if (p.placeId || p.title) raw.set(p.placeId || `${p.title}|${p.address}`, p);
+      }
     }
+    const known = new Set((await all('SELECT name, phone FROM leads WHERE ws=?', req.user.ws)).map((l) => `${l.name}|${l.phone || ''}`));
+    const all1 = [...raw.values()].map((p) => ({ id: p.placeId, name: p.title || '', address: p.address || null, phone: p.phone || null, website: p.website || null, rating: p.totalScore ?? null, reviews: p.reviewsCount ?? null,
+      lat: p.location?.lat ?? null, lng: p.location?.lng ?? null, maps_url: p.url || null, category: p.categoryName || null, closed: Boolean(p.permanentlyClosed),
+      email: (p.emails || [])[0] || null, instagram: (p.instagrams || [])[0] || null, facebook: (p.facebooks || [])[0] || null, linkedin: (p.linkedIns || [])[0] || null, whatsapp: (p.whatsapps || [])[0] || null,
+      exists: known.has(`${p.title || ''}|${p.phone || ''}`) }));
+    const prm = parse(row.params, {});
+    const qualified = all1.filter((i) => !i.closed && (!prm.onlyNoSite || !i.website) && (i.rating ?? 0) >= (prm.minRating || 0));
+    let imported = 0;
+    if ((await S.getSettings(req.user.id)).prospect_auto_import === '1') {
+      const first = (await get("SELECT key FROM pipeline_stages WHERE kind='open' ORDER BY position, id LIMIT 1"))?.key;
+      for (const i of qualified) {
+        if (i.exists || !i.name) continue;
+        await run('INSERT INTO leads(name,phone,email,website,source,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?,?)', i.name.slice(0, 300), i.phone, i.email, i.website, 'Prospecção (Google Maps)',
+          [i.category, i.address, i.instagram, i.maps_url].filter(Boolean).join('\n') || null, req.user.id, first, req.user.ws);
+        i.exists = true; imported++;
+      }
+    }
+    const out = { items: qualified, imported, found: all1.length, qualified: qualified.length, noSite: all1.filter((i) => !i.website).length,
+      potential: all1.length ? Math.round((qualified.length / all1.length) * 100) : 0, partial: states.some((s) => s.status !== 'SUCCEEDED') };
+    await run("UPDATE prospect_searches SET status='done', found=?, qualified=?, delivered=?, no_site=?, potential=?, results=? WHERE id=?", out.found, out.qualified, out.qualified, out.noSite, out.potential, JSON.stringify(out), row.id);
+    res.json({ status: 'done', ...out });
+  } catch (e) {
+    await run("UPDATE prospect_searches SET status='failed', error=? WHERE id=?", String(e.message).slice(0, 300), row.id);
+    res.json({ status: 'failed', error: e.message });
   }
-  await run('INSERT INTO prospect_searches(user_id,query,location,areas,radius_km,only_no_site,min_rating,found,qualified,delivered,no_site,potential) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', req.user.id, query || null, location || null, JSON.stringify(areas), areas[0]?.radius_km ?? null, onlyNoSite ? 1 : 0, minRating, found.length, qualified.length, items.length, found.filter((p) => !p.websiteUri).length, found.length ? Math.round((qualified.length / found.length) * 100) : 0);
-  res.json({ items, imported, found: found.length, qualified: qualified.length, noSite: found.filter((p) => !p.websiteUri).length, charged: items.length, truncated: qualified.length > items.length,
-    potential: found.length ? Math.round((qualified.length / found.length) * 100) : 0, credits: (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits });
 });
 
 module.exports = r;

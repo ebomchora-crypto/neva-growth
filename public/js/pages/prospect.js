@@ -24,7 +24,7 @@ export default {
     const mapEl = h('div', { id: 'map', role: 'application', 'aria-label': 'Mapa de prospecção' });
 
     function drawInfo() {
-      credBox.textContent = `${credits} crédito(s)`;
+      credBox.textContent = 'Google Maps via Apify';
       mount(info, h('div', { class: 'kicker' }, 'Território'), h('b', { style: 'font-size:1.3rem' }, `${S.areas.length} área${S.areas.length === 1 ? '' : 's'} selecionada${S.areas.length === 1 ? '' : 's'}`, h('span', { class: 'sm mut' }, `  ${S.areas.length}/${MAX_AREAS}`)),
         h('div', { class: 'sm mut' }, S.items.length ? `${S.radius} km · ${S.qualified} qualificadas de ${S.found} encontradas` : `${S.radius} km por área · clique no mapa para marcar`));
       mount(potential, h('div', { class: 'kicker' }, 'Potencial do território'), h('b', { style: 'font-size:1.6rem' }, S.potential === null ? '—' : `${S.potential}%`), h('div', { class: 'sm mut' }, S.potential === null ? 'Aguardando sinais (faça uma busca)' : 'Parte das empresas encontradas que atende à sua qualificação'));
@@ -48,14 +48,14 @@ export default {
     function drawResults() {
       drawBand();
       mount(resBox, !S.items.length ? h('div', { class: 'card emptyart radar' }, h('span', { class: 'eico' }, icon('binoculars')), h('b', 'O radar está pronto.'), 'Marque uma ou mais áreas no mapa; o segmento é opcional.') : h('div', { class: 'card', style: 'margin-top:14px' },
-        h('div', { class: 'toolbar' }, h('b', `${S.items.length} resultado(s)`), h('span', { class: 'sm mut' }, `${S.found} encontradas · ${S.qualified} qualificadas${S.truncated ? ' · limitado pelo seu saldo de créditos' : ''}`), h('span', { class: 'grow' }),
+        h('div', { class: 'toolbar' }, h('b', `${S.items.length} resultado(s)`), h('span', { class: 'sm mut' }, `${S.found} encontradas · ${S.qualified} qualificadas${S.imported ? ` · ${S.imported} enviadas ao CRM automaticamente` : ''}${S.partial ? ' · busca parcial (limite de gasto/tempo atingido)' : ''}`), h('span', { class: 'grow' }),
           canWrite && h('button', { class: 'btn', onclick: importSel }, 'Enviar selecionados ao CRM')),
         S.items.map((i, n) => h('div', { class: 'resitem' }, h('input', { type: 'checkbox', checked: i.sel, disabled: i.exists, 'aria-label': `Selecionar ${i.name}`, onchange: (e) => { S.items[n].sel = e.target.checked; } }),
-          h('div', { class: 'grow' }, h('b', i.name), i.exists && h('span', { class: 'badge', style: 'margin-left:6px' }, 'já está no CRM'), h('div', { class: 'sm mut' }, i.address || ''), h('div', { class: 'sm' }, [i.phone, i.rating ? `${i.rating} ★ (${i.reviews})` : null].filter(Boolean).join(' · '))),
+          h('div', { class: 'grow' }, h('b', i.name), i.exists && h('span', { class: 'badge', style: 'margin-left:6px' }, 'já está no CRM'), h('div', { class: 'sm mut' }, i.address || ''), h('div', { class: 'sm' }, [i.category, i.phone, i.rating ? `${i.rating} ★ (${i.reviews})` : null].filter(Boolean).join(' · ')), (i.email || i.instagram || i.whatsapp) && h('div', { class: 'sm contacts' }, i.email && h('a', { href: 'mailto:' + i.email }, i.email), i.instagram && h('a', { href: i.instagram, target: '_blank', rel: 'noopener noreferrer' }, 'Instagram'), i.whatsapp && h('a', { href: i.whatsapp, target: '_blank', rel: 'noopener noreferrer' }, 'WhatsApp'))),
           h('div', { class: 'sm nowrap' }, i.website ? h('a', { href: i.website, target: '_blank', rel: 'noopener noreferrer' }, 'site') : h('span', { class: 'badge ok' }, 'sem site'), ' ', i.maps_url && h('a', { href: i.maps_url, target: '_blank', rel: 'noopener noreferrer' }, 'mapa'))))));
     }
     async function importSel() {
-      const rows = S.items.filter((i) => i.sel && !i.exists).map((i) => ({ name: i.name, phone: i.phone, website: i.website, source: 'Prospecção (Google Places)', notes: [i.address, i.maps_url].filter(Boolean).join(' · ') }));
+      const rows = S.items.filter((i) => i.sel && !i.exists).map((i) => ({ name: i.name, phone: i.phone, email: i.email, website: i.website, source: 'Prospecção (Google Maps)', notes: [i.category, i.address, i.instagram, i.maps_url].filter(Boolean).join(' · ') }));
       if (!rows.length) return toast('Selecione ao menos um resultado novo.', 'err');
       try { const r = await api.post('/leads/import', { rows }); toast(`${r.created} oportunidade(s) criada(s) no CRM.`, 'ok'); S.items.forEach((i) => { if (i.sel) { i.exists = true; i.sel = false; } }); drawResults(); } catch (e) { fail(e); }
     }
@@ -68,14 +68,30 @@ export default {
     const goInput = h('input', { placeholder: 'Busque cidade, bairro ou endereço', 'aria-label': 'Explorar o mapa' });
     const radiusV = h('b', `${S.radius} km`);
     const radius = h('input', { type: 'range', min: 1, max: 50, value: S.radius, 'aria-label': 'Raio das áreas', oninput: () => { S.radius = Number(radius.value); radiusV.textContent = S.radius + ' km'; redrawAreas(); } });
+    // a busca roda na Apify; aqui só acompanhamos o andamento até os resultados ficarem prontos
+    async function follow(id) {
+      const t0 = Date.now();
+      for (;;) {
+        const r = await api.get('/integrations/prospect/search/' + id);
+        if (r.status === 'done') return showResult(r);
+        if (r.status === 'failed') throw new Error(r.error || 'A busca falhou.');
+        const sec = Math.round((Date.now() - t0) / 1000);
+        searchBtn.textContent = `Buscando no Google Maps… ${r.found || 0} empresa(s) · ${sec}s`;
+        await new Promise((ok) => setTimeout(ok, 4000));
+      }
+    }
+    function showResult(r) {
+      Object.assign(S, { items: r.items.map((i) => ({ ...i, sel: !i.exists })), found: r.found, qualified: r.qualified, noSite: r.noSite, potential: r.potential, imported: r.imported, partial: r.partial });
+      drawPins(); drawInfo(); drawResults(); loadSaved();
+      if (!r.items.length) toast('Nenhum resultado atende à qualificação.'); else if (r.imported) toast(`${r.imported} empresa(s) enviada(s) ao CRM automaticamente.`, 'ok');
+      const pts = S.items.filter((i) => i.lat != null).map((i) => [i.lat, i.lng]); if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+    }
     const searchBtn = h('button', { class: 'btn', disabled: !st.places.configured || !canWrite, onclick: async () => {
       if (!S.areas.length && !loc.value.trim()) return toast('Marque ao menos uma área no mapa ou informe a localidade.', 'err');
-      searchBtn.disabled = true; searchBtn.textContent = 'Buscando…';
+      searchBtn.disabled = true; searchBtn.textContent = 'Iniciando busca…';
       try {
-        const r = await api.post('/integrations/prospect/search', { query: seg.value, location: loc.value, areas: S.areas.map((a) => ({ lat: a.lat, lng: a.lng, radius_km: S.radius })), onlyNoSite: S.onlyNoSite, minRating: S.minRating });
-        Object.assign(S, { items: r.items.map((i) => ({ ...i, sel: !i.exists })), found: r.found, qualified: r.qualified, noSite: r.noSite, potential: r.potential, truncated: r.truncated }); credits = r.credits;
-        drawPins(); drawInfo(); drawResults(); loadSaved(); if (!r.items.length) toast('Nenhum resultado atende à qualificação.');
-        const pts = S.items.filter((i) => i.lat != null).map((i) => [i.lat, i.lng]); if (pts.length) map.fitBounds(pts, { padding: [30, 30], maxZoom: 15 });
+        const st0 = await api.post('/integrations/prospect/search', { query: seg.value, location: loc.value, areas: S.areas.map((a) => ({ lat: a.lat, lng: a.lng, radius_km: S.radius })), onlyNoSite: S.onlyNoSite, minRating: S.minRating });
+        loadSaved(); await follow(st0.id);
       } catch (e) { fail(e); } finally { searchBtn.disabled = !st.places.configured; searchBtn.textContent = 'Buscar empresas'; }
     } }, 'Buscar empresas');
     const rating = h('select', { 'aria-label': 'Nota mínima', onchange: () => { S.minRating = Number(rating.value); } }, [0, 3, 3.5, 4, 4.5].map((v) => h('option', { value: v, selected: v === S.minRating }, v ? `${v}+ ★` : 'Qualquer nota')));
@@ -89,7 +105,7 @@ export default {
     function drawSaved() {
       const strip = h('div', { class: 'strip' }, saved.length ? saved.map((x) => h('div', { class: 'sv' }, h('div', h('b', x.query || 'Áreas no mapa'), h('small', ` ${x.location || `${x.areas.length} área(s)`}`)),
         h('small', { class: 'mut' }, `${new Date(String(x.created_at).replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR')} · ${x.delivered} entregue(s) · ${x.potential ?? 0}% potencial`),
-        h('div', { class: 'row' }, h('button', { class: 'btn ghost sm', onclick: () => reuse(x) }, 'Reusar parâmetros'), h('button', { class: 'btn ghost sm', 'aria-label': 'Excluir busca salva', onclick: async () => { if (!(await confirmBox('Excluir esta busca salva?'))) return; try { await api.del('/integrations/prospect/searches/' + x.id); loadSaved(); } catch (e) { fail(e); } } }, '✕')))) : h('div', { class: 'mut sm', style: 'padding:14px' }, 'Suas buscas aparecem aqui depois da primeira prospecção.'));
+        h('div', { class: 'row' }, x.status === 'done' && x.delivered > 0 && h('button', { class: 'btn sm', onclick: async () => { try { showResult(await api.get('/integrations/prospect/search/' + x.id)); } catch (e) { fail(e); } } }, 'Ver resultados'), x.status === 'running' && h('button', { class: 'btn sm', onclick: () => follow(x.id).catch(fail) }, 'Acompanhar'), h('button', { class: 'btn ghost sm', onclick: () => reuse(x) }, 'Reusar parâmetros'), h('button', { class: 'btn ghost sm', 'aria-label': 'Excluir busca salva', onclick: async () => { if (!(await confirmBox('Excluir esta busca salva?'))) return; try { await api.del('/integrations/prospect/searches/' + x.id); loadSaved(); } catch (e) { fail(e); } } }, '✕')))) : h('div', { class: 'mut sm', style: 'padding:14px' }, 'Suas buscas aparecem aqui depois da primeira prospecção.'));
       mount(savedBox, h('div', { class: 'sb-l' }, h('span', { class: 'rb-i red' }, icon('archive')), h('div', h('b', 'Buscas salvas'), h('small', 'Seu histórico de prospecções')), h('span', { class: 'cnt2' }, String(saved.length).padStart(2, '0'))),
         h('div', { class: 'sb-r' }, h('div', { class: 'sb-h' }, h('span', { class: 'k' }, 'Biblioteca'), h('small', 'Mais recentes primeiro'), h('span', { class: 'grow' }),
           h('button', { class: 'iconbtn', 'aria-label': 'Anteriores', onclick: () => strip.scrollBy({ left: -280, behavior: 'smooth' }) }, '‹'), h('button', { class: 'iconbtn', 'aria-label': 'Próximas', onclick: () => strip.scrollBy({ left: 280, behavior: 'smooth' }) }, '›')), strip));
@@ -101,7 +117,7 @@ export default {
     }
 
     mount(box, hero({ kicker: 'Neva Growth / Prospecção', title: 'Encontre empresas pelo mapa.', art: 'prospect', subtitle: 'Marque até 3 áreas, defina o raio e filtre por empresas sem site. Resultados vão direto para o CRM. Cada empresa entregue consome 1 crédito.', actions: [credBox] }),
-      !st.places.configured && h('div', { class: 'notice', style: 'margin-bottom:14px' }, h('b', 'Busca de empresas não configurada. '), `Defina ${st.places.envVar} (Google Places API) no servidor e reinicie. O mapa já permite marcar as áreas.`),
+      !st.places.configured && h('div', { class: 'notice', style: 'margin-bottom:14px' }, h('b', 'Busca de empresas não configurada. '), `Preencha ${st.places.envVar} na tabela app_settings do banco (Supabase → Table Editor). O mapa já permite marcar as áreas.`),
       h('div', { class: 'hunter' }, h('div', { class: 'stack' },
         h('div', { class: 'step stack' }, h('div', { class: 'n' }, '01 · Defina o alvo'), h('label', { class: 'field' }, h('span', 'Segmento (opcional com áreas marcadas)'), seg), h('label', { class: 'field' }, h('span', 'Localidade'), loc), h('div', { class: 'sm mut' }, 'Com áreas no mapa, a busca considera somente os pins; sem áreas, usa a localidade.')),
         h('div', { class: 'step stack' }, h('div', { class: 'n' }, '02 · Qualificação'), h('label', { class: 'row' }, nosite, 'Somente empresas sem site'), h('label', { class: 'field' }, h('span', 'Nota mínima'), rating)),
