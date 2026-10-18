@@ -46,7 +46,7 @@ test('cadastro público cria Membro com espaço próprio e funções completas',
   assert.equal(r.status, 201); assert.equal(r.body.user.role, 'member'); assert.equal(r.body.user.username, 'bia.aluna');
   assert.match(r.setCookie, /Max-Age=/);
   bia = r.cookie;
-  assert.equal((await call('GET', '/api/me', undefined, bia)).body.user.credits, 0);
+  assert.equal((await call('GET', '/api/me', undefined, bia)).body.user.credits, 100);
 
   // tudo vazio: nenhuma listagem enxerga dados do administrador
   for (const u of ['/api/clients', '/api/leads', '/api/sales', '/api/tasks', '/api/products', '/api/projects']) {

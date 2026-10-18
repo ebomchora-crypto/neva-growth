@@ -45,7 +45,7 @@ r.post('/login', async (req, res) => {
 });
 
 // Cadastro público: cria uma conta Membro com espaço de trabalho PRÓPRIO e privado (ws = id da conta): CRM, vendas, sites etc. só dela.
-// Sem créditos pagos (prospecção) até um administrador conceder.
+// Créditos: o padrão da plataforma (100), como qualquer outra conta; regras de crédito ficam para depois.
 r.post('/signup', async (req, res) => {
   if (!signupOpen()) throw new HttpError(403, 'O cadastro está fechado no momento.', 'signup_closed');
   if (req.body?.website) throw bad('Não foi possível concluir o cadastro.'); // campo-isca para robôs
@@ -59,7 +59,7 @@ r.post('/signup', async (req, res) => {
   if (/^(12345678|123456789|password|senha123|qwertyui|11111111|00000000)$/i.test(req.body.password)) throw bad('Esta senha é muito comum. Escolha outra.');
   if (await get('SELECT id FROM users WHERE email=?', email)) throw new HttpError(409, 'Já existe uma conta com este e-mail.', 'email_taken');
   if (await get('SELECT id FROM users WHERE username=?', username)) throw new HttpError(409, 'Este nome de usuário já está em uso.', 'username_taken');
-  const info = await run('INSERT INTO users(name,email,username,password_hash,role,plan,credits) VALUES (?,?,?,?,?,?,?)', name, email, username, A.hashPassword(req.body.password), 'member', 'member', 0);
+  const info = await run('INSERT INTO users(name,email,username,password_hash,role,plan) VALUES (?,?,?,?,?,?)', name, email, username, A.hashPassword(req.body.password), 'member', 'member');
   await run('UPDATE users SET ws=id WHERE id=?', info.lastInsertRowid);
   th.fail();
   await A.createSession(res, info.lastInsertRowid, req, remember(req.body));
