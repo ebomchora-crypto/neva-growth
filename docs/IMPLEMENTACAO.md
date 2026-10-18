@@ -135,4 +135,4 @@ Painel grande + cartão interno com faixa de acento, rótulos com índice (01–
 - **Ainda não existe:** verificação do e-mail no cadastro (a conta já entra ativa) e verificação anti-robô tipo Turnstile.
 
 ### Moldura dentro de moldura
-Cards, modais e paleta têm borda externa + filete interno recuado (`inset box-shadow`); o hero ganhou uma moldura interna (`.hero::after`), igual à dos painéis de acesso. Variável `--frame-in` controla o recuo (0 desliga, usado em pôsteres e cards de site).
+Cards, modais e paleta têm borda externa + filete interno recuado (`inset box-shadow`); o hero ganhou uma moldura interna (`.hero::after`), igual à dos painéis de acesso. Variável `--frame-in` controla o recuo. Pôsteres do Play usam um filete próprio (`.pcard::after`) por cima da imagem; cards de site usam o filete padrão.

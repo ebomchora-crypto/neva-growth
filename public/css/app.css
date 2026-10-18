@@ -894,4 +894,6 @@ body{background:#e6f0fa}
 .palette{box-shadow:0 24px 64px rgba(14,34,54,.3),inset 0 0 0 5px #fff,inset 0 0 0 6px var(--ice-200)}
 .emptyart.dashed{outline:1px dashed var(--ice-300);outline-offset:-9px}
 .plan.cur{box-shadow:var(--shadow),inset 0 0 0 5px #fff,inset 0 0 0 7px var(--ice-600)}
-.pcard,.siteCard{--frame-in:0px}
+.pcard{--frame-in:0px;position:relative}
+.pcard::after{content:"";position:absolute;inset:7px;border-radius:calc(var(--radius) - 3px);border:1px solid rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(47,123,189,.12);pointer-events:none;z-index:3}
+.pcard .poster{border-radius:var(--radius) var(--radius) 0 0}
