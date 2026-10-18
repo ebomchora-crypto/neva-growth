@@ -133,3 +133,6 @@ Painel grande + cartão interno com faixa de acento, rótulos com índice (01–
 - **Salvar sessão:** marcado = cookie persistente por 30 dias; desmarcado = cookie de sessão (some ao fechar o navegador) e validade de 1 dia no servidor.
 - Migrações: v3 cria `password_resets` (com RLS); v4 cria as colunas `ws`. Testes: `test/auth.test.js` e e2e.
 - **Ainda não existe:** verificação do e-mail no cadastro (a conta já entra ativa) e verificação anti-robô tipo Turnstile.
+
+### Moldura dentro de moldura
+Cards, modais e paleta têm borda externa + filete interno recuado (`inset box-shadow`); o hero ganhou uma moldura interna (`.hero::after`), igual à dos painéis de acesso. Variável `--frame-in` controla o recuo (0 desliga, usado em pôsteres e cards de site).
