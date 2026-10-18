@@ -143,3 +143,11 @@ Moldura no app todo: `.shell::after` (janela inteira), filete interno no rail, d
 
 ### Configurações v2 (igual à referência)
 Casca única `.setshell`: cabeçalho com "Configurações." e monograma NG/, botão × (volta ao Dashboard), navegação à esquerda com ícone/título/subtítulo e atalhos de gestão, e painel com "/ CONFIGURAÇÕES / 01 DE 08", título grande, número fantasma e cartões `01 / IDENTIDADE`. Meu perfil: Nome completo + Nome de usuário (+ Telefone) e **Acesso** com troca de e-mail (`PUT /api/me/email`, confirma pela senha atual e vale na hora — a referência confirma por e-mail, o que depende do envio de e-mail ainda não configurado). Sem o cartão de Discord da referência (não há integração).
+
+### Configurações: Notificações, Privacidade, CRM, Plano, Pagamentos e Suporte
+- **Notificações:** alertas do sistema pelo navegador (`public/js/push.js`, Notification API). Ativar/Desativar/Enviar teste; o app já consultava os alertas a cada 30 s e agora dispara a notificação do aparelho para os novos (respeitando as preferências de vendas/tarefas/leads). Funciona com o Neva aberto numa aba; push com o app fechado exigiria service worker + servidor de push.
+- **Privacidade:** "Ocultar valores financeiros", animações e "Créditos e licenças".
+- **CRM:** novo `prospect_auto_import`: a busca da Prospecção passa a criar os leads novos na 1ª etapa aberta do funil (sem duplicar por nome+telefone, sem mexer em cards existentes). Sem o "Importar buscas salvas" da referência: as buscas salvas guardam só números, não os resultados.
+- **Meu plano:** cartão do plano + uso do mês + link para Associação (sem "Cancelar plano": não há cobrança).
+- **Pagamentos e Suporte:** telas "Em breve" (sem botões).
+- Interruptores arredondados em todas as linhas `.switch`.

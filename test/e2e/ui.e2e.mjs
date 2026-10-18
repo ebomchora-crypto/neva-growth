@@ -193,11 +193,12 @@ await step('Configurações: 8 seções, perfil, sessões, notificações, priva
   await nav('configuracoes'); await page.waitForSelector('.snav button >> nth=7');
   await page.fill('input[name=username]', 'ana.teste'); await page.fill('input[name=phone]', '41999990000'); await page.click('button:has-text("Salvar perfil")'); await page.waitForSelector('text=Perfil salvo');
   for (const novo of ['ana2@neva.test', 'ana@neva.test']) { await page.fill('input[name=email]', novo); await page.fill('input[name=password]', 'senha-forte-123'); await page.click('button:has-text("Alterar e-mail")'); await page.waitForSelector(`.srow:has-text("${novo}")`); }
-  await page.click('.snav button:has-text("Segurança")'); await page.waitForSelector('text=Esta sessão');
-  await page.click('.snav button:has-text("Notificações")'); await page.click('.switch:has-text("Vendas") input'); await page.waitForSelector('text=Preferência salva');
-  await page.click('.snav button:has-text("Privacidade")'); await page.waitForSelector('text=Ocultar valores no painel');
+  await page.click('.snav button:has-text("Segurança")'); await page.waitForSelector('text=Sessões e dispositivos');
+  await page.click('.snav button:has-text("Notificações")'); await page.waitForSelector('text=Notificações no aparelho'); await page.waitForSelector('.badge:has-text("Desativadas")'); if (!(await page.isDisabled('button:has-text("Enviar teste")'))) throw new Error('teste deveria estar desabilitado'); await page.click('.switch:has-text("Vendas") input'); await page.waitForSelector('text=Preferência salva');
+  await page.click('.snav button:has-text("Privacidade")'); await page.waitForSelector('text=Ocultar valores financeiros');
   await page.click('.snav button:has-text("CRM")'); await page.waitForSelector('text=Etapas do funil'); await page.waitForSelector('li:has-text("Pós-venda")');
   await page.click('.snav button:has-text("Meu plano")'); await page.waitForSelector('text=Créditos de prospecção');
+  await page.click('.snav button:has-text("Pagamentos")'); await page.waitForSelector('.soonbadge:has-text("Em breve")'); await page.click('.snav button:has-text("Suporte")'); await page.waitForSelector('.soonbadge:has-text("Em breve")');
   await page.click('.snav button:has-text("Integrações")'); await page.waitForSelector('text=não configurado');
   await page.click('.snav button:has-text("Dados")'); const [dl] = await Promise.all([page.waitForEvent('download'), page.click('button:has-text("Exportar dados")')]); if (!dl.suggestedFilename().includes('neva-export')) throw new Error('export');
   await page.reload(); await page.waitForSelector('.snav'); await page.waitForFunction(() => document.querySelector('input[name=username]')?.value === 'ana.teste');

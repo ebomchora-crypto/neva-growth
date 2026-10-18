@@ -3,7 +3,7 @@ const { HttpError } = require('./http');
 
 const SETTING_DEFAULTS = {
   hide_values: '0', notify_sales: '1', notify_tasks: '1', notify_leads: '1',
-  prospect_radius_km: '10', prospect_only_no_site: '1', prospect_min_rating: '0'
+  prospect_radius_km: '10', prospect_only_no_site: '1', prospect_min_rating: '0', prospect_auto_import: '0'
 };
 async function getSettings(userId) {
   const out = { ...SETTING_DEFAULTS };

@@ -182,3 +182,10 @@ test('troca de e-mail exige a senha atual e e-mail livre', async () => {
   assert.equal((await call('POST', '/api/auth/login', { email: 'bia.nova@x.com', password: 'NovaSenha123!' })).status, 200);
   assert.equal((await call('POST', '/api/auth/login', { email: 'bia@x.com', password: 'NovaSenha123!' })).status, 401);
 });
+
+test('importação automática da prospecção é uma preferência da conta', async () => {
+  const c = (await call('POST', '/api/auth/login', { email: 'bia.nova@x.com', password: 'NovaSenha123!' })).cookie;
+  assert.equal((await call('GET', '/api/me', undefined, c)).body.settings.prospect_auto_import, '0');
+  assert.equal((await call('PUT', '/api/me/settings', { prospect_auto_import: true }, c)).body.prospect_auto_import, '1');
+  assert.equal((await call('GET', '/api/me', undefined, admin)).body.settings.prospect_auto_import, '0'); // por conta
+});

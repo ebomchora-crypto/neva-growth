@@ -92,8 +92,18 @@ r.post('/prospect/search', async (req, res) => {
   const qualified = items.filter(qualifies);
   items = qualified.slice(0, credits);                          // 1 crédito por resultado entregue
   if (items.length) { await run('UPDATE users SET credits=credits-? WHERE id=?', items.length, req.user.id); await run('INSERT INTO credit_ledger(user_id,delta,reason) VALUES (?,?,?)', req.user.id, -items.length, `busca: ${query || location}`.slice(0, 120)); }
+  // Importação automática (Configurações > CRM): resultados entregues entram na 1ª etapa aberta do funil, uma única vez por nome+telefone.
+  let imported = 0;
+  if ((await S.getSettings(req.user.id)).prospect_auto_import === '1') {
+    const first = (await get("SELECT key FROM pipeline_stages WHERE kind='open' ORDER BY position, id LIMIT 1"))?.key;
+    for (const i of items) {
+      if (i.exists || !i.name) continue;
+      await run('INSERT INTO leads(name,phone,website,source,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?)', i.name.slice(0, 300), i.phone, i.website, 'Prospecção (Google Places)', [i.address, i.maps_url].filter(Boolean).join('\n') || null, req.user.id, first, req.user.ws);
+      i.exists = true; imported++;
+    }
+  }
   await run('INSERT INTO prospect_searches(user_id,query,location,areas,radius_km,only_no_site,min_rating,found,qualified,delivered,no_site,potential) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)', req.user.id, query || null, location || null, JSON.stringify(areas), areas[0]?.radius_km ?? null, onlyNoSite ? 1 : 0, minRating, found.length, qualified.length, items.length, found.filter((p) => !p.websiteUri).length, found.length ? Math.round((qualified.length / found.length) * 100) : 0);
-  res.json({ items, found: found.length, qualified: qualified.length, noSite: found.filter((p) => !p.websiteUri).length, charged: items.length, truncated: qualified.length > items.length,
+  res.json({ items, imported, found: found.length, qualified: qualified.length, noSite: found.filter((p) => !p.websiteUri).length, charged: items.length, truncated: qualified.length > items.length,
     potential: found.length ? Math.round((qualified.length / found.length) * 100) : 0, credits: (await get('SELECT credits FROM users WHERE id=?', req.user.id)).credits });
 });
 

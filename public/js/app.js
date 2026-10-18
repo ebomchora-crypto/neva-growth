@@ -1,6 +1,7 @@
 import { api } from './api.js';
 import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
 import { drapeBg } from './drape-bg.js';
+import { pushNew, resetPush } from './push.js';
 import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill } from './motion.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
@@ -180,7 +181,7 @@ async function openNotifications(btn, badge) {
 let pollTimer = null;
 async function pollNotifications() {
   const badge = document.getElementById('notif-badge'); if (!badge || !state.user) return;
-  try { const r = await api.get('/me/notifications'); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.lastChild.textContent = 'Sincronizado ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
+  try { const r = await api.get('/me/notifications'); pushNew(r.items); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.lastChild.textContent = 'Sincronizado ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
 }
 
 function shell() {
@@ -189,7 +190,7 @@ function shell() {
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
-  const logout = async () => { await api.post('/auth/logout').catch(() => {}); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
+  const logout = async () => { await api.post('/auth/logout').catch(() => {}); resetPush(); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
   const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
