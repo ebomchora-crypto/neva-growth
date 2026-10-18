@@ -185,10 +185,15 @@ export default {
     });
 
     // ---------- Assistente de IA (histórico persistente, revisão por diff, desfazer)
-    const st = await api.get('/integrations/status').catch(() => ({ ai: { configured: false, envVar: 'ANTHROPIC_API_KEY' } }));
+    const st = await api.get('/integrations/status').catch(() => ({ ai: { configured: false, envVar: 'RIVER_API_KEY' } }));
     const chatMsgs = h('div', { class: 'msgs' }); let lastUndo = null; const undoBtn = h('button', { class: 'btn ghost sm hide', onclick: () => undoAi() }, 'Desfazer última aplicação da IA'); const usageEl = h('span', { class: 'sm mut' });
     const FILE_RE = /^\s*(?:<!--|\/\/|\/\*|#)\s*FILE:\s*([^\s>*]+)\s*(?:-->|\*\/)?\s*\n/;
-    function parseBlocks(text) { const re = /```(\w*)\n([\s\S]*?)```/g; const out = []; let last = 0, m; while ((m = re.exec(text))) { out.push({ type: 'text', s: text.slice(last, m.index) }); const fm = m[2].match(FILE_RE); out.push({ type: 'code', s: m[2], file: fm ? fm[1] : null, body: fm ? m[2].replace(FILE_RE, '') : m[2] }); last = re.lastIndex; } out.push({ type: 'text', s: text.slice(last) }); return out; }
+    // o marcador FILE pode vir na 1ª linha do bloco ou (alguns modelos fazem assim) na linha logo antes do bloco
+    const PRE_FILE_RE = /(?:^|\n)\s*(?:<!--|\/\/|\/\*|#)?\s*\**FILE:\s*`?([^\s>*`]+)`?\s*\**\s*(?:-->|\*\/)?\s*$/;
+    function parseBlocks(text) { const re = /```(\w*)\n([\s\S]*?)```/g; const out = []; let last = 0, m; while ((m = re.exec(text))) {
+      let before = text.slice(last, m.index); const fm = m[2].match(FILE_RE); let file = fm ? fm[1] : null;
+      if (!file) { const pm = before.match(PRE_FILE_RE); if (pm) { file = pm[1]; before = before.slice(0, pm.index); } }
+      out.push({ type: 'text', s: before }); out.push({ type: 'code', s: m[2], file, body: fm ? m[2].replace(FILE_RE, '') : m[2] }); last = re.lastIndex; } out.push({ type: 'text', s: text.slice(last) }); return out; }
     function renderReply(text) {
       const blocks = parseBlocks(text); const frag = h('div'); const edits = blocks.filter((b) => b.file);
       for (const b of blocks) { if (b.type === 'text') b.s.trim() && frag.append(h('div', b.s.trim())); else frag.append(h('pre', { class: 'code' }, b.s)); }

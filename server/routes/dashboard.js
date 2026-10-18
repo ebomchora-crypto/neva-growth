@@ -65,9 +65,9 @@ r.get('/', async (req, res) => {
   });
 });
 
-// Resumo do período escrito por IA a partir dos números reais (exige ANTHROPIC_API_KEY)
+// Resumo do período escrito por IA a partir dos números reais (exige RIVER_API_KEY)
 r.post('/summary', async (req, res) => {
-  if (!ai.configured()) throw new (require('../lib/http').HttpError)(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
+  if (!ai.configured()) throw new (require('../lib/http').HttpError)(503, ai.NOT_CONFIGURED, 'ai_not_configured');
   await S.checkAiQuota(req.user, 'summary');
   const m = await metrics(req.body?.period, req.user.ws);
   const top = await all(`SELECT s.description, s.amount, s.amount-s.cost AS profit FROM sales s WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY profit DESC LIMIT 5`, req.user.ws, m.range.start, m.range.end);

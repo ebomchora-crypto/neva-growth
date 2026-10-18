@@ -6,7 +6,7 @@ const ai = require('../lib/ai');
 
 const r = express.Router();
 r.get('/status', async (_req, res) => res.json({
-  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODELS.find((m) => m.id === ai.DEFAULT_ID()).name : null, models: ai.publicModels(), defaultModel: ai.DEFAULT_ID(), envVar: 'ANTHROPIC_API_KEY' },
+  ai: { configured: ai.configured(), model: ai.configured() ? ai.MODELS.find((m) => m.id === ai.DEFAULT_ID()).name : null, models: ai.publicModels(), defaultModel: ai.DEFAULT_ID(), envVar: 'RIVER_API_KEY' },
   places: { configured: Boolean(process.env.GOOGLE_PLACES_API_KEY), envVar: 'GOOGLE_PLACES_API_KEY' }
 }));
 
@@ -22,7 +22,7 @@ r.post('/ai/chat', async (req, res) => {
   const { projectId, activePath } = req.body || {};
   const message = String(req.body?.message || '').trim();
   if (!message) throw bad('Mensagem vazia.'); if (message.length > 20000) throw bad('Mensagem muito longa.');
-  if (!ai.configured()) throw new HttpError(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
+  if (!ai.configured()) throw new HttpError(503, ai.NOT_CONFIGURED, 'ai_not_configured');
   const pid = await canAccess(projectId, req);
   await S.checkAiQuota(req.user, 'chat');
   const hist = (await all('SELECT role, content FROM ai_conversations WHERE project_id=? AND user_id=? ORDER BY id DESC LIMIT 16', pid, req.user.id)).reverse();
@@ -34,7 +34,7 @@ r.post('/ai/chat', async (req, res) => {
   const reply = await ai.complete({
     model, maxTokens: ai.EFFORTS[effort].maxTokens,
     system: 'Você é o assistente de programação da IDE Neva Growth. Responda em português do Brasil, de forma objetiva. ' +
-      'Ao criar ou modificar arquivos, devolva cada arquivo COMPLETO em um bloco de código cuja primeira linha é um comentário no formato "FILE: caminho/do/arquivo.ext" (ex.: <!-- FILE: index.html --> ou // FILE: main.js). ' +
+      'Ao criar ou modificar arquivos, devolva cada arquivo COMPLETO em um bloco de código cuja PRIMEIRA LINHA DENTRO DO BLOCO é um comentário no formato "FILE: caminho/do/arquivo.ext" (ex.: ```html\n<!-- FILE: index.html -->\n... ou ```js\n// FILE: main.js\n...). ' +
       'Nunca proponha excluir arquivos. Os projetos são estáticos (HTML/CSS/JS, sem build nem servidor).' + ai.EFFORTS[effort].extra + ' ' +
       `Arquivo ativo: ${activePath || 'nenhum'}.\nEstrutura: ${tree || '(vazio)'}\nConteúdo:${ctx || ' (nenhum)'}`,
     messages: [...hist.map((m) => ({ role: m.role, content: m.content })), { role: 'user', content: message }]

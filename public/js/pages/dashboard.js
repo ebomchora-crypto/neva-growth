@@ -63,7 +63,7 @@ export default {
               h('div', { class: 'top' },
                 h('div', h('div', { class: 'ptitle' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, h('span', { class: 'big' }, money(m.profit)), delta(m.profitVariation))),
                 h('div', { class: 'row' },
-                  h('button', { class: 'aibtn', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina ANTHROPIC_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, h('i', icon('trend')), aiOn ? 'Gerar resumo do período' : 'Resumo por IA indisponível'),
+                  h('button', { class: 'aibtn', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina RIVER_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, h('i', icon('trend')), aiOn ? 'Gerar resumo do período' : 'Resumo por IA indisponível'),
                   h('div', { id: 'periodbar' }))),
               summaryBox,
               lineChart(m.series, W * 0.66 - 60),

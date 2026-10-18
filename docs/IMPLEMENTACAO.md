@@ -154,3 +154,8 @@ Casca única `.setshell`: cabeçalho com "Configurações." e monograma NG/, bot
 
 ### Dashboard v3 (igual à referência)
 Topo com pílula **AO VIVO** (atualização a cada 30 s; o horário fica no tooltip) e @usuário no perfil. "Lucro no período" com título, valor e variação à esquerda e "Gerar resumo do período" + períodos à direita na mesma linha; gráfico com eixo de valores à direita, meses embaixo e faixa por mês (mês atual destacado). "Sua próxima venda começa agora." com botão + (CRM) e "Registrar cliente". "Lucro por período" em barras com o valor em cima de cada mês. "Minha carteira" com cartões empilhados, Cliente/Venda e vendas recentes. Saíram os quatro cartões de baixo (funil, tarefas, atividade, resumo), que a referência não tem — esses dados seguem em CRM e Tarefas. Os dois botões quadrados (alerta e cupom) da referência não foram copiados: não há função equivalente.
+
+## IA via River (ativa)
+`server/lib/ai.js` usa a **River** (endpoint compatível com OpenAI: `POST https://api.river.ai/v1/chat/completions`, `Authorization: Bearer RIVER_API_KEY`) sempre que `RIVER_API_KEY` existe; o modelo vem de `RIVER_MODEL` (padrão `deepseek-ai/DeepSeek-V4.1-Flash`). Neva 1.0 / 1.2 / 1.5 apontam todos para esse modelo e mudam temperatura e limite de tokens (esforço). Retentativas em 429/5xx; resposta vazia ou cortada vira erro claro. Anthropic fica como alternativa legada (só sem `RIVER_API_KEY`).
+Funções cobertas: Builder com IA (gerar site e otimizar pedido), assistente da IDE, gerador de prompts e resumo do período no Dashboard. A IDE aceita o marcador `FILE:` dentro do bloco de código ou na linha logo antes (o DeepSeek costuma colocá-lo antes).
+A chave fica só nas variáveis de ambiente da Vercel (tipo sensível), nunca no código.

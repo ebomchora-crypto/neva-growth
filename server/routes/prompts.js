@@ -17,7 +17,7 @@ r.post('/generate', async (req, res) => {
   const input = String(req.body?.input || '').trim();
   if (input.length < 10) throw bad('Escreva ao menos 10 caracteres.');
   if (input.length > 8000) throw bad('Texto muito longo (máx. 8000 caracteres).');
-  if (!ai.configured()) throw new HttpError(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
+  if (!ai.configured()) throw new HttpError(503, ai.NOT_CONFIGURED, 'ai_not_configured');
   await S.checkAiQuota(req.user, 'prompt');
   const output = await ai.complete({ system: SYSTEM(mode === 'improve' ? 'improve' : 'idea', format), maxTokens: 2500, messages: [{ role: 'user', content: input }] });
   await S.recordAiUse(req.user, 'prompt');

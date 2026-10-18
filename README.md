@@ -19,7 +19,7 @@ npm start              # http://localhost:3000
 No primeiro acesso a tela pede para criar o **administrador** (não existe usuário/senha padrão). Depois o cadastro
 público fecha; novos usuários são criados em *Administração → Usuários*.
 
-Variáveis: `DATABASE_URL`, `SETUP_TOKEN`, `PORT`, `DATA_DIR`, `ANTHROPIC_API_KEY`, `NEVA_AI_MODEL`, `GOOGLE_PLACES_API_KEY`, `PREVIEW_SECRET`.
+Variáveis: `DATABASE_URL`, `SETUP_TOKEN`, `PORT`, `DATA_DIR`, `RIVER_API_KEY`, `RIVER_MODEL` (padrão `deepseek-ai/DeepSeek-V4.1-Flash`), `RIVER_BASE_URL` (opcional), `ANTHROPIC_API_KEY`/`NEVA_AI_MODEL` (legado), `GOOGLE_PLACES_API_KEY`, `PREVIEW_SECRET`.
 
 **Produção na Vercel + Supabase:** veja `docs/DEPLOY_VERCEL.md`.
 

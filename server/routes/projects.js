@@ -104,7 +104,7 @@ r.post('/', async (req, res) => {
   res.status(201).json(await get('SELECT * FROM projects WHERE id=?', proj.id));
 });
 
-// Geração com IA (requer ANTHROPIC_API_KEY)
+// Geração com IA (requer RIVER_API_KEY)
 r.post('/generate-ai', async (req, res) => {
   const b = req.body || {};
   const brief = String(b.brief || '').trim();
@@ -140,7 +140,7 @@ r.post('/generate-ai', async (req, res) => {
 r.post('/optimize-prompt', async (req, res) => {
   const brief = String(req.body?.brief || '').trim();
   if (brief.length < 10) throw bad('Descreva o site (mínimo 10 caracteres).');
-  if (!ai.configured()) throw new HttpError(503, 'IA não configurada. Defina ANTHROPIC_API_KEY no servidor.', 'ai_not_configured');
+  if (!ai.configured()) throw new HttpError(503, ai.NOT_CONFIGURED, 'ai_not_configured');
   await S.checkAiQuota(req.user, 'optimize');
   const out = await ai.complete({ maxTokens: 1200, system: 'Reescreva o pedido do usuário como um briefing claro para gerar um site: objetivo, público, seções, tom, chamadas para ação e requisitos. Português do Brasil. Não invente dados da empresa; use [COLCHETES] onde faltar informação. Responda só com o briefing.', messages: [{ role: 'user', content: brief.slice(0, 4000) }] });
   await S.recordAiUse(req.user, 'optimize');

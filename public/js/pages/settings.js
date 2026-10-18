@@ -140,7 +140,7 @@ export default {
       },
       async integracoes() {
         const row = (name, desc, s) => h('div', { class: 'switch' }, h('span', h('b', name), h('div', { class: 'sm mut' }, desc), !s.configured && h('div', { class: 'sm' }, 'Defina ', h('code', s.envVar), ' no servidor e reinicie.')), h('span', { class: 'badge ' + (s.configured ? 'ok' : 'warn') }, s.configured ? 'conectado' : 'não configurado'));
-        return card(7, 'Integrações', row('Anthropic (IA)', `Assistente da IDE, Builder, resumos e prompts.${integ.ai.model ? ' Modelo: ' + integ.ai.model + '.' : ''}`, integ.ai), row('Google Places', 'Busca de empresas na Prospecção.', integ.places),
+        return card(7, 'Integrações', row('River (IA)', `Assistente da IDE, Builder, resumos e prompts.${integ.ai.model ? ' Modelo: ' + integ.ai.model + '.' : ''}`, integ.ai), row('Google Places', 'Busca de empresas na Prospecção.', integ.places),
           h('p', { class: 'sm mut' }, 'Chaves ficam apenas no servidor (variáveis de ambiente) e nunca são enviadas ao navegador.'));
       },
       async dados() { return card(8, 'Dados', h('p', 'Exporte uma cópia dos dados do workspace (JSON, sem senhas).'), isAdmin ? h('div', h('button', { class: 'btn', onclick: async () => { try { const r = await fetch('/api/me/export', { credentials: 'same-origin', headers: { 'x-requested-with': 'neva' } }); if (!r.ok) throw new Error((await r.json()).error); downloadFile('neva-export.json', await r.blob()); } catch (e) { fail(e); } } }, 'Exportar dados (JSON)')) : h('div', { class: 'notice info' }, 'Somente administradores podem exportar os dados.'),
