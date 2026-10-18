@@ -1,5 +1,6 @@
 import { api } from './api.js';
 import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
+import { drapeBg } from './drape-bg.js';
 import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill } from './motion.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
@@ -65,8 +66,11 @@ function pwStrength(v) {
   return v ? Math.max(1, n) : 0;
 }
 
+let drapeOff = null;
+const dropDrape = () => { drapeOff?.(); drapeOff = null; };
+
 function authScreen(mode, st = {}, swapped = false) {
-  kill();
+  kill(); dropDrape();
   snow(true);
   const setup = mode === 'setup', signup = mode === 'signup', forgot = mode === 'forgot';
   const go = (m) => (e) => { e.preventDefault(); authScreen(m, st, true); };
@@ -112,7 +116,7 @@ function authScreen(mode, st = {}, swapped = false) {
     h('div', { class: 'aart-in' }, h('div', { class: 'akick' }, 'NEVA GROWTH / OPERATING SYSTEM'), h('h2', rev ? 'Comece sua ' : forgot ? 'Acesso ' : 'Bem-vindo ', h('em', rev ? 'operação.' : forgot ? 'seguro.' : 'de volta.')),
       h('p', rev ? 'Clientes, projetos e resultados organizados desde o primeiro acesso.' : forgot ? 'Recupere sua conta sem perder nada do que já está na plataforma.' : 'Sua central continua exatamente do ponto em que você parou.'), h('div', { class: 'asafe' }, h('i'), 'AMBIENTE PROTEGIDO'), mascotImg('boas-vindas', true)));
   const main = h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right);
-  mount(root, main); authIn(main, swapped);
+  mount(root, main); drapeOff = drapeBg(main, { instant: swapped }); authIn(main, swapped);
   main.querySelector('input:not([type=checkbox])')?.focus({ preventScroll: true });
 }
 
@@ -174,7 +178,7 @@ async function pollNotifications() {
 }
 
 function shell() {
-  snow(false);
+  snow(false); dropDrape();
   const side = h('aside', { class: 'side', id: 'side' });
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };

@@ -119,3 +119,6 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 
 ### Animações das telas de acesso
 `authIn()` / `shake()` em `public/js/motion.js`: entrada dos dois painéis, títulos palavra a palavra, campos em cascata, partículas flutuantes, brilho no botão, paralaxe das ondas com o mouse e troca suave entre login/cadastro/recuperação. Respeitam "reduzir movimento"; o mascote continua fixo.
+
+### Fundo de cortina (login / cadastro / recuperação)
+`public/js/drape-bg.js`: porte em JS puro do "Drape Background" (KokonutUI, MIT) — tecido simulado (Verlet) renderizado em WebGL atrás dos painéis, com vento, empurrão do cursor e arrastar o tecido com o mouse. Cores no gelo da Neva. Fica estático com "reduzir movimento", toggle de movimento desligado ou navegador automatizado; sem WebGL o fundo CSS continua. Os painéis viraram vidro translúcido para a cortina aparecer.
