@@ -59,13 +59,7 @@ async function boot() {
 // então o envio não cria conta nem manda e-mail — ele informa isso com clareza.
 const authPending = (what) => { throw new Error(`${what} ainda não está ativo: esta tela é só a interface, o backend entra na próxima etapa.`); };
 
-function pwStrength(v) {
-  let n = 0;
-  if (v.length >= 8) n++; if (/[a-z]/.test(v) && /[A-Z]/.test(v)) n++; if (/\d/.test(v)) n++; if (/[^A-Za-z0-9]/.test(v)) n++;
-  if (/^(12345678|password|senha123|qwertyui|11111111)/i.test(v)) n = Math.min(n, 1);
-  return v ? Math.max(1, n) : 0;
-}
-
+const AUTH_MODES = [['login', 'Entrar'], ['signup', 'Criar conta'], ['forgot', 'Recuperar acesso']];
 let drapeOff = null;
 const dropDrape = () => { drapeOff?.(); drapeOff = null; };
 
@@ -73,15 +67,17 @@ function authScreen(mode, st = {}, swapped = false) {
   kill(); dropDrape();
   snow(true);
   const setup = mode === 'setup', signup = mode === 'signup', forgot = mode === 'forgot';
-  const go = (m) => (e) => { e.preventDefault(); authScreen(m, st, true); };
+  const go = (m) => (e) => { e?.preventDefault(); authScreen(m, st, true); };
   const err = h('p', { class: 'err-text', role: 'alert' });
-  const ok = h('p', { class: 'notice', role: 'status', hidden: true });
-  const fld = (label, name, type, ic, attrs, eyeBtn) => { const inp = h('input', { name, type, ...attrs }); return h('label', { class: 'field' }, h('span', label), h('span', { class: 'fwrap' }, h('i', { class: 'fico' }, icon(ic)), inp, eyeBtn && h('button', { type: 'button', class: 'pweye', 'aria-label': 'Mostrar ou ocultar a senha', onclick: () => { inp.type = inp.type === 'password' ? 'text' : 'password'; } }, icon('eye')))); };
-  const meter = h('div', { class: 'pwmeter', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'));
-  const pwField = fld(signup ? 'Senha' : 'Senha' + (setup ? ' (mín. 8 caracteres)' : ''), 'password', 'password', 'lock', { required: true, minlength: setup || signup ? 8 : null, autocomplete: setup || signup ? 'new-password' : 'current-password', placeholder: '••••••••', oninput: signup ? (e) => { meter.dataset.s = pwStrength(e.target.value); } : null }, true);
-  const submitLabel = setup ? 'Criar conta de administrador' : signup ? 'Criar minha conta' : forgot ? 'Enviar link de recuperação' : 'Entrar na plataforma';
+  let idx = 0;
+  const fld = (label, name, type, ic, attrs, eyeBtn) => {
+    const inp = h('input', { name, type, ...attrs });
+    return h('label', { class: 'field' }, h('span', { class: 'flabel' }, h('span', label), h('b', { class: 'fidx' }, String(++idx).padStart(2, '0'))),
+      h('span', { class: 'fwrap' + (ic ? '' : ' noico') }, ic && h('i', { class: 'fico' }, icon(ic)), inp, eyeBtn && h('button', { type: 'button', class: 'pweye', 'aria-label': 'Mostrar ou ocultar a senha', onclick: () => { inp.type = inp.type === 'password' ? 'text' : 'password'; } }, icon('eye'))));
+  };
+  const submitLabel = setup ? 'Criar conta de administrador' : signup ? 'Criar minha conta' : forgot ? 'Enviar link de recuperação' : 'Entrar na dashboard';
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
-    e.preventDefault(); err.textContent = ''; ok.hidden = true;
+    e.preventDefault(); err.textContent = '';
     const d = Object.fromEntries(new FormData(form));
     const btn = form.querySelector('button.loginbtn'); btn.disabled = true;
     try {
@@ -91,31 +87,35 @@ function authScreen(mode, st = {}, swapped = false) {
     } catch (ex) { err.textContent = ex.message; shake(form); } finally { btn.disabled = false; }
   } },
     setup && st.setupBlocked && h('div', { class: 'notice' }, 'Instalação bloqueada: defina SETUP_TOKEN nas variáveis de ambiente do servidor e faça um novo deploy.'),
-    (setup || signup) && fld('Nome', 'name', 'text', 'user', { required: true, autocomplete: 'name', placeholder: 'Seu nome' }),
-    signup && fld('Nome de usuário', 'username', 'text', 'user', { required: true, autocomplete: 'username', placeholder: 'seu.usuario', pattern: '[a-zA-Z0-9._\\-]{3,30}', title: '3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado' }),
+    setup && fld('Nome', 'name', 'text', 'user', { required: true, autocomplete: 'name', placeholder: 'Seu nome' }),
+    signup && h('div', { class: 'frow2' },
+      fld('Nome', 'name', 'text', 'user', { required: true, autocomplete: 'name', placeholder: 'Seu nome' }),
+      fld('Nome de usuário', 'username', 'text', null, { required: true, autocomplete: 'username', placeholder: 'seu.usuario', pattern: '[a-zA-Z0-9._\\-]{3,30}', title: '3 a 30 caracteres: letras, números, ponto, hífen ou sublinhado' })),
     fld('E-mail', 'email', 'email', 'mail', { required: true, autocomplete: forgot || signup ? 'email' : 'username', placeholder: 'voce@empresa.com' }),
-    !forgot && pwField,
-    signup && h('div', { class: 'pwhint' }, meter, h('small', 'Use 8 caracteres ou mais. Combine letras, números e símbolos e evite senhas comuns.')),
+    !forgot && fld('Senha' + (setup ? ' (mín. 8 caracteres)' : ''), 'password', 'password', 'lock', { required: true, minlength: setup || signup ? 8 : null, autocomplete: setup || signup ? 'new-password' : 'current-password', placeholder: '••••••••' }, true),
+    signup && h('p', { class: 'pwhint' }, 'Use 8 caracteres ou mais. Combine letras, números e símbolos e evite senhas comuns.'),
     setup && st.setupTokenRequired && fld('Token de instalação (SETUP_TOKEN)', 'setupToken', 'password', 'shield', { required: true, autocomplete: 'off' }),
     mode === 'login' && h('div', { class: 'loginopts' },
-      h('label', { class: 'chk' }, h('input', { type: 'checkbox', name: 'remember', checked: true }), h('span', 'Salvar sessão')),
+      h('label', { class: 'chk' }, h('input', { type: 'checkbox', name: 'remember' }), h('span', 'Salvar sessão')),
       h('a', { href: '#', onclick: go('forgot') }, 'Esqueci a senha')),
-    forgot && h('p', { class: 'mut sm', style: 'margin:0' }, 'Informe o e-mail da conta. Quando o envio estiver ativo, você receberá um link para criar uma nova senha.'),
-    err, ok, h('button', { class: 'btn loginbtn', disabled: setup && st.setupBlocked }, h('span', submitLabel), h('i', icon('arrow'))));
-  const foot = signup ? h('div', { class: 'afoot' }, 'Já faz parte? ', h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
-    : forgot ? h('div', { class: 'afoot' }, 'Lembrou a senha? ', h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
-    : setup ? h('div', { class: 'afoot' }, 'Depois de criar, convide a equipe em Usuários.')
-    : h('div', { class: 'afoot' }, 'Ainda não é Neva? ', h('a', { href: '#', onclick: go('signup') }, 'Criar minha conta'));
-  const alabel = setup || signup ? ' COMECE SUA OPERAÇÃO' : forgot ? ' RECUPERAR ACESSO' : ' ACESSE SUA CONTA';
-  const title = setup ? ['Crie seu ', 'acesso.'] : signup ? ['Crie sua ', 'conta.'] : forgot ? ['Esqueceu a ', 'senha?'] : ['Entre na ', 'plataforma.'];
-  const sub = setup ? 'Primeiro acesso: configure a conta do administrador para começar com uma operação organizada.' : signup ? 'Cadastre-se para organizar clientes, vendas e projetos em um só lugar.' : forgot ? 'Vamos ajudar você a voltar para a sua central.' : 'Use suas credenciais para abrir a sua central Neva Growth.';
-  const left = h('section', { class: 'auth-form' }, h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), alabel),
-    h('h1', title[0], h('em', title[1])), h('p', { class: 'asub' }, sub), form, foot);
+    forgot && h('p', { class: 'pwhint' }, 'Informe o e-mail da conta. Quando o envio estiver ativo, você receberá um link para criar uma nova senha.'),
+    err, h('button', { class: 'btn loginbtn', disabled: setup && st.setupBlocked }, h('span', submitLabel), h('i', icon('arrow'))));
+  const foot = signup ? h('div', { class: 'afoot' }, h('span', 'Já faz parte?'), h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
+    : forgot ? h('div', { class: 'afoot' }, h('span', 'Lembrou a senha?'), h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
+    : setup ? h('div', { class: 'afoot' }, h('span', 'Depois de criar, convide a equipe em Usuários.'))
+    : h('div', { class: 'afoot' }, h('span', 'Ainda não é Neva?'), h('a', { href: '#', onclick: go('signup') }, 'Criar minha conta'));
   const rev = setup || signup;
+  const alabel = rev ? 'COMECE SUA OPERAÇÃO' : forgot ? 'RECUPERAR ACESSO' : 'ACESSE SUA CONTA';
+  const title = rev ? ['Crie seu ', 'acesso.'] : forgot ? ['Esqueceu a ', 'senha?'] : ['Entre na ', 'plataforma.'];
+  const sub = setup ? 'Primeiro acesso: configure a conta do administrador para começar com uma operação organizada.' : signup ? 'Configure sua identidade e comece com uma operação organizada.' : forgot ? 'Vamos ajudar você a voltar para a sua central.' : 'Use suas credenciais para abrir a sua central Neva Growth.';
+  const left = h('section', { class: 'auth-form' }, h('div', { class: 'acard' }, h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), ' ' + alabel),
+    h('h1', title[0], h('em', title[1])), h('p', { class: 'asub' }, sub), form, foot));
   const right = h('section', { class: 'auth-art' }, h('i', { class: 'wave w1' }), h('i', { class: 'wave w2' }), h('i', { class: 'wave w3' }), h('div', { class: 'dust', 'aria-hidden': 'true' }, Array.from({ length: 14 }, (_, i) => h('i', { style: `left:${(i * 37 + 8) % 92}%;top:${(i * 53 + 10) % 88}%;--s:${4 + (i % 4) * 2}px` }))),
     h('div', { class: 'aart-in' }, h('div', { class: 'akick' }, 'NEVA GROWTH / OPERATING SYSTEM'), h('h2', rev ? 'Comece sua ' : forgot ? 'Acesso ' : 'Bem-vindo ', h('em', rev ? 'operação.' : forgot ? 'seguro.' : 'de volta.')),
-      h('p', rev ? 'Clientes, projetos e resultados organizados desde o primeiro acesso.' : forgot ? 'Recupere sua conta sem perder nada do que já está na plataforma.' : 'Sua central continua exatamente do ponto em que você parou.'), h('div', { class: 'asafe' }, h('i'), 'AMBIENTE PROTEGIDO'), mascotImg('boas-vindas', true)));
-  const main = h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right);
+      h('p', rev ? 'Clientes, projetos e resultados organizados desde o primeiro acesso.' : forgot ? 'Recupere sua conta sem perder nada do que já está na plataforma.' : 'Sua central continua exatamente do ponto em que você parou.'), h('div', { class: 'asafe' }, h('i'), 'AMBIENTE PROTEGIDO')));
+  const cur = setup ? 'signup' : mode;
+  const pinch = h('nav', { class: 'apinch', 'aria-label': 'Telas de acesso' }, AUTH_MODES.map(([m, l]) => h('button', { type: 'button', class: m === cur ? 'on' : '', 'aria-label': l, 'aria-current': m === cur ? 'page' : null, disabled: setup, onclick: go(m) })));
+  const main = h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right, pinch);
   mount(root, main); drapeOff = drapeBg(main, { instant: swapped }); authIn(main, swapped);
   main.querySelector('input:not([type=checkbox])')?.focus({ preventScroll: true });
 }

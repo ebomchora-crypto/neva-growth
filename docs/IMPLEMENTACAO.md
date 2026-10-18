@@ -122,3 +122,6 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 
 ### Fundo de cortina (login / cadastro / recuperação)
 `public/js/drape-bg.js`: porte em JS puro do "Drape Background" (KokonutUI, MIT) — tecido simulado (Verlet) renderizado em WebGL atrás dos painéis, com vento, empurrão do cursor e arrastar o tecido com o mouse. Cores no gelo da Neva. Fica estático com "reduzir movimento", toggle de movimento desligado ou navegador automatizado; sem WebGL o fundo CSS continua. Os painéis viraram vidro translúcido para a cortina aparecer.
+
+### Telas de acesso v3 (igual à referência)
+Painel grande + cartão interno com faixa de acento, rótulos com índice (01–04), Nome e Nome de usuário lado a lado, rodapé com texto à esquerda e link à direita, entalhe central com três pontos que navegam entre Entrar / Criar conta / Recuperar acesso. Sem mascote no painel de arte. Sem o widget Cloudflare da referência (não há verificação real por trás). Os títulos animados preservam o destaque em cor (`wordsOf` percorre os nós).

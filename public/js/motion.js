@@ -155,7 +155,22 @@ export function shellIn() {
 }
 
 // ---------- telas de acesso (login / cadastro / recuperação)
-const wordsOf = (el) => { const t = el.textContent; el.textContent = ''; return t.split(/(\s+)/).map((w) => { if (/^\s+$/.test(w)) { el.append(w); return null; } const o = document.createElement('span'); o.className = 'aw'; const i = document.createElement('span'); i.textContent = w; o.append(i); el.append(o); return i; }).filter(Boolean); };
+const wordsOf = (el) => {
+  const out = [];
+  const walk = (node) => [...node.childNodes].forEach((n) => {
+    if (n.nodeType === 1) return walk(n);
+    if (n.nodeType !== 3) return;
+    const frag = document.createDocumentFragment();
+    n.textContent.split(/(\s+)/).forEach((w) => {
+      if (!w) return;
+      if (/^\s+$/.test(w)) return frag.append(w);
+      const o = document.createElement('span'), i = document.createElement('span');
+      o.className = 'aw'; i.textContent = w; o.append(i); frag.append(o); out.push(i);
+    });
+    n.replaceWith(frag);
+  });
+  walk(el); return out;
+};
 export function authIn(main, swapped) {
   if (!motionEnabled() || !main) return;
   const form = main.querySelector('.auth-form'), art = main.querySelector('.auth-art'), rev = main.classList.contains('rev');

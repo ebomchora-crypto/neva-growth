@@ -845,3 +845,40 @@ body{background:#e6f0fa}
 .auth2{padding:clamp(12px,2.4vw,34px);gap:clamp(12px,2.4vw,34px)}
 .auth-form{background:rgba(255,255,255,.52);backdrop-filter:blur(14px) saturate(1.3)}
 .auth-art{background:linear-gradient(135deg,rgba(42,111,174,.8),rgba(23,63,102,.88) 70%)}
+
+/* auth v3: estrutura igual à referência (painel grande + cartão interno, entalhe com pontos) */
+.auth2{height:100vh;padding:10px;gap:12px;grid-template-columns:1fr 1fr}
+.auth-form,.auth-art{border-radius:clamp(26px,3.4vw,44px)}
+.auth-form{padding:clamp(14px,3vh,40px) clamp(14px,3vw,48px);align-items:center;justify-content:center;gap:0;overflow-y:auto;background:rgba(255,255,255,.5);backdrop-filter:blur(16px) saturate(1.3);border:1px solid rgba(255,255,255,.7);box-shadow:0 20px 60px rgba(26,74,118,.14),inset 0 0 0 1px rgba(47,123,189,.1)}
+.auth-form::before{display:none}
+.auth-form>.brand,.auth-form>:last-child{margin:0}
+.acard{position:relative;width:min(100%,540px);margin:auto;padding:clamp(18px,3.2vh,34px) clamp(18px,2.6vw,32px) clamp(14px,2.2vh,24px);border-radius:26px;background:rgba(255,255,255,.78);border:1px solid rgba(47,123,189,.18);box-shadow:0 18px 44px rgba(26,74,118,.12);display:flex;flex-direction:column;gap:clamp(4px,.9vh,8px);overflow:hidden}
+.acard::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:linear-gradient(180deg,var(--ice-300),var(--ice-600))}
+.acard .brand{padding:0 0 clamp(6px,1.6vh,16px)}
+.alabel{font-family:ui-monospace,'SFMono-Regular',Menlo,monospace;font-size:.58rem;letter-spacing:.2em}
+.acard h1{font-size:clamp(1.8rem,5.2vh,2.7rem);letter-spacing:-.045em;line-height:.98}
+.asub{font-size:.76rem;margin:2px 0 clamp(4px,1.2vh,12px);max-width:none}
+.acard form{max-width:none;width:100%;gap:clamp(7px,1.3vh,12px)}
+.flabel{display:flex;justify-content:space-between;align-items:center;font-size:.7rem;color:var(--ink-2,var(--mut));margin-bottom:3px}
+.fidx{font-family:ui-monospace,Menlo,monospace;font-size:.56rem;color:var(--mut);font-weight:500;letter-spacing:.06em}
+.frow2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fwrap{border-radius:14px;padding:4px;gap:4px}.fwrap.noico input{padding-left:14px}
+.fwrap .fico{width:38px;align-self:stretch;border-radius:10px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.fwrap input{padding:9px 10px;font-size:.84rem}
+.pwhint{margin:-2px 0 0;font-size:.68rem;color:var(--mut);line-height:1.4}
+.loginopts{font-size:.72rem}
+.loginbtn{height:clamp(40px,6vh,48px);font-size:.82rem}
+.acard .afoot{display:flex;justify-content:space-between;align-items:center;max-width:none;margin-top:clamp(4px,1vh,10px);padding-top:clamp(6px,1.1vh,10px);font-size:.7rem}
+.acard .afoot a{font-weight:700}
+.auth-art{border-radius:clamp(26px,3.4vw,44px)}
+.auth-art::after{inset:18px;border-radius:calc(clamp(26px,3.4vw,44px) - 14px)}
+.akick{font-family:ui-monospace,Menlo,monospace;font-size:.56rem}
+.auth-art h2{font-size:clamp(2.2rem,8vh,4.2rem);letter-spacing:-.05em}
+.asafe{margin-top:10px;font-family:ui-monospace,Menlo,monospace;font-size:.5rem}
+/* entalhe central com os pontos de navegação */
+.apinch{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:3;display:flex;align-items:center;gap:7px;height:40px;padding:0 34px;background:#e9f3fc;clip-path:polygon(0 50%,22% 18%,78% 18%,100% 50%,78% 82%,22% 82%);filter:drop-shadow(0 4px 10px rgba(26,74,118,.18))}
+.apinch button{width:8px;height:8px;border-radius:50%;border:0;padding:0;background:#b3cde6;cursor:pointer;transition:background .2s,transform .2s,width .25s}
+.apinch button:hover:not(:disabled){transform:scale(1.35)}.apinch button.on{background:var(--ice-600);width:20px;border-radius:8px}.apinch button:disabled{cursor:default}
+@media(max-width:900px){.auth2{height:auto;min-height:100vh}.auth-form{overflow:visible;padding:18px 12px}.apinch{display:none}.frow2{grid-template-columns:1fr}.acard{margin:0}}
+.acard h1 em,.auth-art h2 em{display:block}
+@media(max-width:900px){.auth2{grid-template-columns:1fr;padding:10px}.auth2.rev .auth-form{order:0}.auth-art{order:2;min-height:300px}.acard h1{font-size:2.2rem}.acard h1 em{display:inline}}
