@@ -136,3 +136,5 @@ Painel grande + cartão interno com faixa de acento, rótulos com índice (01–
 
 ### Moldura dentro de moldura
 Cards, modais e paleta têm borda externa + filete interno recuado (`inset box-shadow`); o hero ganhou uma moldura interna (`.hero::after`), igual à dos painéis de acesso. Variável `--frame-in` controla o recuo. Pôsteres do Play usam um filete próprio (`.pcard::after`) por cima da imagem; cards de site usam o filete padrão.
+
+Acesso: moldura em volta da tela inteira (`.auth2::after`), com os dois painéis dentro, além do filete interno de cada painel.

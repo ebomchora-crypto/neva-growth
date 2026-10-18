@@ -897,3 +897,8 @@ body{background:#e6f0fa}
 .pcard{--frame-in:0px;position:relative}
 .pcard::after{content:"";position:absolute;inset:7px;border-radius:calc(var(--radius) - 3px);border:1px solid rgba(255,255,255,.55);box-shadow:0 0 0 1px rgba(47,123,189,.12);pointer-events:none;z-index:3}
 .pcard .poster{border-radius:var(--radius) var(--radius) 0 0}
+
+/* acesso: moldura em volta da tela inteira (os dois painéis ficam dentro dela) */
+.auth2{padding:clamp(20px,2.6vw,36px);gap:clamp(12px,1.6vw,20px)}
+.auth2::after{content:"";position:absolute;inset:clamp(7px,.9vw,12px);border-radius:clamp(30px,4.2vw,56px);border:1px solid rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(47,123,189,.2),inset 0 0 0 1px rgba(47,123,189,.1),0 0 40px rgba(127,180,224,.25);pointer-events:none;z-index:2}
+@media(max-width:900px){.auth2{padding:16px 14px}.auth2::after{inset:6px;border-radius:30px;position:fixed}}
