@@ -36,9 +36,9 @@ await step(REDUCED ? 'animações: desligadas com reduzir movimento' : 'animaç�
   await page.check('input[aria-label="Animações"]'); await page.waitForFunction(() => document.documentElement.classList.contains('motion') && !!document.querySelector('.bgfx')); await nav('dashboard');
 });
 await step('dashboard: períodos e estado vazio honesto', async () => {
-  await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('text=Nenhuma venda paga neste período');
+  await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('.periodbar .pill.on:has-text("7 dias")'); await page.waitForSelector('.lm span:has-text("/")');
   await page.click('.pill:has-text("1 ano")'); await page.waitForSelector('svg.chart');
-  await page.waitForSelector('button:has-text("Resumo por IA (não configurado)")[disabled]');
+  await page.waitForSelector('button.aibtn[disabled]');
 });
 await step('menu lateral na ordem de referência', async () => {
   const order = await page.$$eval('.side a[data-path]', (as) => as.filter((a) => a.offsetParent !== null).map((a) => a.dataset.path));

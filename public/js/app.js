@@ -181,7 +181,7 @@ async function openNotifications(btn, badge) {
 let pollTimer = null;
 async function pollNotifications() {
   const badge = document.getElementById('notif-badge'); if (!badge || !state.user) return;
-  try { const r = await api.get('/me/notifications'); pushNew(r.items); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.lastChild.textContent = 'Sincronizado ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
+  try { const r = await api.get('/me/notifications'); pushNew(r.items); badge.textContent = r.unread > 99 ? '99+' : r.unread; badge.classList.toggle('hide', !r.unread); state.syncAt = new Date(); const s = document.getElementById('syncinfo'); if (s) s.title = 'Atualizado às ' + state.syncAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }); } catch { /* offline: mantém */ }
 }
 
 function shell() {
@@ -205,11 +205,11 @@ function shell() {
   const top = h('div', { class: 'topbar2' },
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
     h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
-    h('span', { class: 'grow' }), h('span', { class: 'livepill', id: 'syncinfo', title: 'Os dados são atualizados a cada 30 s e ao abrir cada página; não há tempo real contínuo.' }, h('i'), h('span', 'Sincronizado')), eye,
+    h('span', { class: 'grow' }), h('span', { class: 'livepill', id: 'syncinfo', title: 'Os dados são atualizados a cada 30 s e ao abrir cada página.' }, h('i'), h('span', 'AO VIVO')), eye,
     h('button', { class: 'iconbtn', title: 'Atualizar a página atual', 'aria-label': 'Atualizar dados', onclick: () => route() }, icon('refresh')),
     h('div', { style: 'position:relative' }, bell),
     h('a', { class: 'userpill', href: '#/configuracoes', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),
-      h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', `${roleName} · ${state.me?.plan?.name || ''}`))));
+      h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', state.me?.user?.username ? '@' + state.me.user.username : `${roleName} · ${state.me?.plan?.name || ''}`)), h('i', { class: 'uchev' }, icon('chevron'))));
   mount(root, h('div', { class: 'shell' }, side, scrim, h('div', { class: 'main' }, top, view)));
     clearInterval(pollTimer); pollNotifications(); pollTimer = setInterval(pollNotifications, 30000);
   shellIn(); route();

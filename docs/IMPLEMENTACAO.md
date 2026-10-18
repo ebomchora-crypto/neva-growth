@@ -151,3 +151,6 @@ Casca única `.setshell`: cabeçalho com "Configurações." e monograma NG/, bot
 - **Meu plano:** cartão do plano + uso do mês + link para Associação (sem "Cancelar plano": não há cobrança).
 - **Pagamentos e Suporte:** telas "Em breve" (sem botões).
 - Interruptores arredondados em todas as linhas `.switch`.
+
+### Dashboard v3 (igual à referência)
+Topo com pílula **AO VIVO** (atualização a cada 30 s; o horário fica no tooltip) e @usuário no perfil. "Lucro no período" com título, valor e variação à esquerda e "Gerar resumo do período" + períodos à direita na mesma linha; gráfico com eixo de valores à direita, meses embaixo e faixa por mês (mês atual destacado). "Sua próxima venda começa agora." com botão + (CRM) e "Registrar cliente". "Lucro por período" em barras com o valor em cima de cada mês. "Minha carteira" com cartões empilhados, Cliente/Venda e vendas recentes. Saíram os quatro cartões de baixo (funil, tarefas, atividade, resumo), que a referência não tem — esses dados seguem em CRM e Tarefas. Os dois botões quadrados (alerta e cupom) da referência não foram copiados: não há função equivalente.
