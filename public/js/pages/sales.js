@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, hero, pills, statCard, money, toast, fail, icon, confirmBox, mascotImg } from '../ui.js';
+import { h, mount, hero, pills, statCard, money, toast, fail, icon, confirmBox } from '../ui.js';
 import { formSheet, money as brlf } from '../form-sheet.js';
 
 const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
@@ -14,8 +14,9 @@ export default {
     box.classList.add('pg-compact');
     const st = { view: 'todas', q: '', sel: null };
     let items = []; let summary = null; let clients = [];
+    const none = () => !items.length && st.view === 'todas' && !st.q;
     const statsBox = h('div', { class: 'hero-stats' });
-    const bar = h('div', { class: 'card orgbar' }); const queue = h('section', { class: 'card sv-queue' }); const panel = h('aside', { class: 'card sv-panel' });
+    const bar = h('div', { class: 'card orgbar' }); const grid = h('div', { class: 'sv-grid' }); const queue = h('section', { class: 'card sv-queue' }); const panel = h('aside', { class: 'card sv-panel' });
 
     // ---- formulário (registrar / editar)
     function sheet(rec) {
@@ -49,7 +50,9 @@ export default {
       mount(queue,
         h('header', { class: 'sv-qhead' }, h('div', h('small', { class: 'k' }, 'FILA DE PROJETOS'), h('h2', st.view === 'todas' ? 'Todas as vendas' : SVIEWS.find((v) => v[0] === st.view)[1]), h('p', 'Projetos recentes, com resultado e prazo no mesmo lugar.')),
           h('div', { class: 'sv-best' }, h('small', 'Maior lucro da carteira'), h('b', money(best)))),
-        !items.length ? h('div', { class: 'emptyart' }, mascotImg('vazio-vendas', true), h('b', st.q || st.view !== 'todas' ? 'Nenhum resultado' : 'A primeira venda abre o painel.'), st.q || st.view !== 'todas' ? 'Nada neste recorte.' : 'Registre receita, custo e prazo. A análise financeira nasce automaticamente.', canWrite && !st.q && st.view === 'todas' && h('button', { class: 'btn whitepill', style: 'margin-top:10px', onclick: () => sheet(null) }, '+ Registrar primeira venda'))
+        !items.length ? (none()
+          ? h('div', { class: 'emptyart withglyph' }, h('span', { class: 'bigglyph', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'eico' }, icon('target')), h('b', 'A primeira venda abre o painel.'), canWrite ? 'Registre receita, custo e prazo. A análise financeira nasce automaticamente.' : '', canWrite && h('button', { class: 'btn whitepill', style: 'margin-top:10px', onclick: () => sheet(null) }, '+ Registrar primeira venda'))
+          : h('div', { class: 'emptyart' }, h('span', { class: 'eico' }, icon('target')), h('b', 'Nenhum resultado'), 'Nada neste recorte.'))
           : h('div', { class: 'sv-list' }, h('div', { class: 'sv-row head' }, h('i'), h('span', 'Projeto'), h('span', 'Lucro'), h('span', 'Margem'), h('span', 'Entrega'), h('i')),
             items.map((s) => h('button', { type: 'button', class: 'sv-row' + (s.id === st.sel ? ' on' : ''), onclick: () => { st.sel = s.id; drawQueue(); drawPanel(); } },
               h('i', { class: 'sv-ico' }, icon('layers')),
@@ -90,12 +93,13 @@ export default {
       mount(statsBox, statCard('Faturamento', money(sm.faturamento), [money(sm.pendente), ' a receber']), statCard('Lucro líquido', money(sm.lucro)), statCard('Margem média', sm.margem + '%'), statCard('Ticket médio', money(sm.ticket), `${sm.pagas} paga(s)`));
       mount(bar, h('div', { class: 'lab' }, h('b', 'Organizar projetos'), h('small', 'Escolha uma visão da fila')), pills({ items: SVIEWS, value: st.view, counts: sm.counts, onChange: (v) => { st.view = v; st.sel = null; load(); } }),
         h('div', { class: 'sum' }, h('span', h('b', items.length), ' no recorte'), h('span', { class: 'chip' }, '● ', h('b', sm.atrasadas ?? 0), ' atrasadas')));
-      drawQueue(); drawPanel();
+      grid.classList.toggle('empty', none()); drawQueue(); drawPanel();
     }
 
     clients = (await api.get('/clients', { limit: 500 }).catch(() => ({ items: [] }))).items;
     mount(box, hero({ kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue.', art: 'chart', stats: statsBox,
-      actions: [canWrite && h('button', { class: 'btn', onclick: () => sheet(null) }, icon('plus'), 'Nova venda')] }), bar, h('div', { class: 'sv-grid' }, queue, panel));
+      actions: [canWrite && h('button', { class: 'btn', onclick: () => sheet(null) }, icon('plus'), 'Nova venda')] }), bar, grid);
+    grid.append(queue, panel);
     await load();
   }
 };

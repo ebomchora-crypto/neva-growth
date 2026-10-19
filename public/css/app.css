@@ -1267,3 +1267,5 @@ button.sv-row:hover{border-color:var(--ice-300);transform:translateY(-1px)}
 @media(max-width:1100px){.sv-grid{grid-template-columns:1fr}}
 @media(max-width:700px){.sv-row{grid-template-columns:40px minmax(0,1fr) auto}.sv-row>*:nth-child(n+4){display:none}.sv-row.head{display:none}}
 .fs-shown{flex-direction:row!important;justify-content:flex-start!important;align-items:center!important;gap:0!important}
+.sv-grid.empty{grid-template-columns:1fr}.sv-grid.empty .sv-panel,.sv-grid.empty .sv-qhead{display:none}
+.sv-grid.empty .sv-queue{min-height:min(52vh,460px);display:flex}.sv-grid.empty .sv-queue .emptyart{flex:1;margin:0;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
