@@ -28,7 +28,7 @@ before(async () => {
 after(() => { server.close(); fs.rmSync(dir, { recursive: true, force: true }); });
 
 test('esquema Postgres aplicado, com seed de planos, etapas e biblioteca', async () => {
-  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '6');
+  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '7');
   assert.equal((await A('GET', '/api/pipeline/stages')).body.length, 6);
   assert.deepEqual((await A('GET', '/api/me')).body.plans.map((p) => p.key), ['member', 'creator', 'elite']);
   assert.ok((await A('GET', '/api/library?kind=prompt')).body.total >= 3);

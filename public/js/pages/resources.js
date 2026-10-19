@@ -1,6 +1,7 @@
 import { crudPage } from '../crud-page.js';
 import { api } from '../api.js';
 import { h, brl, dt, fail, toast, money, statCard } from '../ui.js';
+import { formSheet, money as brlf } from '../form-sheet.js';
 
 const badge = (text, kind = '') => h('span', { class: 'badge ' + kind }, text);
 
@@ -22,6 +23,19 @@ export const clients = crudPage({
         h('button', { type: 'button', class: 'btn ghost', style: 'width:100%;margin-top:6px', onclick: () => setPill('') }, 'Ver carteira completa')),
       h('section', { class: 'next' }, h('div', { class: 'k' }, 'Próximo movimento'), h('h2', next.t), h('p', next.d), canWrite || !next.go ? h('button', { type: 'button', class: 'btn whitepill big', onclick: next.go }, next.b) : null));
   },
+  sheet: ({ rec, reload }) => formSheet({
+    kicker: 'Neva Growth / Novo contato', title: rec ? 'Editar cliente.' : 'Registrar cliente.', subtitle: 'Centralize a identidade, o relacionamento e os canais digitais do cliente.', ic: 'userplus',
+    values: { ...rec, stage: rec?.stage || 'lead' }, submit: rec ? 'Salvar alterações' : 'Salvar cliente', foot: 'O contato ficará disponível para vendas e projetos.', ic2: 'userplus',
+    sections: [
+      { title: 'Identidade', sub: 'Quem é o contato e qual empresa ele representa.', cols: 2, fields: [{ k: 'name', l: 'Nome', ic: 'user', ph: 'Ex.: Mariana Costa', req: true, max: 120 }, { k: 'company', l: 'Empresa', ic: 'building', ph: 'Ex.: Clínica Nova Era', max: 120 }] },
+      { title: 'Relacionamento', sub: 'Defina o canal principal e o momento comercial.', cols: 2, fields: [{ k: 'phone', l: 'WhatsApp', ic: 'phone', ph: '(11) 99999-9999', max: 40 },
+        { k: 'stage', l: 'Status', ic: 'trend', type: 'select', opts: [['lead', 'Lead', 'Contato recém-adicionado'], ['negociacao', 'Negociação', 'Conversa comercial em andamento'], ['proposta', 'Proposta enviada', 'Aguardando retorno do cliente'], ['cliente', 'Cliente', 'Projeto fechado']] }] },
+      { title: 'Presença digital', sub: 'Links úteis para acompanhar e entregar o projeto.', cols: 3, fields: [{ k: 'github', l: 'GitHub', ic: 'github', opt: true, ph: 'github.com/usuario/projeto' }, { k: 'site_url', l: 'Site publicado', ic: 'globe', opt: true, ph: 'empresa.com.br' }, { k: 'vercel_url', l: 'Vercel', ic: 'rocket', opt: true, ph: 'projeto.vercel.app' }] }],
+    onSubmit: async (d, close) => {
+      const body = { ...d }; for (const k of ['company', 'phone', 'github', 'site_url', 'vercel_url']) if (body[k] === '') body[k] = null;
+      if (rec) await api.put('/clients/' + rec.id, body); else await api.post('/clients', body);
+      toast(rec ? 'Alterações salvas.' : 'Cliente registrado.', 'ok'); close(); reload();
+    } }),
   title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
   stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira', 'users'), statCard('Em negociação', s.emNegociacao, 'oportunidades abertas', 'trend'),
     statCard('Clientes ativos', s.fechados, `${s.conversao}% de conversão`, 'check'), statCard('Receita gerada', money(s.receita), `${s.vendasPagas} venda(s) registrada(s)`, 'building')]; },
@@ -35,7 +49,11 @@ export const clients = crudPage({
     { k: 'name', l: 'Empresa', render: (c) => h('div', h('b', c.name), c.company && h('div', { class: 'sm mut' }, c.company)) },
     { l: 'Contato', render: (c) => h('div', c.email || '—', h('div', { class: 'sm mut' }, c.phone || '')) },
     { k: 'stage', l: 'Estágio', render: (c) => badge(CSTAGES.find((x) => x[0] === c.stage)?.[1] || c.stage, c.stage === 'cliente' ? 'ok' : '') },
-    { l: 'Entrega digital', render: (c) => c.projects_count ? h('a', { href: '#/sites' }, `${c.projects_count} site(s)`, h('div', { class: 'sm mut' }, c.project_names)) : h('span', { class: 'mut' }, '—') },
+    { l: 'Entrega digital', render: (c) => {
+      const links = [['github', 'GitHub'], ['site_url', 'Site'], ['vercel_url', 'Vercel']].filter(([k]) => c[k]);
+      const abs = (u) => (/^https?:\/\//i.test(u) ? u : 'https://' + u);
+      return h('div', links.length ? h('span', links.map(([k, l]) => h('a', { class: 'sm', style: 'margin-right:8px', href: abs(c[k]), target: '_blank', rel: 'noopener' }, l))) : null,
+        c.projects_count ? h('a', { href: '#/sites', class: 'sm' }, `${c.projects_count} site(s)`) : (!links.length && h('span', { class: 'mut' }, '—')), h('div', { class: 'sm mut' }, `${links.length + (c.projects_count ? 1 : 0)}/3`)); } },
     { l: 'Resultado', right: true, render: (c) => h('div', money(c.total_profit), h('div', { class: 'sm mut' }, `${c.sales_count} venda(s)`)) }
   ],
   exportCols: [['name', 'nome'], ['company', 'empresa'], ['email', 'email'], ['phone', 'telefone'], ['stage', 'estagio'], ['total_paid', 'total_pago'], ['total_profit', 'lucro']].map(([k, l]) => ({ k, l }))
@@ -81,6 +99,28 @@ const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'En
 export const sales = crudPage({
   api: '/sales', singular: 'venda', newLabel: 'Nova venda', title_page: 'Vendas', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue. Indicadores consideram vendas pagas.',
   hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyIcon: 'target', emptyGlyph: true, emptyTitle: 'A primeira venda abre o painel.', emptyText: 'Registre receita, custo e prazo. A análise financeira nasce automaticamente.', emptyButton: '+ Registrar primeira venda',
+  sheet: ({ rec, lookups, reload }) => {
+    const clientOpts = [['', 'Projeto independente', 'Sem cliente vinculado'], ...(lookups.client_id || []).map(([id, l]) => [id, l, 'Cliente da carteira'])];
+    const TYPES = [['Site institucional', 'Site institucional', 'Presença digital completa'], ['Landing page', 'Landing page', 'Página focada em conversão'], ['E-commerce', 'E-commerce', 'Loja virtual completa'], ['Sistema web', 'Sistema web', 'Aplicação sob medida'], ['Aplicativo', 'Aplicativo', 'App para celular'], ['Outro', 'Outro', 'Serviço personalizado']];
+    formSheet({
+      kicker: 'Neva Growth / Nova operação', title: rec ? 'Editar venda.' : 'Registrar venda.', subtitle: 'Organize o projeto, os valores e a entrega em um único lançamento.', ic: 'briefcase',
+      values: { description: rec?.description, client_id: rec?.client_id ?? '', amount: rec?.amount, cost: rec?.cost, project_type: rec?.project_type || 'Site institucional', sold_at: rec?.sold_at || today(), delivery_date: rec?.delivery_date, status: rec?.status || 'pendente', delivery_status: rec?.delivery_status || 'pendente' },
+      submit: rec ? 'Salvar alterações' : 'Registrar venda', foot: 'O lucro entra na sua carteira após o registro.', ic2: 'dollar',
+      sections: [
+        { title: 'Identificação', sub: 'O que foi vendido e para quem.', cols: 2, fields: [{ k: 'description', l: 'Projeto', ic: 'briefcase', ph: 'Ex.: Landing page premium', req: true, max: 160 }, { k: 'client_id', l: 'Cliente', ic: 'user', opt: true, type: 'select', opts: clientOpts }] },
+        { title: 'Resultado financeiro', sub: 'Informe receita e custo para prever o lucro.', cols: 3, fields: [{ k: 'amount', l: 'Valor vendido', type: 'money', req: true }, { k: 'cost', l: 'Custo do projeto', type: 'money' }, { k: 'profit', l: 'Lucro', type: 'profit' }] },
+        { title: 'Entrega', sub: 'Classifique o projeto e organize as datas.', cols: 3, fields: [{ k: 'project_type', l: 'Tipo de projeto', ic: 'layers', type: 'select', opts: TYPES }, { k: 'sold_at', l: 'Data da venda', ic: 'calendar', type: 'date' }, { k: 'delivery_date', l: 'Previsão de entrega', ic: 'calendar', type: 'date', opt: true }] },
+        ...(rec ? [{ title: 'Situação', sub: 'Pagamento e entrega desta venda.', cols: 2, fields: [{ k: 'status', l: 'Pagamento', type: 'select', opts: [['pendente', 'Pendente', 'Ainda não recebido'], ['pago', 'Pago', 'Entrou no caixa'], ['cancelado', 'Cancelado', 'Venda desfeita']] }, { k: 'delivery_status', l: 'Entrega', type: 'select', opts: [['pendente', 'Pendente', 'Em produção'], ['entregue', 'Entregue', 'Projeto finalizado']] }] }] : [])],
+      extra: ({ inputs }) => { const calc = () => { const v = (Number(inputs.amount.value) || 0) - (Number(inputs.cost.value) || 0); inputs.profit.out.textContent = brlf(v); inputs.profit.out.style.color = v < 0 ? '#ffb4b8' : ''; }; inputs.amount.addEventListener('input', calc); inputs.cost.addEventListener('input', calc); calc(); },
+      onSubmit: async (d, close) => {
+        const amount = Number(d.amount); const cost = Number(d.cost || 0);
+        if (!(amount >= 0) || d.amount === '') throw new Error('Informe o valor vendido.');
+        if (cost > amount) throw new Error('O custo não pode ser maior que o valor da venda.');
+        const body = { description: d.description, client_id: d.client_id === '' ? null : Number(d.client_id), amount, cost, project_type: d.project_type, sold_at: d.sold_at || today(), delivery_date: d.delivery_date || null, ...(rec ? { status: d.status, delivery_status: d.delivery_status } : {}) };
+        if (rec) await api.put('/sales/' + rec.id, body); else await api.post('/sales', body);
+        toast(rec ? 'Alterações salvas.' : 'Venda registrada.', 'ok'); close(); reload();
+      } });
+  },
   title: (s) => s.description, filters: [{ k: 'status', l: 'Pagamento', opts: ['pendente', 'pago', 'cancelado'] }],
   stats: async (st) => { const s = await api.get('/sales/summary', { view: st.pill, q: st.q }); return [statCard('Faturamento', money(s.faturamento), [money(s.pendente), ' a receber']), statCard('Lucro líquido', money(s.lucro)),
     statCard('Margem média', s.margem + '%'), statCard('Ticket médio', money(s.ticket), `${s.pagas} paga(s)`)]; },

@@ -54,6 +54,23 @@ async function extraMeta(id, b, old = {}, ws) {
   if (client_id != null && !await get('SELECT 1 x FROM clients WHERE id=? AND ws=?', client_id, ws)) throw bad('Cliente não encontrado.');
   await run('UPDATE projects SET domain=?, client_id=? WHERE id=?', domain ?? null, client_id ?? null, id);
 }
+// Portfólio: link do site, capa e situação (publicado / em desenvolvimento / arquivado).
+const cleanUrl = (v, label) => {
+  const raw = String(v ?? '').trim(); if (!raw) return null;
+  const u = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+  try { const x = new URL(u); if (!/^https?:$/.test(x.protocol) || !x.hostname.includes('.')) throw 0; return x.href.slice(0, 500); } catch { throw bad(`${label} inválido (ex.: https://seusite.com.br).`); }
+};
+async function portfolioMeta(id, b, old = {}) {
+  const site_url = b.site_url !== undefined ? cleanUrl(b.site_url, 'Link do site') : old.site_url ?? null;
+  const cover_url = b.cover_url !== undefined ? cleanUrl(b.cover_url, 'Imagem de capa') : old.cover_url ?? null;
+  await run('UPDATE projects SET site_url=?, cover_url=? WHERE id=?', site_url, cover_url, id);
+  if (b.status !== undefined) {
+    if (!['publicado', 'desenvolvimento', 'arquivado'].includes(b.status)) throw bad('Status inválido.');
+    const hasIndex = await get("SELECT 1 x FROM project_files WHERE project_id=? AND path='index.html'", id);
+    if (b.status === 'publicado' && !hasIndex && !site_url) throw bad('Para marcar como publicado, informe o link do site.');
+    await run('UPDATE projects SET published=?, archived=? WHERE id=?', b.status === 'publicado' ? 1 : 0, b.status === 'arquivado' ? 1 : 0, id);
+  }
+}
 // `req` ausente só no preview público (token assinado); com req, o projeto precisa ser do espaço de trabalho do usuário.
 async function projectOr404(id, req) {
   const p = await get('SELECT * FROM projects WHERE id=?', Number(id));
@@ -99,9 +116,11 @@ r.post('/', async (req, res) => {
   const name = String(b.name || '').trim();
   if (name.length < 2 || name.length > 80) throw bad('Informe um nome (2 a 80 caracteres).');
   const kind = ['site', 'app', 'system'].includes(b.kind) ? b.kind : 'site';
-  const files = generate(kind, { name, description: b.description, tagline: b.tagline, color: b.color, blank: b.blank === true, sections: b.sections, whatsapp: b.whatsapp, email: b.email });
+  // link:true = entrada de portfólio (só o link e os dados do site, sem arquivos)
+  const files = b.link === true ? {} : generate(kind, { name, description: b.description, tagline: b.tagline, color: b.color, blank: b.blank === true, sections: b.sections, whatsapp: b.whatsapp, email: b.email });
   const proj = await createProject({ name, description: b.description, kind, owner: req.user.id, files, ws: req.user.ws });
   await extraMeta(proj.id, b, {}, req.user.ws);
+  await portfolioMeta(proj.id, b);
   res.status(201).json(await get('SELECT * FROM projects WHERE id=?', proj.id));
 });
 
@@ -161,6 +180,7 @@ r.put('/:id', async (req, res) => {
   const archived = b.archived === undefined ? p.archived : (b.archived ? 1 : 0);
   await run("UPDATE projects SET name=?, description=?, archived=?, published=CASE WHEN ?=1 THEN 0 ELSE published END, updated_at=datetime('now') WHERE id=?", name, b.description !== undefined ? String(b.description).slice(0, 500) : p.description, archived, archived, p.id);
   await extraMeta(p.id, b, p, req.user.ws);
+  await portfolioMeta(p.id, b, p);
   res.json(await get('SELECT * FROM projects WHERE id=?', p.id));
 });
 r.delete('/:id', async (req, res) => { const p = await editable(req); await run('DELETE FROM projects WHERE id=?', p.id); res.json({ ok: true }); });

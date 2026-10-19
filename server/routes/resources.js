@@ -148,6 +148,7 @@ r.use('/clients', crud({
   fields: {
     name: { type: 'string', required: true, label: 'Nome' }, company: { type: 'string' }, email: { type: 'email' },
     phone: { type: 'string', max: 40 }, document: { type: 'string', max: 30 }, address: { type: 'string', max: 500 }, notes: { type: 'text' },
+    github: { type: 'string', max: 200 }, site_url: { type: 'string', max: 200 }, vercel_url: { type: 'string', max: 200 },
     stage: { type: 'enum', values: CLIENT_STAGES, default: 'lead', label: 'Estágio' }
   },
   async beforeCreate(d) { d.stage = d.stage || 'lead'; }
@@ -212,7 +213,7 @@ r.use('/sales', crud({
   fields: {
     client_id: { type: 'ref', table: 'clients', label: 'Cliente' }, product_id: { type: 'ref', table: 'products', label: 'Produto' },
     description: { type: 'string', required: true, label: 'Descrição' }, amount: { type: 'number', min: 0, required: true, label: 'Valor' },
-    cost: { type: 'number', min: 0, default: 0, label: 'Custo' },
+    cost: { type: 'number', min: 0, default: 0, label: 'Custo' }, project_type: { type: 'string', max: 40 },
     status: { type: 'enum', values: ['pendente', 'pago', 'cancelado'], default: 'pendente' },
     sold_at: { type: 'date', label: 'Data da venda' }, delivery_date: { type: 'date', label: 'Prazo de entrega' },
     delivery_status: { type: 'enum', values: ['pendente', 'entregue'], default: 'pendente', label: 'Entrega' }

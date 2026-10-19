@@ -40,6 +40,7 @@ export function crudPage(cfg) {
       }
       async function openForm(rec) {
         await loadLookups().catch(fail);
+        if (cfg.sheet) return cfg.sheet({ rec, lookups, reload: load, api });
         const defs = fieldDefs(rec);
         const form = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((f) => fieldEl(f, rec?.[f.k])));
         modal({ title: rec ? `Editar ${cfg.singular}` : `Novo ${cfg.singular}`, body: form, size: cfg.fields.length > 6 ? 'lg' : '',

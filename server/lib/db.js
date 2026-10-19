@@ -260,6 +260,14 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.code_sites, public.site_versions FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.code_sites, public.site_versions FROM authenticated'; END IF;
 END $$;
+` }
+, { v: 7, name: 'v7-formularios-cliente-venda-site', sql: `
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS github TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS site_url TEXT;
+ALTER TABLE clients ADD COLUMN IF NOT EXISTS vercel_url TEXT;
+ALTER TABLE sales ADD COLUMN IF NOT EXISTS project_type TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS site_url TEXT;
+ALTER TABLE projects ADD COLUMN IF NOT EXISTS cover_url TEXT;
 ` }];
 
 async function migrate() {

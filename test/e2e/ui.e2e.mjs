@@ -87,10 +87,20 @@ await step('Clientes: indicadores, abas por estágio, entrega digital', async ()
   await page.click('.pill:has-text("Lead")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Cliente")'); await page.waitForSelector('td:has-text("Clínica Aurora")');
   await page.waitForSelector('.pulse:has-text("Pulso da carteira")'); await page.waitForSelector('.next:has-text("Próximo movimento")'); await page.waitForSelector('th:has-text("Entrega digital")'); await page.waitForSelector('th:has-text("Resultado")');
 });
+await step('Clientes: Registrar cliente (identidade, relacionamento, presença digital)', async () => {
+  await nav('clientes'); await page.click('.hero button:has-text("Novo cliente")');
+  await page.waitForSelector('.fs-banner h2:has-text("Registrar cliente.")'); await page.waitForSelector('.fs-sechead:has-text("Identidade")'); await page.waitForSelector('.fs-sechead:has-text("Relacionamento")'); await page.waitForSelector('.fs-sechead:has-text("Presença digital")');
+  const opts = await page.$$eval('.fs-card select[name=stage] option', (o) => o.map((x) => x.textContent)); if (opts.join('|') !== 'Lead|Negociação|Proposta enviada|Cliente') throw new Error('status: ' + opts);
+  await page.fill('.fs-card input[name=name]', 'Mariana Costa'); await page.fill('.fs-card input[name=company]', 'Nova Era'); await page.fill('.fs-card input[name=phone]', '(11) 99999-9999'); await page.fill('.fs-card input[name=github]', 'github.com/nova/era');
+  await page.selectOption('.fs-card select[name=stage]', 'negociacao'); await page.click('.fs-submit'); await page.click('.pill:has-text("Negociação")'); await page.waitForSelector('td:has-text("Mariana Costa")'); await page.waitForSelector('a:has-text("GitHub")'); await page.click('.pill:has-text("Todos")');
+});
 await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () => {
   await nav('vendas'); await page.click('button:has-text("Nova venda")');
-  await page.fill('.modal input[name=description]', 'Site Aurora'); await page.fill('.modal input[name=amount]', '3000'); await page.fill('.modal input[name=cost]', '1200'); await page.fill('.modal input[name=delivery_date]', yesterday);
-  await page.selectOption('.modal select[name=client_id]', { label: 'Clínica Aurora' }); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('td:has-text("Site Aurora")');
+  await page.waitForSelector('.fs-banner h2:has-text("Registrar venda.")'); await page.waitForSelector('.fs-sechead:has-text("Resultado financeiro")'); await page.waitForSelector('.fs-sechead:has-text("Entrega")');
+  await page.click('.fs-submit'); await page.waitForSelector('.fs-err:has-text("Preencha: Projeto")');
+  await page.fill('.fs-card input[name=description]', 'Site Aurora'); await page.fill('.fs-card input[name=amount]', '3000'); await page.fill('.fs-card input[name=cost]', '1200'); await page.fill('.fs-card input[name=delivery_date]', yesterday);
+  await page.waitForSelector('.fs-profit b:has-text("1.800,00")');
+  await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.click('.fs-submit'); await page.waitForSelector('td:has-text("Site Aurora")');
   await page.waitForSelector('.pill:has-text("Atrasadas") .cnt:text-is("1")'); await page.waitForSelector('td:has-text("atrasada")');
   await page.click('button:has-text("Marcar pago")'); await page.waitForSelector('.stat:has-text("Lucro líquido") b:has-text("1.800,00")'); await page.waitForSelector('.stat:has-text("Margem média") b:has-text("60%")');
   await page.click('tbody button:has-text("Entregue")'); await page.waitForSelector('.badge:has-text("entregue")'); await page.click('.pill:has-text("Entregues")'); await page.waitForSelector('td:has-text("Site Aurora")');
@@ -101,9 +111,17 @@ await step('Dashboard com lucro real', async () => {
 });
 await step('notificações (sino)', async () => { await page.click('button[aria-label="Notificações"]'); await page.waitForSelector('.dropdown'); await page.waitForSelector('text=Tudo em dia'); await page.click('button[aria-label="Notificações"]'); });
 let projUrl;
-await step('Sites: criar por modelo, abrir IDE', async () => {
-  await nav('sites'); await page.click('button:has-text("Adicionar site")'); await page.fill('.modal input[name=name]', 'Studio Aurora'); await page.fill('.modal input[name=tagline]', 'Sorrisos que encantam');
-  await page.click('.modal button:has-text("Criar projeto")'); await page.waitForURL(/#\/ide\/\d+/); projUrl = page.url();
+await step('Sites: Adicionar site (link, status, cliente) e abrir IDE de um projeto com arquivos', async () => {
+  await nav('sites'); await page.click('button:has-text("Adicionar site")');
+  await page.waitForSelector('.fs-dhead h2:has-text("Adicionar site")'); await page.waitForSelector('.fs-select:has-text("Publicado")');
+  await page.fill('.fs-card input[name=name]', 'Link Aurora'); await page.selectOption('.fs-card select[name=status]', 'publicado'); await page.click('.fs-submit'); await page.waitForSelector('.fs-err:has-text("informe o link")');
+  await page.fill('.fs-card input[name=site_url]', 'aurora.com.br'); await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.fill('.fs-card textarea[name=description]', 'Landing da clínica');
+  await page.click('.fs-submit'); await page.waitForSelector('article:has-text("Link Aurora") a[href="https://aurora.com.br/"]');
+  await page.click('.pill:has-text("Em desenvolvimento")'); await page.waitForSelector('text=Nenhum projeto neste recorte'); await page.click('.pill:has-text("Todos")');
+  await page.click('article:has-text("Link Aurora") >> button:has-text("Dados")'); await page.selectOption('.fs-card select[name=status]', 'arquivado'); await page.click('.fs-submit');
+  await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Link Aurora")');
+  const created = await page.request.post(base + '/api/projects', { headers: { 'x-requested-with': 'neva' }, data: { name: 'Studio Aurora', kind: 'site', tagline: 'Sorrisos que encantam', description: 'Clínica' } });
+  const proj = await created.json(); await page.goto(`${base}/#/ide/${proj.id}`); await page.waitForURL(/#\/ide\/\d+/); projUrl = page.url();
 });
 await step('IDE: edição + autosave + preview', async () => {
   await page.waitForFunction(() => window.monaco?.editor.getEditors()[0]?.getValue().includes('Sorrisos que encantam'), null, { timeout: 20000 });
@@ -133,8 +151,8 @@ await step('IDE: assistente de IA não configurado + console', async () => {
   await page.click('.ide-bottom .tabs >> text=Console');
 });
 await step('Sites: domínio, cliente, arquivar, filtros', async () => {
-  await nav('sites'); await page.click('article:has-text("Studio Aurora") >> button:has-text("Dados")'); await page.fill('.modal input[name=domain]', 'https://studioaurora.com.br/'); await page.selectOption('.modal select[name=client_id]', { label: 'Clínica Aurora' });
-  await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("studioaurora.com.br")'); await page.waitForSelector('article:has-text("Clínica Aurora")');
+  await nav('sites'); await page.click('article:has-text("Studio Aurora") >> button:has-text("Dados")'); await page.fill('.fs-card input[name=site_url]', 'https://studioaurora.com.br/'); await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.selectOption('.fs-card select[name=status]', 'desenvolvimento');
+  await page.click('.fs-submit'); await page.waitForSelector('article:has-text("studioaurora.com.br")'); await page.waitForSelector('article:has-text("Clínica Aurora")');
   await page.click('article:has-text("Studio Aurora") >> button:has-text("Publicar")'); await page.waitForSelector('article >> .badge.ok:has-text("publicado")');
   const r = await page.request.get(base + '/s/studio-aurora/'); if (r.status() !== 200) throw new Error('site público ' + r.status());
   await page.click('.pill:has-text("Publicado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
