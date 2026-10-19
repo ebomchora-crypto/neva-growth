@@ -103,7 +103,7 @@ export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot
   document.addEventListener('keydown', esc);
   document.body.append(back); document.body.classList.add('fs-open');
   unfit = fitToViewport(card);
-  requestAnimationFrame(() => { back.classList.add('in'); (card.querySelector('input:not([type=hidden]),textarea') || card).focus?.(); });
+  requestAnimationFrame(() => { back.classList.add('in'); if (!card.contains(document.activeElement)) (card.querySelector('input:not([type=hidden]),textarea') || card).focus?.(); });
   extra?.({ inputs, card });
   return { close, inputs };
 }

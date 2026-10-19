@@ -120,9 +120,9 @@ await step('Sites: Adicionar site (link, status, cliente) e abrir IDE de um proj
   await page.waitForSelector('.fs-dhead h2:has-text("Adicionar site")'); await page.waitForSelector('.fs-select:has-text("Publicado")');
   await page.fill('.fs-card input[name=name]', 'Link Aurora'); await page.selectOption('.fs-card select[name=status]', 'publicado'); await page.click('.fs-submit'); await page.waitForSelector('.fs-err:has-text("informe o link")');
   await page.fill('.fs-card input[name=site_url]', 'aurora.com.br'); await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.fill('.fs-card textarea[name=description]', 'Landing da clínica');
-  await page.click('.fs-submit'); await page.waitForSelector('article:has-text("Link Aurora") a[href="https://aurora.com.br/"]');
+  await page.click('.fs-submit'); await page.waitForSelector('article:has-text("Link Aurora") .sf-url:has-text("aurora.com.br")'); await page.waitForSelector('article:has-text("Link Aurora") .sf-chip.publicado'); await page.waitForSelector('article:has-text("Link Aurora") .sf-ext[href="https://aurora.com.br/"]'); await page.waitForSelector('article:has-text("Link Aurora") .sf-shot img');
   await page.click('.pill:has-text("Em desenvolvimento")'); await page.waitForSelector('text=Nenhum projeto neste recorte'); await page.click('.pill:has-text("Todos")');
-  await page.click('article:has-text("Link Aurora") >> button:has-text("Dados")'); await page.selectOption('.fs-card select[name=status]', 'arquivado'); await page.click('.fs-submit');
+  await page.click('article:has-text("Link Aurora") >> button:has-text("Editar")'); await page.selectOption('.fs-card select[name=status]', 'arquivado'); await page.click('.fs-submit');
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Link Aurora")');
   const created = await page.request.post(base + '/api/projects', { headers: { 'x-requested-with': 'neva' }, data: { name: 'Studio Aurora', kind: 'site', tagline: 'Sorrisos que encantam', description: 'Clínica' } });
   const proj = await created.json(); await page.goto(`${base}/#/ide/${proj.id}`); await page.waitForURL(/#\/ide\/\d+/); projUrl = page.url();
@@ -154,13 +154,16 @@ await step('IDE: assistente de IA não configurado + console', async () => {
   await page.click('.ide-bottom .tabs >> text=Assistente IA'); await page.waitForSelector('text=Assistente de IA não configurado');
   await page.click('.ide-bottom .tabs >> text=Console');
 });
-await step('Sites: domínio, cliente, arquivar, filtros', async () => {
-  await nav('sites'); await page.click('article:has-text("Studio Aurora") >> button:has-text("Dados")'); await page.fill('.fs-card input[name=site_url]', 'https://studioaurora.com.br/'); await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.selectOption('.fs-card select[name=status]', 'desenvolvimento');
-  await page.click('.fs-submit'); await page.waitForSelector('article:has-text("studioaurora.com.br")'); await page.waitForSelector('article:has-text("Clínica Aurora")');
-  await page.click('article:has-text("Studio Aurora") >> button:has-text("Publicar")'); await page.waitForSelector('article >> .badge.ok:has-text("publicado")');
+await step('Sites: projeto em destaque, editar, publicar, arquivar, filtros', async () => {
+  const edit = async (status, extra = async () => {}) => { await page.click('article:has-text("Studio Aurora") >> button:has-text("Editar")'); await extra(); await page.selectOption('.fs-card select[name=status]', status); await page.click('.fs-submit'); await page.waitForFunction(() => !document.querySelector('.fs-back')); };
+  await nav('sites'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-win'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-bar em:has-text("NG/")'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-side:has-text("PROJETO EM DESTAQUE")');
+  await edit('desenvolvimento', async () => { await page.fill('.fs-card input[name=site_url]', 'https://studioaurora.com.br/'); await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); });
+  await page.waitForSelector('article:has-text("Studio Aurora") .sf-url:has-text("studioaurora.com.br")'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-client:has-text("Clínica Aurora")'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-chip.desenvolvimento');
+  await page.waitForSelector('article:has-text("Studio Aurora") .sf-shot iframe');
+  await edit('publicado'); await page.waitForSelector('article:has-text("Studio Aurora") .sf-chip.publicado');
   const r = await page.request.get(base + '/s/studio-aurora/'); if (r.status() !== 200) throw new Error('site público ' + r.status());
   await page.click('.pill:has-text("Publicado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
-  await page.click('article:has-text("Studio Aurora") >> button:has-text("Arquivar")'); await page.waitForSelector('text=Nenhum projeto neste recorte');
+  await edit('arquivado'); await page.waitForSelector('text=Nenhum projeto neste recorte');
   const r2 = await page.request.get(base + '/s/studio-aurora/'); if (r2.status() !== 404) throw new Error('arquivado ainda no ar');
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
 });
