@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, money } from '../ui.js';
+import { h, mount, brl } from '../ui.js';
 import { rise, riseMoney } from '../motion.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
@@ -37,43 +37,48 @@ export default {
     let d = await fetchLive();
     const clock = h('b');
     const setClock = () => { clock.textContent = new Date(Date.now() - 3 * 3600e3).toISOString().slice(11, 19); };
-    const panel = h('div'); const trend = h('div', { class: 'lv-trend' }); const stats = h('div');
     const plot = h('div', { class: 'lv-plot' }); const cbox = h('div', { class: 'lv-cbox' }, h('small', { class: 'lv-yl' }, 'Vendas (R$)'), plot);
     const paintChart = () => { const r = plot.getBoundingClientRect(); if (r.width > 40 && r.height > 40) mount(plot, chart(d, Math.round(r.width), Math.round(r.height))); };
     const ro = new ResizeObserver(paintChart); ro.observe(plot);
+    // A página é montada uma vez; trocar Hoje/Tudo só muda textos e faz os números subirem (nada recarrega).
+    const bigNum = h('strong', num(0)); const varB = h('b'); const varS = h('small');
+    const cnt = h('b', '0'); const tick$ = h('b', { class: 'money', 'data-v': 0 }, brl(0)); const prof = h('b', { class: 'money', 'data-v': 0 }, brl(0));
+    const titleH1 = h('h1'); const kLabel = h('small', { class: 'lv-k' }); const subP = h('p'); const legA = h('span'); const legB = h('span'); const profLbl = h('small');
+    const modeBtns = [[false, 'Hoje'], [true, 'Tudo']].map(([v, l]) => h('button', { type: 'button', onclick: () => setScope(v) }, l));
+    const fmtM = (n) => brl(n);
+    function setMoney(el, v, animate) { el.dataset.v = String(v); el.dataset.counted = '1'; if (animate) rise(el, v, fmtM); else el.textContent = fmtM(v); }
     function draw(animate = false) {
-      const v = d.variation; const vtxt = v === null ? (d.revenue > 0 ? 'novo' : '+0%') : `${v >= 0 ? '+' : ''}${v.toLocaleString('pt-BR')}%`;
-      mount(panel, h('section', { class: 'lv-panel' },
-        h('i', { class: 'lv-rail l' }), h('i', { class: 'lv-rail r' }),
-        h('div', { class: 'lv-ptop' }, h('small', 'VALOR VENDIDO REGISTRADO'), h('small', 'NG · LIVE 01')),
-        h('div', { class: 'lv-big money' }, h('span', 'R$'), h('strong', num(d.revenue))),
-        h('div', { class: 'lv-pfoot' }, h('span', { class: 'lv-auto' }, raw(LIVE), 'Atualização automática'), h('i', { class: 'lv-sep' }), h('span', h('b', { class: v !== null && v < 0 ? 'neg' : '' }, vtxt), h('small', all ? ' vs. mês anterior' : ' vs. ontem')))),
-        h('div', { class: 'lv-glow' }));
-      mount(trend, cbox); paintChart();
-      const cnt = h('b', String(d.count));
-      mount(stats, h('div', { class: 'lv-stats' }, [['VENDAS REGISTRADAS', cnt], ['TICKET MÉDIO', h('b', money(d.ticket))], [all ? 'LUCRO TOTAL' : 'LUCRO DE HOJE', h('b', money(d.profit))]].map(([l, val]) => h('div', h('small', l), val))));
-      if (animate) { rise(panel.querySelector('.lv-big strong'), d.revenue, num, 1.4); rise(cnt, d.count); riseMoney(stats); }
+      const v = d.variation; varB.textContent = v === null ? (d.revenue > 0 ? 'novo' : '+0%') : `${v >= 0 ? '+' : ''}${v.toLocaleString('pt-BR')}%`; varB.className = v !== null && v < 0 ? 'neg' : '';
+      varS.textContent = all ? ' vs. mês anterior' : ' vs. ontem';
+      titleH1.textContent = all ? 'Vendas totais' : 'Vendas hoje'; kLabel.textContent = all ? 'DESEMPENHO POR MÊS' : 'DESEMPENHO POR HORÁRIO';
+      subP.textContent = all ? 'Vendas registradas acumuladas nos últimos 12 meses' : 'Vendas registradas ao longo do dia';
+      legA.replaceChildren(h('i', { class: 'a' }), all ? 'Acumulado' : 'Hoje'); legB.replaceChildren(...(all ? [] : [h('i', { class: 'b' }), day(d.yesterday)])); legB.hidden = all;
+      profLbl.textContent = all ? 'LUCRO TOTAL' : 'LUCRO DE HOJE';
+      modeBtns.forEach((bt, i) => { const on = all === (i === 1); bt.classList.toggle('on', on); bt.setAttribute('aria-pressed', String(on)); });
+      paintChart();
+      if (animate) { rise(bigNum, d.revenue, num, 1.4); rise(cnt, d.count); } else { bigNum.textContent = num(d.revenue); cnt.textContent = String(d.count); }
+      setMoney(tick$, d.ticket, animate); setMoney(prof, d.profit, animate);
     }
-    const setScope = async (v) => { if (v === all) return; all = v; try { localStorage.setItem('neva.live.scope', all ? 'all' : 'today'); } catch { /* ok */ } try { d = await fetchLive(); } catch { all = !all; return; } build(true); };
-    function build(animate = false) {
-      mount(box, h('div', { class: 'lv' },
-        h('header', { class: 'lv-top' },
-          h('a', { class: 'lv-back', href: '#/dashboard' }, raw(BACK), 'Voltar à dashboard'),
-          h('div', { class: 'lv-brand' }, h('i', { class: 'lv-wing l' }), h('div', { class: 'lv-plate' }, h('span', { class: 'lv-mark' }, 'N'), h('b', 'NEVA GROWTH')), h('i', { class: 'lv-wing r' })),
-          h('div', { class: 'lv-mode', role: 'group', 'aria-label': 'Período' }, [[false, 'Hoje'], [true, 'Tudo']].map(([v, l]) => h('button', { type: 'button', class: all === v ? 'on' : '', 'aria-pressed': String(all === v), onclick: () => setScope(v) }, l)))),
-        h('div', { class: 'lv-hero' }, h('i', { class: 'lv-chev', 'aria-hidden': 'true' }),
-          h('small', { class: 'lv-kick' }, 'SALA DE RECEITA', h('em', '✦'), h('strong', (d.name || '').split(' ')[0].toUpperCase())),
-          h('h1', all ? 'Vendas totais' : 'Vendas hoje'),
-          h('div', { class: 'lv-time' }, h('i'), h('span', day(d.today)), h('em', '✦'), clock, h('small', 'GMT-03'), h('i'))),
-        h('div', { class: 'lv-wrap' }, panel,
-          h('section', { class: 'lv-sec' }, h('small', { class: 'lv-k' }, all ? 'DESEMPENHO POR MÊS' : 'DESEMPENHO POR HORÁRIO'),
-            h('div', { class: 'lv-sh' }, h('div', h('h2', 'Tendência de vendas'), h('p', all ? 'Vendas registradas acumuladas nos últimos 12 meses' : 'Vendas registradas ao longo do dia')),
-              h('div', { class: 'lv-leg' }, h('span', h('i', { class: 'a' }), all ? 'Acumulado' : 'Hoje'), !all && h('span', h('i', { class: 'b' }), day(d.yesterday)))),
-            trend, stats)),
-        h('i', { class: 'lv-water', 'aria-hidden': 'true' })));
-      draw(animate);
-    }
-    box.classList.add('lvbox'); setClock(); build(true);
+    const setScope = async (v) => { if (v === all) return; all = v; try { localStorage.setItem('neva.live.scope', all ? 'all' : 'today'); } catch { /* ok */ } try { d = await fetchLive(); } catch { all = !all; return; } draw(true); };
+    mount(box, h('div', { class: 'lv' },
+      h('header', { class: 'lv-top' },
+        h('a', { class: 'lv-back', href: '#/dashboard' }, raw(BACK), 'Voltar à dashboard'),
+        h('div', { class: 'lv-brand' }, h('i', { class: 'lv-wing l' }), h('div', { class: 'lv-plate' }, h('span', { class: 'lv-mark' }, 'N'), h('b', 'NEVA GROWTH')), h('i', { class: 'lv-wing r' })),
+        h('div', { class: 'lv-mode', role: 'group', 'aria-label': 'Período' }, modeBtns)),
+      h('div', { class: 'lv-hero' }, h('i', { class: 'lv-chev', 'aria-hidden': 'true' }),
+        h('small', { class: 'lv-kick' }, 'SALA DE RECEITA', h('em', '✦'), h('strong', (d.name || '').split(' ')[0].toUpperCase())),
+        titleH1, h('div', { class: 'lv-time' }, h('i'), h('span', day(d.today)), h('em', '✦'), clock, h('small', 'GMT-03'), h('i'))),
+      h('div', { class: 'lv-wrap' },
+        h('div', h('section', { class: 'lv-panel' }, h('i', { class: 'lv-rail l' }), h('i', { class: 'lv-rail r' }),
+          h('div', { class: 'lv-ptop' }, h('small', 'VALOR VENDIDO REGISTRADO'), h('small', 'NG · LIVE 01')),
+          h('div', { class: 'lv-big money' }, h('span', 'R$'), bigNum),
+          h('div', { class: 'lv-pfoot' }, h('span', { class: 'lv-auto' }, raw(LIVE), 'Atualização automática'), h('i', { class: 'lv-sep' }), h('span', varB, varS))), h('div', { class: 'lv-glow' })),
+        h('section', { class: 'lv-sec' }, kLabel,
+          h('div', { class: 'lv-sh' }, h('div', h('h2', 'Tendência de vendas'), subP), h('div', { class: 'lv-leg' }, legA, legB)),
+          h('div', { class: 'lv-trend' }, cbox),
+          h('div', { class: 'lv-stats' }, [['VENDAS REGISTRADAS', cnt], ['TICKET MÉDIO', tick$], [profLbl, prof]].map(([l, val]) => h('div', typeof l === 'string' ? h('small', l) : l, val))))),
+      h('i', { class: 'lv-water', 'aria-hidden': 'true' })));
+    box.classList.add('lvbox'); setClock(); draw(true);
     const t1 = setInterval(setClock, 1000);
     const t2 = setInterval(async () => { try { d = await fetchLive(); draw(); } catch { /* tenta de novo no próximo ciclo */ } }, 15000);
     return () => { clearInterval(t1); clearInterval(t2); ro.disconnect(); box.classList.remove('lvbox'); };

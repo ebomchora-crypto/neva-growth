@@ -67,6 +67,10 @@ export function rise(el, v, fmt = (n) => String(Math.round(n)), dur = 1.1) {
   const o = { n: 0 }; el.textContent = fmt(0);
   G.to(o, { n: v, duration: dur, ease: 'power2.out', onUpdate: () => { el.textContent = fmt(o.n); }, onComplete: () => { el.textContent = fmt(v); } });
 }
+// Marca o conteúdo como "já entrou": nada de entrada animada (só os números sobem) ao trocar o período.
+export function still(root) {
+  root.querySelectorAll('*').forEach((e) => { e.dataset.fx = '1'; });
+}
 export function riseMoney(root = document) {
   root.querySelectorAll('.money[data-v]').forEach((el) => { const v = Number(el.dataset.v); if (Number.isFinite(v)) { el.dataset.counted = '1'; rise(el, v, brl); } });
 }
