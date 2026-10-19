@@ -4,7 +4,6 @@ const A = require('../lib/auth');
 const { HttpError, bad } = require('../lib/http');
 const S = require('../lib/services');
 const r = express.Router();
-const SUG_LIMIT = 3;
 
 r.get('/', async (req, res) => {
   const items = await all(`SELECT i.*, (SELECT 1 FROM play_progress p WHERE p.item_id=i.id AND p.user_id=?) AS seen FROM play_items i ${req.user.role === 'admin' && req.query.all === '1' ? '' : 'WHERE i.published=1'} ORDER BY i.category, i.id DESC`, req.user.id);
@@ -20,17 +19,15 @@ r.get('/suggestions', async (req, res) => {
   const used = (await get(`SELECT COUNT(*) n FROM play_suggestions WHERE user_id=? AND created_at >= ${weekAgo}`, req.user.id)).n;
   const oldest = await get(`SELECT MIN(created_at) d FROM play_suggestions WHERE user_id=? AND created_at >= ${weekAgo}`, req.user.id);
   const items = await all(`SELECT s.*, u.name AS user_name FROM play_suggestions s JOIN users u ON u.id=s.user_id ${admin && req.query.all === '1' ? '' : 'WHERE s.user_id=' + Number(req.user.id)} ORDER BY s.id DESC LIMIT 100`);
-  res.json({ items, limit: SUG_LIMIT, used: Number(used), remaining: Math.max(0, SUG_LIMIT - Number(used)), nextSlotFrom: Number(used) >= SUG_LIMIT ? oldest?.d : null });
+  res.json({ items, limit: null, used: Number(used), remaining: null, nextSlotFrom: null });
 });
 r.post('/suggestions', A.requireRole('admin', 'member'), async (req, res) => {
   const topic = String(req.body?.topic || '').trim(); const outcome = String(req.body?.outcome || '').trim();
   if (topic.length < 3 || topic.length > 200) throw bad('Conte o tema da aula (3 a 200 caracteres).');
   if (outcome.length > 600) throw bad('O resultado esperado pode ter até 600 caracteres.');
-  const used = Number((await get(`SELECT COUNT(*) n FROM play_suggestions WHERE user_id=? AND created_at >= ${weekAgo}`, req.user.id)).n);
-  if (used >= SUG_LIMIT) throw new HttpError(429, `Você já enviou ${SUG_LIMIT} sugestões nos últimos 7 dias. Tente de novo em breve.`, 'suggestion_limit');
   const info = await run('INSERT INTO play_suggestions(user_id,topic,outcome) VALUES (?,?,?)', req.user.id, topic, outcome || null);
   await S.notify({ type: 'play', text: `${req.user.name} sugeriu uma aula: ${topic}`, link: '#/play', only: (await all("SELECT id FROM users WHERE role='admin' AND active=1")).map((u) => u.id), exceptUserId: req.user.id });
-  res.status(201).json({ id: info.lastInsertRowid, remaining: SUG_LIMIT - used - 1 });
+  res.status(201).json({ id: info.lastInsertRowid, remaining: null });
 });
 r.put('/suggestions/:id', A.requireRole('admin'), async (req, res) => {
   const status = String(req.body?.status || ''); if (!['novo', 'em_analise', 'publicado', 'recusado'].includes(status)) throw bad('Situação inválida.');

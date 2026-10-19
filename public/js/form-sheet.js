@@ -14,7 +14,7 @@ export function fitToViewport(card) {
 
 const money = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
 
-function control(f, value) {
+export function control(f, value) {
   const v = value ?? f.def ?? '';
   if (f.type === 'select') {
     const opts = f.opts || [];

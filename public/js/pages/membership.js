@@ -5,9 +5,9 @@ export default {
   async render(box, ctx) {
     const me = await api.get('/me'); const isAdmin = ctx.user.role === 'admin';
     const cur = me.plan; const usage = me.usage;
-    const bar = (u) => h('div', h('div', { class: 'progress' }, h('i', { style: `width:${u.limit ? Math.min(100, (u.used / u.limit) * 100) : 0}%` })), h('div', { class: 'sm mut' }, `${u.used} de ${u.limit} usados neste mês`));
+    const bar = (u) => h('div', h('div', { class: 'progress' }, h('i', { style: `width:${u.limit ? Math.min(100, (u.used / u.limit) * 100) : 0}%` })), h('div', { class: 'sm mut' }, `${u.used} usados neste mês · ilimitado`));
     function editPlan(p) {
-      const defs = [{ k: 'name', l: 'Nome', req: true }, { k: 'tagline', l: 'Subtítulo' }, { k: 'ai_monthly_limit', l: 'Limite mensal de IA (chat, resumos, prompts)', type: 'number' }, { k: 'builder_monthly_limit', l: 'Limite mensal do Builder com IA', type: 'number' }, { k: 'benefits', l: 'Benefícios (um por linha)', type: 'textarea', rows: 5, wide: true }];
+      const defs = [{ k: 'name', l: 'Nome', req: true }, { k: 'tagline', l: 'Subtítulo' }, { k: 'benefits', l: 'Benefícios (um por linha)', type: 'textarea', rows: 5, wide: true }];
       const f = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((d) => fieldEl(d, p[d.k])));
       modal({ title: `Editar plano ${p.name}`, size: 'lg', body: f, actions: [{ label: 'Cancelar', kind: 'ghost' }, { label: 'Salvar', keepOpen: true, onClick: async (close) => { if (!f.reportValidity()) return false; await api.put('/me/plans/' + p.key, readForm(f, defs)); toast('Plano atualizado.', 'ok'); close(); this.render(box, ctx); } }] });
     }
@@ -17,7 +17,7 @@ export default {
         h('section', { class: 'card pad stack' }, h('h3', 'Créditos de prospecção'), h('b', { style: 'font-size:1.8rem' }, me.user.credits), h('div', { class: 'sm mut' }, 'Cada empresa entregue em uma busca da Prospecção consome 1 crédito. Peça a um administrador para ampliar o saldo.'))),
       h('div', { class: 'plans' }, me.plans.map((p) => h('article', { class: 'card plan' + (p.key === cur.key ? ' cur' : '') },
         h('div', { class: 'sm mut' }, `0${p.rank} / ${p.tagline || ''}`), h('h2', p.name), h('ul', (p.benefits || '').split('\n').filter(Boolean).map((b) => h('li', b))),
-        h('div', { class: 'sm mut' }, `IA: ${p.ai_monthly_limit}/mês · Builder: ${p.builder_monthly_limit}/mês`),
+        h('div', { class: 'sm mut' }, 'IA e Builder: ilimitados'),
         p.key === cur.key ? h('span', { class: 'badge ok' }, 'Seu plano') : p.rank > cur.rank ? h('span', { class: 'badge' }, 'Acesso reservado') : null,
         isAdmin && h('button', { class: 'btn ghost sm', onclick: () => editPlan.call({ render: this.render }, p) }, 'Editar plano')))));
   }

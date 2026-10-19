@@ -89,7 +89,7 @@ test('cadastro público cria Membro com espaço próprio e funções completas',
   assert.equal((await call('GET', '/api/me/export', undefined, bia)).status, 403);
   assert.equal((await call('PUT', '/api/courses/1', { title: 'x' }, bia)).status, 403);
   assert.equal((await call('POST', '/api/lessons', { title: 'x', course_id: 1 }, bia)).status, 403);
-  assert.equal((await call('PUT', '/api/pipeline/stages', { stages: [] }, bia)).status, 403);
+  assert.equal((await call('PUT', '/api/pipeline/stages', { stages: [] }, bia)).status, 400);
   for (const u of ['/api/me', '/api/library', '/api/play', '/api/courses', '/api/prompts', '/api/integrations/status']) assert.equal((await call('GET', u, undefined, bia)).status, 200, u);
 });
 

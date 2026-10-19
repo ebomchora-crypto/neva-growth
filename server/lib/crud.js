@@ -9,7 +9,7 @@ const SCOPED = new Set(['leads', 'clients', 'tasks', 'products', 'sales', 'proje
  * Fábrica de CRUD declarativo.
  * fields: { col: { type: 'string'|'text'|'number'|'int'|'bool'|'date'|'enum'|'ref'|'email', required, max, values, min } }
  */
-async function coerce(name, f, v) {
+async function coerce(name, f, v, req) {
   const empty = v === undefined || v === null || v === '';
   if (empty) {
     if (f.required) throw bad(`Campo obrigatório: ${f.label || name}.`);
@@ -35,7 +35,7 @@ async function coerce(name, f, v) {
       const s = String(v); if (!/^\d{4}-\d{2}-\d{2}/.test(s)) throw bad(`${f.label || name}: data inválida.`); return s.slice(0, 10);
     }
     case 'enum': {
-      const vals = typeof f.values === 'function' ? await f.values() : f.values;
+      const vals = typeof f.values === 'function' ? await f.values(req) : f.values;
       if (!vals.includes(v)) throw bad(`${f.label || name}: valor inválido.`); return v;
     }
     case 'email': {
@@ -53,11 +53,11 @@ function crud(cfg) {
   const names = Object.keys(fields);
   const sc = SCOPED.has(table); // tabela por espaço de trabalho?
 
-  async function parse(body, partial) {
+  async function parse(body, partial, req) {
     const out = {};
     for (const n of names) {
       if (partial && !(n in body)) continue;
-      out[n] = await coerce(n, fields[n], body[n]);
+      out[n] = await coerce(n, fields[n], body[n], req);
     }
     return out;
   }
@@ -97,7 +97,7 @@ function crud(cfg) {
   });
 
   r.post('/', async (req, res) => {
-    const data = await parse(req.body || {}, false);
+    const data = await parse(req.body || {}, false, req);
     if (cfg.beforeCreate) await cfg.beforeCreate(data, req);
     await checkRefs(data, req);
     if (sc) data.ws = req.user.ws;
@@ -112,7 +112,7 @@ function crud(cfg) {
     const id = Number(req.params.id);
     const existing = sc ? await get(`SELECT * FROM ${table} WHERE id=? AND ws=?`, id, req.user.ws) : await get(`SELECT * FROM ${table} WHERE id=?`, id);
     if (!existing) throw new HttpError(404, 'Registro não encontrado.');
-    const data = await parse(req.body || {}, true);
+    const data = await parse(req.body || {}, true, req);
     req.prev = existing;
     if (cfg.beforeUpdate) await cfg.beforeUpdate(data, req, existing);
     await checkRefs(data, req);

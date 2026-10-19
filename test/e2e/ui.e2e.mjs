@@ -54,10 +54,13 @@ await step('paleta de comandos (Ctrl+Espaço)', async () => {
   await page.keyboard.press('Control+Space'); await page.waitForSelector('.palette input'); await page.fill('.palette input', 'Venda'); await page.waitForFunction(() => document.querySelector('.palette a')?.getAttribute('href') === '#/vendas');
   await page.keyboard.press('Enter'); await page.waitForURL(/#\/vendas/); 
 });
-await step('CRM: criar oportunidade com prioridade e prazo', async () => {
+await step('CRM: criar oportunidade na gaveta (campos, abas, prioridade e prazo)', async () => {
   await nav('leads'); await page.click('button:has-text("Nova oportunidade")');
-  await page.fill('.modal input[name=name]', 'Clínica Aurora'); await page.fill('.modal input[name=value]', '3000'); await page.selectOption('.modal select[name=priority]', 'alta'); await page.fill('.modal input[name=due_date]', yesterday);
-  await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")'); await page.waitForSelector('.lcard .late');
+  await page.waitForSelector('.dw h2:has-text("O próximo projeto começa aqui.")'); await page.waitForSelector('.dw-tabs:has-text("Detalhes"):has-text("Tarefas"):has-text("Notas"):has-text("Histórico")'); await page.waitForSelector('.dw-sep:has-text("Contexto comercial")');
+  if (!(await page.isDisabled('.dw-go'))) throw new Error('criar deveria estar desligado sem dados');
+  await page.fill('.dw input[name=name]', 'Clínica Aurora'); await page.fill('.dw input[name=company]', 'Clínica Aurora'); await page.fill('.dw input[name=value]', '3000'); await page.fill('.dw input[name=due_date]', yesterday);
+  await page.click('.dw .fs-select:has(select[name=priority]) .fs-shown'); await page.click('.dw .fs-opt:has-text("Alta")');
+  await page.waitForSelector('.dw-note.ok'); await page.click('.dw-go'); await page.waitForSelector('.lcard:has-text("Clínica Aurora")'); await page.waitForSelector('.lcard .late');
 });
 await step('CRM: quick-add na coluna + arrastar + abas', async () => {
   await page.click('.col[data-stage=novo] .addopp'); await page.fill('.col[data-stage=novo] .qadd input', 'Padaria Sol'); await page.keyboard.press('Enter'); await page.waitForSelector('.lcard:has-text("Padaria Sol")');
@@ -70,12 +73,16 @@ await step('CRM: arquivar e ver arquivados', async () => {
   await page.click('.lcard:has-text("Padaria Sol")'); await page.click('.modal button:has-text("Arquivar")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
   await page.click('button:has-text("Arquivados")'); await page.waitForSelector('.lcard:has-text("Padaria Sol")'); await page.click('button:has-text("Voltar ao quadro")');
 });
-await step('CRM: editar funil (renomear + nova etapa)', async () => {
-  await page.click('button:has-text("Editar funil")');
-  await page.fill('.modal input[aria-label="Nome da etapa"] >> nth=1', 'Qualificados'); await page.click('.modal button:has-text("+ Etapa")');
-  await page.fill('.modal input[aria-label="Nome da etapa"] >> nth=6', 'Pós-venda'); await page.click('.modal button:has-text("Salvar funil")');
+await step('CRM: editar funil na gaveta (renomear + nova etapa)', async () => {
+  await page.click('button:has-text("Editar funil")'); await page.waitForSelector('.dw h2:has-text("Seu funil. Suas regras.")'); await page.waitForSelector('.dw-flow:has-text("Novos contatos")'); await page.waitForSelector('.dw-stage:has-text("ETAPA 01")');
+  await page.fill('.dw-stage >> nth=1 >> input[name=label]', 'Qualificados'); await page.click('.dw-add'); await page.fill('.dw-stage >> nth=6 >> input[name=label]', 'Pós-venda');
+  await page.click('.dw-go:has-text("Salvar funil")');
   await page.waitForSelector('.col .colhead:has-text("Qualificados")'); await page.waitForSelector('.col .colhead:has-text("Pós-venda")');
   await page.reload(); await page.waitForSelector('.col .colhead:has-text("Pós-venda")');
+});
+await step('CRM: importar carteira (clientes e leads da prospecção)', async () => {
+  await page.click('button:has-text("Importar carteira")'); await page.waitForSelector('.dw h2:has-text("Traga as relações que já começaram.")'); await page.waitForSelector('.dw-seg:has-text("Clientes"):has-text("Carteira de leads")');
+  await page.click('.dw-seg button:has-text("Carteira de leads")'); await page.waitForSelector('.dw-empty:has-text("Nenhum lead disponível.")'); await page.click('.dw-x'); await page.waitForFunction(() => !document.querySelector('.dw-back'));
 });
 await step('CRM: minimizar header + lista + converter em cliente', async () => {
   await page.click('button:has-text("Minimizar header")'); await page.waitForSelector('button:has-text("Expandir header")'); await page.click('button:has-text("Expandir header")');
@@ -193,7 +200,7 @@ await step('Play: cadastrar vídeo e marcar como visto', async () => {
   await nav('play'); await page.click('button:has-text("Novo conteúdo")'); await page.fill('.modal input[name=title]', 'Como vender sites'); await page.fill('.modal input[name=video_url]', 'https://youtu.be/dQw4w9WgXcQ'); await page.fill('.modal input[name=category]', 'Vendas');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("Como vender sites")'); await page.click('article:has-text("Como vender sites") >> button:has-text("Assistir")');
   await page.waitForSelector('.modal iframe'); await page.click('.modal button:has-text("Marcar como visto")'); await page.waitForSelector('.stat:has-text("Conteúdos vistos") b:text-is("100%")'); await page.waitForSelector('.badge:has-text("visto")');
-  await page.waitForSelector('.askband:has-text("3")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
+  await page.waitForSelector('.askband:has-text("ilimitadas")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
   await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("2")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
 });
 await step('Gerador de prompts: IA não configurada + Meus prompts', async () => {
@@ -202,7 +209,7 @@ await step('Gerador de prompts: IA não configurada + Meus prompts', async () =>
 });
 await step('Associação: planos e edição por admin', async () => {
   await nav('associacao'); await page.waitForSelector('text=Seu plano: Member'); await page.waitForSelector('.plan:has-text("Elite")');
-  await page.click('.plan:has-text("Creator") >> button:has-text("Editar plano")'); await page.fill('.modal input[name=ai_monthly_limit]', '200'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.plan:has-text("IA: 200/mês")');
+  await page.click('.plan:has-text("Creator") >> button:has-text("Editar plano")'); await page.fill('.modal input[name=tagline]', 'Plano para criadores'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.plan:has-text("Plano para criadores")'); await page.waitForSelector('.plan:has-text("ilimitados")');
 });
 await step('Usuários: plano e créditos', async () => {
   await nav('usuarios'); await page.waitForSelector('th:has-text("Créditos")'); await page.click('button:has-text("Novo usuário")'); await page.fill('.modal input[name=name]', 'Bia'); await page.fill('.modal input[name=email]', 'bia@neva.test'); await page.fill('.modal input[name=password]', 'senha-forte-456');

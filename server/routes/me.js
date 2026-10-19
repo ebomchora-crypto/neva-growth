@@ -105,7 +105,7 @@ r.put('/plans/:key', A.requireRole('admin'), async (req, res) => {
 r.get('/export', A.requireRole('admin'), async (req, res) => {
   const ws = req.user.ws; const t = (sql, ...p) => all(sql, ...p);   // só os dados do próprio espaço de trabalho
   const data = { exported_at: new Date().toISOString(), schema_version: (await get("SELECT value FROM meta WHERE key='schema_version'"))?.value,
-    pipeline_stages: await t('SELECT * FROM pipeline_stages'), leads: await t('SELECT * FROM leads WHERE ws=?', ws), clients: await t('SELECT * FROM clients WHERE ws=?', ws),
+    pipeline_stages: await t('SELECT * FROM pipeline_stages WHERE ws=?', ws), leads: await t('SELECT * FROM leads WHERE ws=?', ws), clients: await t('SELECT * FROM clients WHERE ws=?', ws),
     activities: await t('SELECT * FROM activities WHERE lead_id IN (SELECT id FROM leads WHERE ws=?) OR client_id IN (SELECT id FROM clients WHERE ws=?)', ws, ws),
     tasks: await t('SELECT * FROM tasks WHERE ws=?', ws), products: await t('SELECT * FROM products WHERE ws=?', ws), sales: await t('SELECT * FROM sales WHERE ws=?', ws),
     courses: await t('SELECT * FROM courses'), lessons: await t('SELECT * FROM lessons'),

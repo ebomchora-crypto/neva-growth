@@ -44,7 +44,7 @@ r.get('/', async (req, res) => {
   const ws = req.user.ws;
   const m = await metrics(req.query.period, ws);
   const stages = await all(`SELECT s.key, s.label, s.kind, s.position, COUNT(l.id) n, COALESCE(SUM(l.value),0) total FROM pipeline_stages s
-    LEFT JOIN leads l ON l.status=s.key AND l.archived=0 AND l.ws=? GROUP BY s.id, s.key, s.label, s.kind, s.position ORDER BY s.position`, ws);
+    LEFT JOIN leads l ON l.status=s.key AND l.archived=0 AND l.ws=s.ws WHERE s.ws=? GROUP BY s.id, s.key, s.label, s.kind, s.position ORDER BY s.position`, ws);
   const won = stages.filter((s) => s.kind === 'won').reduce((a, s) => a + s.n, 0), lost = stages.filter((s) => s.kind === 'lost').reduce((a, s) => a + s.n, 0);
   const open = stages.filter((s) => s.kind === 'open');
   res.json({
@@ -71,7 +71,7 @@ r.post('/summary', async (req, res) => {
   await S.checkAiQuota(req.user, 'summary');
   const m = await metrics(req.body?.period, req.user.ws);
   const top = await all(`SELECT s.description, s.amount, s.amount-s.cost AS profit FROM sales s WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY profit DESC LIMIT 5`, req.user.ws, m.range.start, m.range.end);
-  const open = await get("SELECT COUNT(*) n, COALESCE(SUM(value),0) v FROM leads WHERE archived=0 AND ws=? AND status IN (SELECT key FROM pipeline_stages WHERE kind='open')", req.user.ws);
+  const open = await get("SELECT COUNT(*) n, COALESCE(SUM(value),0) v FROM leads WHERE archived=0 AND ws=? AND status IN (SELECT key FROM pipeline_stages WHERE kind='open' AND ws=?)", req.user.ws, req.user.ws);
   const text = await ai.complete({ maxTokens: 700,
     system: 'Você é analista comercial. Escreva em português do Brasil, em no máximo 6 linhas, um resumo objetivo do período com base SOMENTE nos números fornecidos. Não invente dados; se algo for zero ou ausente, diga isso. Termine com 1 sugestão prática.',
     messages: [{ role: 'user', content: JSON.stringify({ periodo: m.range, receita: m.revenue, lucro: m.profit, vendas_pagas: m.sales, ticket_medio: m.ticket, variacao_lucro_pct: m.profitVariation, periodo_anterior: m.previous, maiores_vendas: top, oportunidades_abertas: open }) }] });

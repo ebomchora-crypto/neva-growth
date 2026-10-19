@@ -224,13 +224,13 @@ export default {
       chatMsgs.append(h('div', { class: 'm u' }, text)); const wait = h('div', { class: 'm' }); chatMsgs.append(wait); chatMsgs.scrollTop = chatMsgs.scrollHeight;
       const mk = (a, b2, c) => [{ id: 'save', label: 'Salvando o arquivo aberto', status: a }, { id: 'ai', label: `Aguardando a IA (${chatSel.label()})`, status: b2 }, { id: 'ok', label: 'Preparando a resposta', status: c }];
       const L = aiLoading(mk('running', 'pending', 'pending'), { collapseWhenDone: false }); mount(wait, L.el);
-      try { await save(true); L.update(mk('done', 'running', 'pending')); const r = await api.post('/integrations/ai/chat', { projectId: id, activePath: active, message: text, ...chatSel.get() }); L.update(mk('done', 'done', 'done')); L.stop(); wait.replaceChildren(renderReply(r.reply)); usageEl.textContent = `Uso mensal: ${r.usage.used}/${r.usage.limit}`; }
+      try { await save(true); L.update(mk('done', 'running', 'pending')); const r = await api.post('/integrations/ai/chat', { projectId: id, activePath: active, message: text, ...chatSel.get() }); L.update(mk('done', 'done', 'done')); L.stop(); wait.replaceChildren(renderReply(r.reply)); usageEl.textContent = `Uso neste mês: ${r.usage.used} · ilimitado`; }
       catch (x) { L.stop(); wait.textContent = x.message; wait.classList.add('err-text'); }
       chatMsgs.scrollTop = chatMsgs.scrollHeight;
     } }, chatSel.el, h('div', { class: 'grow' }, chatIn), h('button', { class: 'btn' }, 'Enviar'));
     async function loadChat() {
       if (!st.ai.configured) return;
-      try { const r = await api.get('/integrations/ai/history', { projectId: id }); usageEl.textContent = `Uso mensal: ${r.usage.used}/${r.usage.limit}`;
+      try { const r = await api.get('/integrations/ai/history', { projectId: id }); usageEl.textContent = `Uso neste mês: ${r.usage.used} · ilimitado`;
         mount(chatMsgs, r.items.length ? r.items.map((m) => (m.role === 'user' ? h('div', { class: 'm u' }, m.content) : h('div', { class: 'm' }, renderReply(m.content)))) : h('div', { class: 'm mut' }, 'Converse com a IA sobre este projeto. O histórico fica salvo por projeto e por usuário.')); chatMsgs.scrollTop = chatMsgs.scrollHeight; } catch { /* sem histórico */ }
     }
     const chatEl = st.ai.configured ? h('div', { class: 'chat' }, h('div', { class: 'row', style: 'padding:6px 12px;justify-content:space-between' }, usageEl, h('div', { class: 'row' }, undoBtn, h('button', { class: 'btn ghost sm', onclick: async () => { if (await confirmBox('Limpar o histórico desta conversa?', 'Limpar')) { await api.del('/integrations/ai/history', { projectId: id }); loadChat(); } } }, 'Limpar conversa'))), chatMsgs, chatForm)

@@ -15,7 +15,7 @@ export default {
   async render(box, ctx) {
     const isAdmin = ctx.user.role === 'admin'; let cat = '';
     const grid = h('div', { class: 'cards playgrid', id: 'playgrid' }); const statsBox = h('div', { class: 'hero-stats' }); const bar = h('div'); const band = h('section', { class: 'card playband' });
-    let data; let sug = { items: [], limit: 3, remaining: 3, used: 0 }; const askBand = h('section', { class: 'card askband' }); const adminBox = h('section', { class: 'card pad stack' });
+    let data; let sug = { items: [], limit: null, remaining: null, used: 0 }; const askBand = h('section', { class: 'card askband' }); const adminBox = h('section', { class: 'card pad stack' });
     async function load() { [data, sug] = await Promise.all([api.get('/play', { all: isAdmin ? 1 : '' }), api.get('/play/suggestions', { all: isAdmin ? 1 : '' })]); draw(); }
     function draw() {
       const s = data.stats;
@@ -34,8 +34,8 @@ export default {
     function drawAsk() {
       const canAsk = ctx.user.role !== 'viewer';
       mount(askBand, h('div', { class: 'ab-l' }, h('h2', 'O que você quer aprender?'), h('p', { class: 'sm mut', style: 'margin:6px 0 0;max-width:60ch' }, 'Conte o tema e o resultado que gostaria de alcançar. A equipe editorial recebe cada pedido dentro do painel do Play.')),
-        h('div', { class: 'ab-r' }, h('div', { class: 'ab-n' }, h('b', String(sug.remaining)), h('span', h('b', { style: 'display:block' }, 'sugestões disponíveis'), h('small', `limite de ${sug.limit} por semana`))),
-          canAsk && h('button', { class: 'btn', disabled: sug.remaining < 1, title: sug.remaining < 1 ? 'Você usou as sugestões desta semana.' : '', onclick: suggest }, 'Sugerir uma aula →')));
+        h('div', { class: 'ab-r' }, h('div', { class: 'ab-n' }, h('b', '∞'), h('span', h('b', { style: 'display:block' }, 'sugestões ilimitadas'), h('small', 'envie quantas quiser'))),
+          canAsk && h('button', { class: 'btn', onclick: suggest }, 'Sugerir uma aula →')));
       adminBox.classList.toggle('hide', !isAdmin);
       mount(adminBox, isAdmin ? [h('div', { class: 'k' }, 'Painel editorial'), h('h2', 'Pedidos de aulas'),
         sug.items.length ? h('div', { class: 'tablewrap' }, h('table', h('thead', h('tr', ['Quando', 'Quem', 'Tema', 'Resultado esperado', 'Situação', ''].map((c) => h('th', c)))),
@@ -46,7 +46,7 @@ export default {
     function suggest() {
       const defs = [{ k: 'topic', l: 'Tema da aula', req: true, wide: true, ph: 'Ex.: Como precificar um site para clínicas' }, { k: 'outcome', l: 'Resultado que você quer alcançar', type: 'textarea', rows: 4, wide: true, ph: 'Ex.: Fechar meus 3 primeiros clientes' }];
       const f = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((d) => fieldEl(d)));
-      modal({ title: 'Sugerir uma aula', body: h('div', { class: 'stack' }, h('p', { class: 'sm mut', style: 'margin:0' }, `Você ainda pode enviar ${sug.remaining} sugestão(ões) nesta semana.`), f),
+      modal({ title: 'Sugerir uma aula', body: h('div', { class: 'stack' }, h('p', { class: 'sm mut', style: 'margin:0' }, 'Envie quantas sugestões quiser.'), f),
         actions: [{ label: 'Cancelar', kind: 'ghost' }, { label: 'Enviar sugestão', keepOpen: true, onClick: async (close) => { if (!f.reportValidity()) return false; const d = readForm(f, defs); await api.post('/play/suggestions', d); toast('Sugestão enviada para a equipe.', 'ok'); close(); load(); } }] });
     }
     function watch(i) {

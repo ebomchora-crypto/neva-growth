@@ -48,7 +48,7 @@ export default {
     const summaryBox = h('div');
     async function genSummary(btn) {
       btn.disabled = true; btn.textContent = 'Gerando…';
-      try { const r = await api.post('/dashboard/summary', { period }); mount(summaryBox, h('div', { class: 'notice info', style: 'white-space:pre-wrap;margin-top:12px' }, r.summary, h('div', { class: 'sm mut' }, `Gerado por IA a partir dos números do período · uso mensal: ${r.usage.used}/${r.usage.limit}`))); }
+      try { const r = await api.post('/dashboard/summary', { period }); mount(summaryBox, h('div', { class: 'notice info', style: 'white-space:pre-wrap;margin-top:12px' }, r.summary, h('div', { class: 'sm mut' }, `Gerado por IA a partir dos números do período `))); }
       catch (e) { fail(e); } finally { btn.disabled = false; btn.textContent = 'Gerar resumo do período'; }
     }
     function draw(d) {

@@ -6,43 +6,46 @@ const wrap = (fn) => fn;
 const A = require('../lib/auth');
 const { notify } = require('../lib/services');
 
-const stages = () => all('SELECT * FROM pipeline_stages ORDER BY position, id');
-const stageKeys = async () => (await stages()).map((s) => s.key);
-const stageKind = async (key) => (await get('SELECT kind FROM pipeline_stages WHERE key=?', key))?.kind;
-const firstOpen = async () => (await get("SELECT key FROM pipeline_stages WHERE kind='open' ORDER BY position, id LIMIT 1"))?.key;
+const { stagesOf, stageKeysOf, stageKindOf, firstOpenOf, wonStageOf } = require('../lib/services');
+const stageKeys = (req) => stageKeysOf(req.user.ws);
 const today = () => new Date().toISOString().slice(0, 10);
 const r = express.Router();
 
 
-// ---- Etapas do funil personalizáveis
-r.get('/pipeline/stages', async (req, res) => res.json(await all(`SELECT s.*, (SELECT COUNT(*) FROM leads l WHERE l.status=s.key AND l.ws=?) AS leads_count FROM pipeline_stages s ORDER BY position, id`, req.user.ws)));
-r.put('/pipeline/stages', A.requireRole('admin'), async (req, res) => {
+// ---- Etapas do funil personalizáveis (cada conta edita o seu funil)
+r.get('/pipeline/stages', async (req, res) => {
+  const list = await stagesOf(req.user.ws);
+  const counts = await all('SELECT status, COUNT(*) n FROM leads WHERE ws=? GROUP BY status', req.user.ws);
+  res.json(list.map((s) => ({ ...s, leads_count: Number(counts.find((c) => c.status === s.key)?.n || 0) })));
+});
+r.put('/pipeline/stages', A.requireRole('admin', 'member'), async (req, res) => {
+  const ws = req.user.ws;
   const list = req.body?.stages;
   if (!Array.isArray(list) || list.length < 2 || list.length > 12) throw bad('Defina de 2 a 12 etapas.');
-  const norm = list.map((x, i) => ({ key: x.key ? String(x.key) : null, label: String(x.label || '').trim().slice(0, 40), kind: x.kind, position: i + 1 }));
+  const norm = list.map((x, i) => ({ key: x.key ? String(x.key) : null, label: String(x.label || '').trim().slice(0, 40), kind: x.kind, position: i + 1, description: String(x.description || '').trim().slice(0, 80) || null, probability: Math.max(0, Math.min(100, Math.round(Number(x.probability) || 0))) }));
   if (norm.some((x) => !x.label)) throw bad('Toda etapa precisa de um nome.');
   if (norm.some((x) => !['open', 'won', 'lost'].includes(x.kind))) throw bad('Tipo de etapa inválido.');
   if (!norm.some((x) => x.kind === 'open')) throw bad('É necessária ao menos uma etapa aberta.');
   if (norm.filter((x) => x.kind === 'won').length !== 1 || norm.filter((x) => x.kind === 'lost').length !== 1) throw bad('Defina exatamente uma etapa de ganho e uma de perda.');
-  const existing = new Set(await stageKeys());
+  const existing = new Set(await stageKeysOf(ws));
   const keep = new Set(norm.filter((x) => x.key && existing.has(x.key)).map((x) => x.key));
   const removed = [...existing].filter((k) => !keep.has(k));
   for (const k of removed) {
-    const n = (await get('SELECT COUNT(*) n FROM leads WHERE status=?', k)).n;
+    const n = (await get('SELECT COUNT(*) n FROM leads WHERE status=? AND ws=?', k, ws)).n;
     if (n) throw bad(`A etapa "${k}" ainda tem ${n} oportunidade(s). Mova-as antes de excluir.`);
   }
   await tx(async () => {
-    for (const k of removed) await run('DELETE FROM pipeline_stages WHERE key=?', k);
+    for (const k of removed) await run('DELETE FROM pipeline_stages WHERE key=? AND ws=?', k, ws);
     for (const x of norm) {
-      if (x.key && existing.has(x.key)) await run('UPDATE pipeline_stages SET label=?, kind=?, position=? WHERE key=?', x.label, x.kind, x.position, x.key);
+      if (x.key && existing.has(x.key)) await run('UPDATE pipeline_stages SET label=?, kind=?, position=?, description=?, probability=? WHERE key=? AND ws=?', x.label, x.kind, x.position, x.description, x.probability, x.key, ws);
       else {
         let base = x.label.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'etapa';
-        let key = base, i = 2; while (await get('SELECT 1 x FROM pipeline_stages WHERE key=?', key)) key = `${base}-${i++}`;
-        await run('INSERT INTO pipeline_stages(key,label,kind,position) VALUES (?,?,?,?)', key, x.label, x.kind, x.position);
+        let key = base, i = 2; while (await get('SELECT 1 x FROM pipeline_stages WHERE key=? AND ws=?', key, ws)) key = `${base}-${i++}`;
+        await run('INSERT INTO pipeline_stages(key,label,kind,position,ws,description,probability) VALUES (?,?,?,?,?,?,?)', key, x.label, x.kind, x.position, ws, x.description, x.probability);
       }
     }
   });
-  res.json(await stages());
+  res.json(await stagesOf(ws));
 });
 
 // ---- Leads / Pipeline
@@ -50,19 +53,53 @@ const leads = crud({
   table: 'leads', alias: 'l',
   select: 'SELECT l.*, u.name AS owner_name FROM leads l LEFT JOIN users u ON u.id=l.owner_id',
   search: ['name', 'company', 'email', 'phone'], filters: ['status', 'owner_id', 'source', 'priority', 'archived'],
-  extraWhere: (req) => (req.query.overdue === '1' ? ["l.due_date IS NOT NULL AND l.due_date < date('now') AND l.archived=0 AND l.status IN (SELECT key FROM pipeline_stages WHERE kind='open')"] : null),
+  extraWhere: (req) => (req.query.overdue === '1' ? ["l.due_date IS NOT NULL AND l.due_date < date('now') AND l.archived=0 AND l.status IN (SELECT key FROM pipeline_stages WHERE kind='open' AND ws=?)", req.user.ws] : null),
   fields: {
     name: { type: 'string', required: true, label: 'Nome' }, company: { type: 'string' }, email: { type: 'email' },
-    phone: { type: 'string', max: 40 }, website: { type: 'string' }, source: { type: 'string', max: 60 },
+    phone: { type: 'string', max: 40 }, website: { type: 'string' }, source: { type: 'string', max: 60 }, contact: { type: 'string', max: 120 }, tags: { type: 'string', max: 200 },
     status: { type: 'enum', values: stageKeys, label: 'Etapa' },
     priority: { type: 'enum', values: ['baixa', 'media', 'alta'], default: 'media', label: 'Prioridade' }, due_date: { type: 'date', label: 'Prazo' }, archived: { type: 'bool' },
     value: { type: 'number', min: 0, default: 0 }, notes: { type: 'text' },
     owner_id: { type: 'ref', table: 'users', label: 'Responsável' }
   },
-  async beforeCreate(d, req) { d.status = d.status || await firstOpen(); d.priority = d.priority || 'media'; d.value = d.value ?? 0; d.owner_id = d.owner_id ?? req.user.id; },
+  async beforeCreate(d, req) { d.status = d.status || await firstOpenOf(req.user.ws); d.priority = d.priority || 'media'; d.value = d.value ?? 0; d.owner_id = d.owner_id ?? req.user.id; },
   async afterSave(row, req, op) { if (op === 'create') await notify({ type: 'lead', pref: 'notify_leads', text: `Novo lead: ${row.name}`, link: '#/leads', exceptUserId: req.user.id, ws: req.user.ws }); }
 });
 // rotas específicas antes do CRUD genérico
+// Importar carteira: clientes cadastrados e leads encontrados na Prospecção que ainda não estão no CRM.
+const parseJ = (v, d) => { try { return JSON.parse(v) ?? d; } catch { return d; } };
+const normKey = (n, p) => `${String(n || '').trim().toLowerCase()}|${String(p || '').replace(/\D/g, '')}`;
+async function importPool(req) {
+  const ws = req.user.ws;
+  const known = new Set((await all('SELECT name, phone, client_id FROM leads WHERE ws=?', ws)).flatMap((l) => [normKey(l.name, l.phone)]));
+  const importedClients = new Set((await all('SELECT client_id FROM leads WHERE ws=? AND client_id IS NOT NULL', ws)).map((l) => l.client_id));
+  const clients = (await all('SELECT id, name, company, email, phone FROM clients WHERE ws=? AND lead_id IS NULL ORDER BY id DESC', ws)).filter((c) => !importedClients.has(c.id))
+    .map((c) => ({ key: String(c.id), name: c.company || c.name, contact: c.company ? c.name : null, email: c.email, phone: c.phone, sub: [c.company ? c.name : null, c.phone || c.email].filter(Boolean).join(' · ') }));
+  const seen = new Set(); const prospects = [];
+  for (const row of await all("SELECT results FROM prospect_searches WHERE user_id=? AND results IS NOT NULL ORDER BY id DESC LIMIT 30", req.user.id)) {
+    for (const i of parseJ(row.results, {}).items || parseJ(row.results, [])) {
+      const k = normKey(i.name, i.phone); if (!i.name || seen.has(k) || known.has(k)) continue; seen.add(k);
+      prospects.push({ key: k, name: i.name, phone: i.phone || null, email: i.email || null, website: i.website || null, category: i.category || null, address: i.address || null, instagram: i.instagram || null, maps_url: i.maps_url || null, rating: i.rating ?? null,
+        sub: [i.category, i.address].filter(Boolean).join(' · ') });
+    }
+  }
+  return { clients, prospects };
+}
+r.get('/leads/import/sources', async (req, res) => { const p = await importPool(req); res.json({ clients: p.clients, prospects: p.prospects.slice(0, 500) }); });
+r.post('/leads/import/batch', async (req, res) => {
+  const type = req.body?.type === 'clients' ? 'clients' : 'prospects'; const keys = new Set((Array.isArray(req.body?.keys) ? req.body.keys : []).map(String));
+  if (!keys.size) throw bad('Selecione ao menos um item.'); if (keys.size > 60) throw bad('Importe até 60 itens por vez.');
+  const pool = await importPool(req); const first = await firstOpenOf(req.user.ws); let created = 0;
+  await tx(async () => {
+    for (const x of pool[type]) {
+      if (!keys.has(x.key)) continue;
+      if (type === 'clients') await run('INSERT INTO leads(name,company,contact,email,phone,source,owner_id,status,ws,client_id) VALUES (?,?,?,?,?,?,?,?,?,?)', x.name.slice(0, 300), x.name, x.contact, x.email, x.phone, 'Cliente', req.user.id, first, req.user.ws, Number(x.key));
+      else await run('INSERT INTO leads(name,company,email,phone,website,source,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?,?,?)', x.name.slice(0, 300), x.name, x.email, x.phone, x.website, 'Prospecção (Google Maps)', [x.category, x.address, x.instagram, x.maps_url, x.rating != null ? `Nota ${x.rating}` : null].filter(Boolean).join('\n') || null, req.user.id, first, req.user.ws);
+      created++;
+    }
+  });
+  res.json({ created });
+});
 r.post('/leads/import', async (req, res) => {
   const rows = Array.isArray(req.body?.rows) ? req.body.rows.slice(0, 2000) : [];
   if (!rows.length) throw bad('Nenhuma linha para importar.');
@@ -72,21 +109,21 @@ r.post('/leads/import', async (req, res) => {
     if (!name) { skipped.push(i + 1); continue; }
     await run('INSERT INTO leads(name,company,email,phone,website,source,value,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
       name.slice(0, 300), x.company || null, x.email || null, x.phone || null, x.website || null,
-      x.source || 'importação', Number(x.value) || 0, x.notes || null, req.user.id, await firstOpen(), req.user.ws);
+      x.source || 'importação', Number(x.value) || 0, x.notes || null, req.user.id, await firstOpenOf(req.user.ws), req.user.ws);
     created++;
   } });
   res.json({ created, skipped });
 });
 r.post('/leads/:id/stage', async (req, res) => {
   const { status } = req.body || {};
-  if (!(await stageKeys()).includes(status)) throw bad('Etapa inválida.');
+  if (!(await stageKeysOf(req.user.ws)).includes(status)) throw bad('Etapa inválida.');
   const id = Number(req.params.id);
   const l = await get('SELECT * FROM leads WHERE id=? AND ws=?', id, req.user.ws);
   if (!l) throw new HttpError(404, 'Lead não encontrado.');
   await run("UPDATE leads SET status=?, updated_at=datetime('now') WHERE id=?", status, id);
   if (l.status !== status) {
     await run('INSERT INTO activities(lead_id,type,text,user_id) VALUES (?,?,?,?)', id, 'etapa', `Etapa alterada: ${l.status} → ${status}`, req.user.id);
-    if (await stageKind(status) === 'won') await notify({ type: 'lead', pref: 'notify_sales', text: `Oportunidade conquistada: ${l.name}`, link: '#/leads', exceptUserId: req.user.id, ws: req.user.ws });
+    if (await stageKindOf(status, req.user.ws) === 'won') await notify({ type: 'lead', pref: 'notify_sales', text: `Oportunidade conquistada: ${l.name}`, link: '#/leads', exceptUserId: req.user.id, ws: req.user.ws });
   }
   res.json(await get('SELECT * FROM leads WHERE id=?', id));
 });
@@ -114,7 +151,7 @@ r.post('/leads/:id/convert', async (req, res) => {
   const out = await tx(async () => {
     const c = await run("INSERT INTO clients(name,company,email,phone,notes,lead_id,stage,ws) VALUES (?,?,?,?,?,?,'cliente',?)", l.name, l.company, l.email, l.phone, l.notes, id, req.user.ws);
     const clientId = Number(c.lastInsertRowid);
-    await run("UPDATE leads SET status=COALESCE((SELECT key FROM pipeline_stages WHERE kind='won' ORDER BY position LIMIT 1), status), updated_at=datetime('now') WHERE id=?", id);
+    await run("UPDATE leads SET status=COALESCE(?, status), updated_at=datetime('now') WHERE id=?", await wonStageOf(req.user.ws), id);
     await run('INSERT INTO activities(lead_id,client_id,type,text,user_id) VALUES (?,?,?,?,?)', id, clientId, 'etapa', 'Lead convertido em cliente', req.user.id);
     let saleId = null;
     if (req.body?.createSale && l.value > 0) {

@@ -28,7 +28,7 @@ before(async () => {
 after(() => { server.close(); fs.rmSync(dir, { recursive: true, force: true }); });
 
 test('esquema Postgres aplicado, com seed de planos, etapas e biblioteca', async () => {
-  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '7');
+  assert.equal((await dbGet("SELECT value FROM meta WHERE key='schema_version'")).value, '8');
   assert.equal((await A('GET', '/api/pipeline/stages')).body.length, 6);
   assert.deepEqual((await A('GET', '/api/me')).body.plans.map((p) => p.key), ['member', 'creator', 'elite']);
   assert.ok((await A('GET', '/api/library?kind=prompt')).body.total >= 3);
@@ -63,7 +63,7 @@ test('dashboard por período com lucro, ticket e variação', async () => {
 
 test('funil personalizável, arquivamento, prioridade, atraso e conversão', async () => {
   const stages = (await A('GET', '/api/pipeline/stages')).body;
-  assert.equal((await M('PUT', '/api/pipeline/stages', { stages })).status, 403);
+  assert.equal((await M('PUT', '/api/pipeline/stages', { stages })).status, 200);   // cada conta edita o seu funil
   const bad = stages.filter((s) => s.kind !== 'lost'); assert.equal((await A('PUT', '/api/pipeline/stages', { stages: bad })).status, 400);
   const lead = (await A('POST', '/api/leads', { name: 'Lead 1', priority: 'alta', due_date: day(-1), value: 700 })).body;
   assert.equal((await A('PUT', '/api/pipeline/stages', { stages: stages.filter((s) => s.key !== 'novo') })).status, 400);   // etapa com oportunidades
@@ -194,15 +194,15 @@ test('busca global, créditos de prospecção e histórico de IA sem chave', asy
   assert.equal((await A('GET', '/api/integrations/ai/history?projectId=999')).status, 404);
 });
 
-test('Play: sugestões de aula com limite semanal, painel do admin e notificação', async () => {
-  let s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.limit, 3); assert.equal(s.remaining, 3); assert.equal(s.items.length, 0);
+test('Play: sugestões de aula ilimitadas, painel do admin e notificação', async () => {
+  let s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.limit, null); assert.equal(s.remaining, null); assert.equal(s.items.length, 0);
   assert.equal((await M('POST', '/api/play/suggestions', { topic: 'x' })).status, 400);
-  const ok = await M('POST', '/api/play/suggestions', { topic: 'Como precificar sites', outcome: 'Fechar 3 clientes' }); assert.equal(ok.status, 201); assert.equal(ok.body.remaining, 2);
+  const ok = await M('POST', '/api/play/suggestions', { topic: 'Como precificar sites', outcome: 'Fechar 3 clientes' }); assert.equal(ok.status, 201);
   await M('POST', '/api/play/suggestions', { topic: 'Prospecção no Instagram' }); await M('POST', '/api/play/suggestions', { topic: 'Pós-venda' });
-  const blocked = await M('POST', '/api/play/suggestions', { topic: 'Mais uma' }); assert.equal(blocked.status, 429); assert.equal(blocked.body.code, 'suggestion_limit');
-  s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.remaining, 0); assert.equal(s.items.length, 3);
+  assert.equal((await M('POST', '/api/play/suggestions', { topic: 'Mais uma' })).status, 201);
+  s = (await M('GET', '/api/play/suggestions')).body; assert.equal(s.remaining, null); assert.equal(s.items.length, 4);
   // admin vê todos, o membro só os seus; só admin altera situação
-  assert.equal((await A('GET', '/api/play/suggestions?all=1')).body.items.length, 3);
+  assert.equal((await A('GET', '/api/play/suggestions?all=1')).body.items.length, 4);
   assert.equal((await A('GET', '/api/play/suggestions')).body.items.length, 0);
   assert.equal((await M('PUT', `/api/play/suggestions/${s.items[0].id}`, { status: 'publicado' })).status, 403);
   assert.equal((await A('PUT', `/api/play/suggestions/${s.items[0].id}`, { status: 'inexistente' })).status, 400);

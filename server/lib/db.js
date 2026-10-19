@@ -268,6 +268,26 @@ ALTER TABLE clients ADD COLUMN IF NOT EXISTS vercel_url TEXT;
 ALTER TABLE sales ADD COLUMN IF NOT EXISTS project_type TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS site_url TEXT;
 ALTER TABLE projects ADD COLUMN IF NOT EXISTS cover_url TEXT;
+` }
+, { v: 8, name: 'v8-funil-por-conta', sql: `
+-- Cada conta tem o seu funil (etapas com descrição e probabilidade).
+ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS ws INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE pipeline_stages ADD COLUMN IF NOT EXISTS probability INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE pipeline_stages DROP CONSTRAINT IF EXISTS pipeline_stages_key_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_stage_ws_key ON pipeline_stages(ws, key);
+UPDATE pipeline_stages SET description='A conversa começa aqui', probability=10 WHERE key='novo' AND description IS NULL;
+UPDATE pipeline_stages SET description='Problema e intenção claros', probability=25 WHERE key='contato' AND description IS NULL;
+UPDATE pipeline_stages SET description='Uma solução na mesa', probability=50 WHERE key='proposta' AND description IS NULL;
+UPDATE pipeline_stages SET description='Alinhando o próximo sim', probability=75 WHERE key='negociacao' AND description IS NULL;
+UPDATE pipeline_stages SET description='Relações que viram projetos', probability=100 WHERE key='ganho' AND description IS NULL;
+UPDATE pipeline_stages SET description='Aprendizados para o próximo', probability=0 WHERE key='perdido' AND description IS NULL;
+INSERT INTO pipeline_stages(key, label, position, kind, ws, description, probability)
+  SELECT s.key, s.label, s.position, s.kind, u.ws, s.description, s.probability FROM pipeline_stages s CROSS JOIN (SELECT DISTINCT ws FROM users WHERE ws <> 1) u WHERE s.ws = 1
+  ON CONFLICT (ws, key) DO NOTHING;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS contact TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS tags TEXT;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_id INTEGER;
 ` }];
 
 async function migrate() {

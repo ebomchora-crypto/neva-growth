@@ -124,7 +124,7 @@ r.get('/prospect/search/:id', async (req, res) => {
     const qualified = all1.filter((i) => !i.closed && (!prm.onlyNoSite || !i.website) && (i.rating ?? 0) >= (prm.minRating || 0));
     let imported = 0;
     if ((await S.getSettings(req.user.id)).prospect_auto_import === '1') {
-      const first = (await get("SELECT key FROM pipeline_stages WHERE kind='open' ORDER BY position, id LIMIT 1"))?.key;
+      const first = await S.firstOpenOf(req.user.ws);
       for (const i of qualified) {
         if (i.exists || !i.name) continue;
         await run('INSERT INTO leads(name,phone,email,website,source,notes,owner_id,status,ws) VALUES (?,?,?,?,?,?,?,?,?)', i.name.slice(0, 300), i.phone, i.email, i.website, 'Prospecção (Google Maps)',
