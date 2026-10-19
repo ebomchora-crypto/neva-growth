@@ -69,6 +69,8 @@ export interface PlanSection {
 export interface SitePlan {
   title: string
   description: string
+  /** Dados reais do negócio vindos do pedido (nome, cidade, WhatsApp) — viram dados estruturados (Schema.org). */
+  business?: { name: string; city?: string | null; phone?: string | null; niche?: string | null }
   direction: string
   theme: 'dark' | 'light'
   /** Idioma do site (pt-BR por padrão). */
@@ -2083,6 +2085,16 @@ const BASE_SCRIPT = `<script>
 })();
 </script>`
 
+// DESIGN.md cap. 21 (Schema.org): empresa local com os dados que o pedido trouxe — nada além disso.
+function localBusinessJsonLd(plan: SitePlan): string {
+  const b = plan.business
+  if (!b?.name) return ''
+  const data: Record<string, unknown> = { '@context': 'https://schema.org', '@type': 'LocalBusiness', name: b.name, description: plan.description }
+  if (b.phone) data.telephone = `+55${String(b.phone).replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')}`
+  if (b.city) data.address = { '@type': 'PostalAddress', addressLocality: b.city, addressCountry: 'BR' }
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
+}
+
 export function buildHead(plan: SitePlan): string {
   const fonts = [...new Set([plan.fonts.display, plan.fonts.body])]
     .map((font) => `family=${encodeURIComponent(font).replace(/%20/g, '+')}:wght@400;500;600;700;800`)
@@ -2116,6 +2128,9 @@ export function buildHead(plan: SitePlan): string {
     `<meta name="theme-color" content="${escapeHtml(plan.palette.brand)}">`,
     `<meta property="og:title" content="${escapeHtml(plan.title)}">`,
     `<meta property="og:description" content="${escapeHtml(plan.description)}">`,
+    '<meta property="og:type" content="website">',
+    `<meta property="og:locale" content="${escapeHtml((plan.lang ?? 'pt-BR').replace('-', '_'))}">`,
+    localBusinessJsonLd(plan),
     '<meta property="og:type" content="website">',
     `<link rel="icon" href="${favicon}">`,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',

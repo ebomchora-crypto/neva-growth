@@ -3442,6 +3442,14 @@ var BASE_SCRIPT = `<script>
   document.querySelectorAll('[data-year]').forEach(function(el){ el.textContent=new Date().getFullYear(); });
 })();
 </script>`;
+function localBusinessJsonLd(plan) {
+  const b = plan.business;
+  if (!b?.name) return "";
+  const data = { "@context": "https://schema.org", "@type": "LocalBusiness", name: b.name, description: plan.description };
+  if (b.phone) data.telephone = `+55${String(b.phone).replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "")}`;
+  if (b.city) data.address = { "@type": "PostalAddress", addressLocality: b.city, addressCountry: "BR" };
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
+}
 function buildHead(plan) {
   const fonts = [.../* @__PURE__ */ new Set([plan.fonts.display, plan.fonts.body])].map((font) => `family=${encodeURIComponent(font).replace(/%20/g, "+")}:wght@400;500;600;700;800`).join("&");
   const config = {
@@ -3473,6 +3481,9 @@ function buildHead(plan) {
     `<meta name="theme-color" content="${escapeHtml(plan.palette.brand)}">`,
     `<meta property="og:title" content="${escapeHtml(plan.title)}">`,
     `<meta property="og:description" content="${escapeHtml(plan.description)}">`,
+    '<meta property="og:type" content="website">',
+    `<meta property="og:locale" content="${escapeHtml((plan.lang ?? "pt-BR").replace("-", "_"))}">`,
+    localBusinessJsonLd(plan),
     '<meta property="og:type" content="website">',
     `<link rel="icon" href="${favicon}">`,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',

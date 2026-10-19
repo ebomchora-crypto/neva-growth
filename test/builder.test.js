@@ -92,6 +92,7 @@ test('alteração + revisão por arquivo: rejeitar volta só aquele arquivo; des
   assert.doesNotMatch(site.parts.contato, /Retire amanhã/); assert.match(site.files['estilos.css'], /btn-destaque/);
   const pub = await call('GET', `/s/${site.slug}/`, undefined, { cookie: '' });
   assert.doesNotMatch(pub.body, /Retire amanhã a partir das 7h/);
+  assert.match(pub.body, /"@type":"LocalBusiness","name":"Padaria Sol"/); // DESIGN.md cap. 21: dados estruturados só com o que o pedido trouxe
   const st = (await call('GET', `/api/code-maker/${siteId}/changes`)).body;
   assert.equal(st.files.find((f) => f.path === 'secoes/contato.html').state, 'rejected');
   site = (await call('POST', '/api/code-maker', { action: 'review', site_id: siteId, version_id: ch.version_id, rejected: [] })).body.site;
