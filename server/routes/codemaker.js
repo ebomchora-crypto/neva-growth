@@ -176,7 +176,7 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
   const started = Date.now();
   let body = { model, max_tokens: meta.maxTokens || 9000, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
-    ...(meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort) : {}), messages: [{ role: 'system', content: system }, { role: 'user', content }] };
+    ...(meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort, model) : {}), messages: [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
     response = await fetch(AI_URL(), {
       method: 'POST',
@@ -285,7 +285,7 @@ async function streamAi(req, res, options) {
     // A River limita pedidos por minuto: com várias partes ao mesmo tempo, espera e tenta de novo.
     const sel = options.sel || {};
     let body = { model: options.model, max_tokens: options.maxTokens, stream: true, stream_options: { include_usage: true },
-      ...(sel.model ? { temperature: ai.temperatureOf(sel.model) } : {}), ...(sel.effort ? ai.reasoningParams(sel.effort) : {}), messages };
+      ...(sel.model ? { temperature: ai.temperatureOf(sel.model) } : {}), ...(sel.effort ? ai.reasoningParams(sel.effort, options.model) : {}), messages };
     let response;
     for (let attempt = 0; attempt < 5; attempt++) {
       response = await fetch(AI_URL(), {

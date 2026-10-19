@@ -120,3 +120,17 @@ test('sonda de testes: desligada sem QA_TOKEN; ligada mede acertos por modelo/es
   await run("UPDATE app_settings SET value='' WHERE key='QA_TOKEN'");
   await require('../server/lib/config').refresh(true);
 });
+
+test('escada de raciocínio nativo por família (medida na River): DeepSeek liga/desliga, GLM/Nemotron regulam', async () => {
+  const ai = require('../server/lib/ai');
+  await run("UPDATE app_settings SET value='reasoning_effort' WHERE key='RIVER_REASONING'");
+  await require('../server/lib/config').refresh(true);
+  assert.deepEqual(ai.reasoningParams('low', 'deepseek-ai/DeepSeek-V4.1-Flash'), {});
+  assert.deepEqual(ai.reasoningParams('medium', 'deepseek-ai/DeepSeek-V4.1-Flash'), { reasoning_effort: 'low' });
+  assert.deepEqual(ai.reasoningParams('xhigh', 'deepseek-ai/DeepSeek-V4.1-Flash'), { reasoning_effort: 'high' });
+  assert.deepEqual(ai.reasoningParams('low', 'zai-org/GLM-5.3-Flash'), { reasoning_effort: 'low' });
+  assert.deepEqual(ai.reasoningParams('medium', 'zai-org/GLM-5.3-Flash'), { reasoning_effort: 'medium' });
+  await run("UPDATE app_settings SET value='' WHERE key='RIVER_REASONING'");
+  await require('../server/lib/config').refresh(true);
+  assert.deepEqual(ai.reasoningParams('high', 'zai-org/GLM-5.3-Flash'), {});
+});

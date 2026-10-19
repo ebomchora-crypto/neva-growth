@@ -86,7 +86,7 @@ r.post('/ai-probe', async (req, res) => {
         results.push({ item: i, ok: PROBLEMS[i].a.test(answer), ms: Date.now() - t, answer: answer.slice(0, 80), chars: text.length });
       } catch (e) { results.push({ item: i, ok: false, ms: Date.now() - t, error: String(e.message).slice(0, 160) }); }
     }
-    const calls = await all("SELECT kind, ms, prompt_tokens, completion_tokens, reasoning_tokens, ok FROM ai_calls WHERE kind LIKE 'qa:%' AND created_at>=? ORDER BY id", since).catch(() => []);
+    const calls = await all('SELECT kind, ms, prompt_tokens, completion_tokens, reasoning_tokens, ok FROM ai_calls WHERE kind LIKE ? AND created_at>=? ORDER BY id', `qa:${sel.model}:${sel.effort}%`, since).catch(() => []);
     return res.json({ ...sel, providerModel: ai.providerModelFor(sel.model), native: config.get('RIVER_REASONING') || null, results,
       correct: results.filter((x) => x.ok).length, total: results.length, ms: results.reduce((a, x) => a + x.ms, 0), calls });
   }

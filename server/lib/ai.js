@@ -55,10 +55,14 @@ const temperatureOf = (id) => MODELS.find((m) => m.id === resolveModel(id))?.tem
 
 // Parâmetro nativo de raciocínio (só vai se configurado e se a River não recusou antes nesta instância).
 let nativeRefused = false;
-function reasoningParams(effort) {
+// Medido na River (sonda /api/qa/ai-probe, out/2026): no DeepSeek o parâmetro só liga/desliga o raciocínio
+// ("medium" desliga e "low" ≈ "high"); no GLM e no Nemotron ele regula a profundidade. Por isso a escada muda por família.
+const DEEPSEEK_LEVELS = { low: null, medium: 'low', high: 'high', xhigh: 'high' };
+function reasoningParams(effort, providerModel = '') {
   const kind = config.get('RIVER_REASONING');
   if (!kind || nativeRefused || !EFFORTS[effort]) return {};
-  const level = EFFORTS[effort].native;
+  const level = /deepseek/i.test(providerModel) ? DEEPSEEK_LEVELS[effort] : EFFORTS[effort].native;
+  if (!level) return {};
   if (kind === 'reasoning_effort') return { reasoning_effort: level };
   if (kind === 'reasoning') return { reasoning: { effort: level } };
   if (kind === 'thinking') return effort === 'low' ? { thinking: { type: 'disabled' } } : { thinking: { type: 'enabled' } };
@@ -83,7 +87,7 @@ const asText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) 
 
 async function completeRiver({ system, messages, maxTokens, model, effort, kind, userId }) {
   const started = Date.now();
-  let body = { model: providerModelFor(model), max_tokens: maxTokens, temperature: temperatureOf(model), ...reasoningParams(effort),
+  let body = { model: providerModelFor(model), max_tokens: maxTokens, temperature: temperatureOf(model), ...reasoningParams(effort, providerModelFor(model)),
     messages: [...(system ? [{ role: 'system', content: system }] : []), ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: asText(m.content) }))] };
   let resp, data;
   for (let attempt = 0; attempt < 4; attempt++) {
