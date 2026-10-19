@@ -769,7 +769,7 @@ body{background:#e6f0fa}
 
 @media(min-width:861px){.nav a.norail,.nav-sec{display:none}.nav .nav-sec{display:none}}
 /* separador entre blocos do menu, como no original */
-@media(min-width:861px){.nav a[data-path="design"]{margin-top:10px;position:relative}.nav a[data-path="design"]::before{content:"";position:absolute;left:6px;right:6px;top:-7px;height:1px;background:rgba(255,255,255,.35)}}
+@media(min-width:861px){.nav a[data-path="design"]{margin-top:10px;position:relative}}
 .quicklinks{margin-bottom:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}.quicklinks .kicker{margin:0}
 /* ===== login e primeiro acesso (duas colunas) ===== */
 .auth2{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;background:var(--bg)}.auth2.rev .auth-form{order:2}

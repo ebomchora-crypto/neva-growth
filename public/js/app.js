@@ -192,7 +192,7 @@ function shell() {
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); resetPush(); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
-  const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), r.tool && h('i', { class: 'tbadge', 'aria-hidden': 'true' }, 'N'), h('span', { class: 'lbl' }, r.label));
+  const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),
