@@ -1097,3 +1097,25 @@ select.monthsel{border-radius:12px;background:var(--ice-50)}
 .composer:has(.bideas) .cleft,.composer:has(.bideas) .cright{min-height:0}
 .composer:has(.bideas) .cleft textarea{min-height:60px}
 @media(max-width:900px){.composer:has(.bideas){height:auto}.composer:has(.bideas) .bideas{max-height:260px}.stu-body{grid-template-rows:auto auto}}
+
+/* Studio em tela fixa (como o Lovable): nada rola na página; a conversa rola por dentro e o site rola dentro da prévia */
+html.studio-lock,html.studio-lock body{height:100%;overflow:hidden}
+html.studio-lock .shell{height:100dvh;min-height:0}
+html.studio-lock .main{height:100dvh;min-height:0;overflow:hidden}
+html.studio-lock #view{flex:1;min-height:0;display:flex;flex-direction:column}
+html.studio-lock .content.fill{flex:1;min-height:0;height:auto;display:flex;padding-bottom:12px}
+.stu{min-height:0;overflow:hidden}
+.stu-body{overflow:hidden}.stu-chat,.stu-view{min-height:0;overflow:hidden}
+.stu-stage{height:100%}
+.stu-tabs{display:none}
+@media(max-width:900px){
+  html.studio-lock .content.fill{display:flex;height:auto;padding:4px 10px 10px}
+  .stu-top{gap:6px;padding:6px 8px}.stu-acts .btn{padding:5px 8px}.stu-dev{display:none}
+  .stu-tabs{display:flex;gap:4px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px}
+  .stu-tabs button{flex:1;border:0;background:transparent;border-radius:9px;padding:7px;font-weight:600;color:var(--mut);cursor:pointer}
+  .stu-tabs button[aria-selected="true"]{background:var(--ice-600);color:#fff}
+  .stu-body{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr)}
+  .stu[data-tab="view"] .stu-chat,.stu[data-tab="chat"] .stu-view{display:none}
+  .stu-view{order:0;min-height:0}
+}
+.stu-composer .btn[hidden]{display:none}

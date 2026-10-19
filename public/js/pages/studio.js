@@ -269,15 +269,22 @@ export default {
     const stage = h('div', { class: 'stu-stage', dataset: { device } }, empty, frame);
     frame.hidden = true;
     box.classList.add('fill');
-    mount(box, h('div', { class: 'stu' },
+    // Como no Lovable: a tela do Studio tem tamanho fixo (a página não rola; só a conversa e o site dentro da prévia).
+    document.documentElement.classList.add('studio-lock');
+    const root = h('div', { class: 'stu', dataset: { tab: 'view' } });
+    const tabs = h('div', { class: 'stu-tabs', role: 'tablist' }, [['chat', 'Conversa'], ['view', 'Prévia']].map(([k, l]) =>
+      h('button', { type: 'button', role: 'tab', 'aria-selected': String(k === 'view'), onclick: (e) => { root.dataset.tab = k; tabs.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b === e.currentTarget))); } }, l)));
+    root.append(
       h('header', { class: 'stu-top' }, h('a', { href: '#/sites', class: 'stu-back', 'aria-label': 'Voltar aos sites' }, '←'), nameEl, statusEl, h('span', { class: 'grow' }), pageSel, devBtns, actionsEl),
+      tabs,
       h('div', { class: 'stu-body' },
         h('aside', { class: 'stu-chat' }, thread, composer),
-        h('section', { class: 'stu-view' }, stage))));
+        h('section', { class: 'stu-view' }, stage)));
+    mount(box, root);
     drawThread();
     loadPreview();
     // Como no Lovable: abriu um site ainda não terminado, a criação começa (ou continua) sozinha.
     if (site.status !== 'ready' && canWrite) generate();
-    return () => { disposed = true; controller?.abort(); clearTimeout(previewTimer); window.removeEventListener('message', onMsg); };
+    return () => { disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); clearTimeout(previewTimer); window.removeEventListener('message', onMsg); };
   }
 };
