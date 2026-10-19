@@ -869,43 +869,44 @@ function renderHeader(block, data) {
     data.fx.includes("smooth-scroll") ? '<span data-fx="smooth-scroll" hidden></span>' : ""
   ].join("");
   const ext = external(data.href);
+  const bp = data.nav.length > 5 ? "xl" : "lg";
   if (block === "menu-barra") {
-    const links2 = data.nav.map((item) => `<a href="#${esc(item.id)}" class="opacity-75 transition hover:opacity-100">${esc(item.label)}</a>`).join("\n      ");
+    const links2 = data.nav.map((item) => `<a href="#${esc(item.id)}" class="whitespace-nowrap opacity-75 transition hover:opacity-100">${esc(item.label)}</a>`).join("\n      ");
     const mobile2 = data.nav.map((item) => `<a href="#${esc(item.id)}" class="block py-3 font-medium">${esc(item.label)}</a>`).join("\n    ");
     return `<header data-header class="fixed inset-x-0 top-0 z-50 border-b border-transparent text-${data.topText} transition-all duration-300 data-[scrolled]:border-${data.ptx}/10 data-[scrolled]:bg-paper/85 data-[scrolled]:text-${data.ptx} data-[scrolled]:shadow-sm data-[scrolled]:backdrop-blur-xl">${extras}
   <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-4 md:px-10">
     <a href="#hero" class="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">${brandMark(data, "size-9")}</a>
-    <nav aria-label="Principal" class="hidden items-center gap-8 text-sm font-medium lg:flex">
+    <nav aria-label="Principal" class="hidden items-center gap-8 text-sm font-medium ${bp}:flex">
       ${links2}
     </nav>
     <div class="flex items-center gap-2">
       <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 sm:inline-flex">${esc(data.cta)}</a>
-      <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center ${R.rb} lg:hidden">${MENU}</button>
+      <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center ${R.rb} ${bp}:hidden">${MENU}</button>
     </div>
   </div>
-  <div data-menu class="hidden border-t border-${data.ptx}/10 bg-paper px-5 pb-5 pt-2 text-${data.ptx} lg:hidden">
+  <div data-menu class="hidden border-t border-${data.ptx}/10 bg-paper px-5 pb-5 pt-2 text-${data.ptx} ${bp}:hidden">
     ${mobile2}
     <a href="${esc(data.href)}"${ext} class="mt-2 flex min-h-12 items-center justify-center ${R.rb} bg-brand font-semibold text-${data.btx}">${esc(data.cta)}</a>
   </div>
 </header>`;
   }
   const links = data.nav.map(
-    (item) => `<a href="#${esc(item.id)}" class="rounded-full px-3.5 py-2 text-sm font-medium text-${data.ptx}/70 transition hover:bg-${data.ptx}/5 hover:text-${data.ptx}">${esc(item.label)}</a>`
+    (item) => `<a href="#${esc(item.id)}" class="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-${data.ptx}/70 transition hover:bg-${data.ptx}/5 hover:text-${data.ptx}">${esc(item.label)}</a>`
   ).join("\n        ");
   const mobile = data.nav.map((item) => `<a href="#${esc(item.id)}" class="block rounded-2xl px-4 py-3 font-medium hover:bg-${data.ptx}/5">${esc(item.label)}</a>`).join("\n      ");
   return `<header data-header class="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:pt-4">${extras}
   <div class="mx-auto max-w-5xl rounded-[28px] border border-${data.ptx}/10 bg-paper/75 text-${data.ptx} shadow-[0_12px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl">
     <div class="flex items-center justify-between gap-4 py-2 pl-5 pr-2">
       <a href="#hero" class="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">${brandMark(data)}</a>
-      <nav aria-label="Principal" class="hidden items-center gap-1 lg:flex">
+      <nav aria-label="Principal" class="hidden items-center gap-1 ${bp}:flex">
         ${links}
       </nav>
       <div class="flex items-center gap-1">
         <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 active:scale-[0.98] sm:inline-flex">${esc(data.cta)}</a>
-        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 lg:hidden">${MENU}</button>
+        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 ${bp}:hidden">${MENU}</button>
       </div>
     </div>
-    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 lg:hidden">
+    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 ${bp}:hidden">
       ${mobile}
       <a href="${esc(data.href)}"${ext} class="mt-2 flex min-h-12 items-center justify-center rounded-full bg-brand font-semibold text-${data.btx}">${esc(data.cta)}</a>
     </div>
@@ -1875,16 +1876,27 @@ var PHOTOS = {
     { id: "1495474472287-4d71bcdd2085", about: "caf\xE9s com arte no leite, vistos de cima" },
     { id: "1501339847302-ac426a4a7cbb", about: 'cafeteria com letreiro luminoso "CAFE"' }
   ],
-  saude: [
+  // Odontologia separada da saúde em geral: medido em produção, um site de fisioterapia saía com espelho de dentista e raio-x dental
+  // (DESIGN.md: "Foto falsa" e "Seleção de imagem").
+  odonto: [
     { id: "1629909613654-28e377c37b09", about: "consult\xF3rio odontol\xF3gico claro e moderno (hero)" },
     { id: "1588776814546-1ffcf47267a5", about: "dentista analisando raio-x" },
     { id: "1606811971618-4486d14f3f99", about: "atendimento odontol\xF3gico (detalhe)" },
+    { id: "1606811841689-23dfddce3e95", about: "dentista explicando o tratamento \xE0 paciente na cadeira" },
+    { id: "1519494026892-80bbd2d6fd0d", about: "recep\xE7\xE3o de cl\xEDnica" }
+  ],
+  saude: [
+    { id: "1631217868264-e5b90bb7e133", about: "m\xE9dica conversando com paciente no consult\xF3rio (hero)" },
     { id: "1519494026892-80bbd2d6fd0d", about: "recep\xE7\xE3o de cl\xEDnica" },
     { id: "1576091160399-112ba8d25d1d", about: "m\xE9dico de jaleco e estetosc\xF3pio" },
-    { id: "1606811841689-23dfddce3e95", about: "dentista explicando o tratamento \xE0 paciente na cadeira" },
-    { id: "1631217868264-e5b90bb7e133", about: "m\xE9dica conversando com paciente no consult\xF3rio" },
     { id: "1559839734-2b71ea197ec2", about: "retrato de m\xE9dica sorrindo ao ar livre" },
     { id: "1584515933487-779824d29309", about: "m\xE3os dadas, cuidado e acolhimento" }
+  ],
+  reabilitacao: [
+    { id: "1518611012118-696072aa579a", about: "aula em grupo no colchonete, pilates e alongamento (hero)" },
+    { id: "1631217868264-e5b90bb7e133", about: "profissional conversando com paciente no consult\xF3rio" },
+    { id: "1584515933487-779824d29309", about: "m\xE3os dadas, cuidado e acolhimento" },
+    { id: "1519494026892-80bbd2d6fd0d", about: "recep\xE7\xE3o de cl\xEDnica" }
   ],
   auto: [
     { id: "1487754180451-c456f719a1fc", about: "mec\xE2nico trocando \xF3leo do motor (hero)" },
@@ -2014,7 +2026,9 @@ var PHOTO_GROUPS = [
   { group: "barbearia", match: ["barbear", "barber"] },
   { group: "carros", match: ["automotiv", "lava jato", "lava-jato", "lavagem", "polimento", "vitrific", "detail", "martelinho", "concessionar", "seminovo", "carros"] },
   { group: "salao", match: ["salao", "cabel", "estetic", "manicure", "unha", "sobrancelha", "beleza", "spa", "maquiag", "depila"] },
-  { group: "saude", match: ["clinic", "dentist", "odonto", "fisio", "psicolog", "nutri", "medic", "saude", "consultorio", "fono", "laborat"] },
+  { group: "odonto", match: ["dentist", "odonto", "ortodon", "implante dent", "clareamento"] },
+  { group: "reabilitacao", match: ["fisio", "rpg", "reabilita", "quiroprax", "osteopat", "pilates clinico"] },
+  { group: "saude", match: ["clinic", "psicolog", "nutri", "medic", "saude", "consultorio", "fono", "laborat"] },
   { group: "auto", match: ["oficina", "mecanic", "auto", "funilar", "borrachar", "pneu", "lava", "moto", "guincho"] },
   { group: "comida", match: ["restaurante", "lanchonete", "padaria", "pizzar", "hamburg", "cafe", "bar", "acai", "doceria", "confeitar", "marmit", "aliment"] },
   { group: "juridico", match: ["advoca", "advogad", "juridic", "contab", "contador"] },
@@ -2223,6 +2237,8 @@ var GROUP_MOODS = {
   barbearia: ["strong", "elegant"],
   salao: ["elegant", "friendly", "modern"],
   saude: ["modern", "elegant"],
+  odonto: ["modern", "elegant"],
+  reabilitacao: ["modern", "friendly"],
   carros: ["strong", "modern"],
   auto: ["strong", "modern"],
   comida: ["craft", "elegant", "strong"],
@@ -2258,6 +2274,8 @@ var GROUP_HEROES = {
   casa: ["hero-mundo", "hero-cinema", "hero-editorial", "hero-dividido"],
   salao: ["hero-mundo", "hero-editorial", "hero-dividido", "hero-cinema"],
   saude: ["hero-dividido", "hero-mundo", "hero-cinema", "hero-brilho"],
+  odonto: ["hero-dividido", "hero-mundo", "hero-cinema", "hero-brilho"],
+  reabilitacao: ["hero-dividido", "hero-brilho", "hero-editorial"],
   juridico: ["hero-cinema", "hero-dividido", "hero-mundo", "hero-editorial"],
   pet: ["hero-dividido", "hero-mundo", "hero-editorial", "hero-cinema"],
   escola: ["hero-dividido", "hero-mundo", "hero-editorial"],

@@ -268,21 +268,24 @@ export function renderHeader(block: string, data: HeaderData): string {
     data.fx.includes('smooth-scroll') ? '<span data-fx="smooth-scroll" hidden></span>' : '',
   ].join('')
   const ext = external(data.href)
+  // Menu longo (mais de 5 itens) só aparece inteiro a partir de 1280px; antes disso fica no botão de menu.
+  // Medido em produção: em 1440px os rótulos quebravam em 3 linhas ("Por / que / aqui").
+  const bp = data.nav.length > 5 ? 'xl' : 'lg'
   if (block === 'menu-barra') {
-    const links = data.nav.map((item) => `<a href="#${esc(item.id)}" class="opacity-75 transition hover:opacity-100">${esc(item.label)}</a>`).join('\n      ')
+    const links = data.nav.map((item) => `<a href="#${esc(item.id)}" class="whitespace-nowrap opacity-75 transition hover:opacity-100">${esc(item.label)}</a>`).join('\n      ')
     const mobile = data.nav.map((item) => `<a href="#${esc(item.id)}" class="block py-3 font-medium">${esc(item.label)}</a>`).join('\n    ')
     return `<header data-header class="fixed inset-x-0 top-0 z-50 border-b border-transparent text-${data.topText} transition-all duration-300 data-[scrolled]:border-${data.ptx}/10 data-[scrolled]:bg-paper/85 data-[scrolled]:text-${data.ptx} data-[scrolled]:shadow-sm data-[scrolled]:backdrop-blur-xl">${extras}
   <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-4 md:px-10">
     <a href="#hero" class="flex items-center gap-2.5 font-display text-xl font-bold tracking-tight">${brandMark(data, 'size-9')}</a>
-    <nav aria-label="Principal" class="hidden items-center gap-8 text-sm font-medium lg:flex">
+    <nav aria-label="Principal" class="hidden items-center gap-8 text-sm font-medium ${bp}:flex">
       ${links}
     </nav>
     <div class="flex items-center gap-2">
       <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 sm:inline-flex">${esc(data.cta)}</a>
-      <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center ${R.rb} lg:hidden">${MENU}</button>
+      <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center ${R.rb} ${bp}:hidden">${MENU}</button>
     </div>
   </div>
-  <div data-menu class="hidden border-t border-${data.ptx}/10 bg-paper px-5 pb-5 pt-2 text-${data.ptx} lg:hidden">
+  <div data-menu class="hidden border-t border-${data.ptx}/10 bg-paper px-5 pb-5 pt-2 text-${data.ptx} ${bp}:hidden">
     ${mobile}
     <a href="${esc(data.href)}"${ext} class="mt-2 flex min-h-12 items-center justify-center ${R.rb} bg-brand font-semibold text-${data.btx}">${esc(data.cta)}</a>
   </div>
@@ -291,7 +294,7 @@ export function renderHeader(block: string, data: HeaderData): string {
   const links = data.nav
     .map(
       (item) =>
-        `<a href="#${esc(item.id)}" class="rounded-full px-3.5 py-2 text-sm font-medium text-${data.ptx}/70 transition hover:bg-${data.ptx}/5 hover:text-${data.ptx}">${esc(item.label)}</a>`,
+        `<a href="#${esc(item.id)}" class="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-${data.ptx}/70 transition hover:bg-${data.ptx}/5 hover:text-${data.ptx}">${esc(item.label)}</a>`,
     )
     .join('\n        ')
   const mobile = data.nav
@@ -301,15 +304,15 @@ export function renderHeader(block: string, data: HeaderData): string {
   <div class="mx-auto max-w-5xl rounded-[28px] border border-${data.ptx}/10 bg-paper/75 text-${data.ptx} shadow-[0_12px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl">
     <div class="flex items-center justify-between gap-4 py-2 pl-5 pr-2">
       <a href="#hero" class="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">${brandMark(data)}</a>
-      <nav aria-label="Principal" class="hidden items-center gap-1 lg:flex">
+      <nav aria-label="Principal" class="hidden items-center gap-1 ${bp}:flex">
         ${links}
       </nav>
       <div class="flex items-center gap-1">
         <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 active:scale-[0.98] sm:inline-flex">${esc(data.cta)}</a>
-        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 lg:hidden">${MENU}</button>
+        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 ${bp}:hidden">${MENU}</button>
       </div>
     </div>
-    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 lg:hidden">
+    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 ${bp}:hidden">
       ${mobile}
       <a href="${esc(data.href)}"${ext} class="mt-2 flex min-h-12 items-center justify-center rounded-full bg-brand font-semibold text-${data.btx}">${esc(data.cta)}</a>
     </div>
