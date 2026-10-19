@@ -101,6 +101,29 @@ r.put('/plans/:key', A.requireRole('admin'), async (req, res) => {
   res.json(await get('SELECT * FROM plans WHERE key=?', p.key));
 });
 
+// ---- Keys de acesso: o admin gera, a pessoa resgata uma única vez e o plano da conta sobe.
+const newCode = () => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; const b = require('node:crypto').randomBytes(12); const c = [...b].map((x) => A[x % A.length]).join(''); return `NEVA-${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8, 12)}`; };
+r.post('/keys', A.requireRole('admin'), async (req, res) => {
+  const plan = await get('SELECT key FROM plans WHERE key=?', String(req.body?.plan || '')); if (!plan) throw bad('Plano inválido.');
+  const n = Math.max(1, Math.min(20, Number(req.body?.count) || 1)); const codes = [];
+  for (let i = 0; i < n; i++) { const code = newCode(); await run('INSERT INTO access_keys(code,plan,created_by) VALUES (?,?,?)', code, plan.key, req.user.id); codes.push(code); }
+  res.status(201).json({ codes });
+});
+r.get('/keys', A.requireRole('admin'), async (_req, res) => res.json(await all('SELECT k.code, k.plan, k.created_at, k.used_at, u.name AS used_by_name FROM access_keys k LEFT JOIN users u ON u.id=k.used_by ORDER BY k.created_at DESC, k.code LIMIT 100')));
+r.post('/redeem', async (req, res) => {
+  const code = String(req.body?.code || '').trim().toUpperCase();
+  if (!code) throw bad('Cole a sua key de acesso.');
+  const key = await get('SELECT * FROM access_keys WHERE code=?', code);
+  if (!key) throw new HttpError(404, 'Key não encontrada. Confira o código.');
+  if (key.used_at) throw new HttpError(409, 'Esta key já foi resgatada.');
+  const cur = await S.planOf(req.user.plan); const next = await S.planOf(key.plan);
+  if (next.rank <= cur.rank) throw bad(`Sua conta já tem o plano ${cur.name} ou superior.`);
+  const done = await run("UPDATE access_keys SET used_by=?, used_at=datetime('now') WHERE code=? AND used_at IS NULL", req.user.id, code);
+  if (!done.changes) throw new HttpError(409, 'Esta key já foi resgatada.');
+  await run('UPDATE users SET plan=? WHERE id=?', key.plan, req.user.id);
+  res.json({ plan: next });
+});
+
 // ---- Exportação dos dados do workspace (admin)
 r.get('/export', A.requireRole('admin'), async (req, res) => {
   const ws = req.user.ws; const t = (sql, ...p) => all(sql, ...p);   // só os dados do próprio espaço de trabalho

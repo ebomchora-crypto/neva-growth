@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { h, mount, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard, icon } from '../ui.js';
+import { h, mount, mascotImg, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard, icon } from '../ui.js';
 
 const KIND = { prompt: ['Prompt Lab', 'Prompts prontos para usar'], skill: ['Skill Vault', 'Métodos e instalação'], animation: ['Animações', 'Movimento para sites'], design: ['Design', 'Referências'] };
 const EXT = { prompt: 'txt', skill: 'md', animation: 'html', design: 'md' };
@@ -31,9 +31,28 @@ export const design = {
   async render(box, ctx) {
     const isAdmin = ctx.user.role === 'admin';
     const st = { q: '', niche: '', style: '', site_type: '', sort: 'title' }; const PLURAL = { niche: 'nichos', style: 'estilos', site_type: 'tipos' };
-    const grid = h('div', { class: 'cards' }); const count = h('b'); const filtersBox = h('div', { class: 'dfilters' }); const shortcuts = h('div', { class: 'shortcuts' });
+    const grid = h('div', { class: 'dgrid' }); const count = h('b'); const filtersBox = h('div', { class: 'dfilters' }); const shortcuts = h('div', { class: 'shortcuts' });
     let meta = { niches: [], styles: [], siteTypes: [] };
     const sel = (key, label, ic, opts) => h('label', { class: 'dfield' }, icon(ic), h('span', label), h('select', { 'aria-label': label, onchange: (e) => { st[key] = e.target.value; load(); } }, h('option', { value: '' }, `Todos os ${PLURAL[key]}`), opts.map((o) => h('option', { value: o, selected: st[key] === o }, o))));
+    // Cartões grandes com prévia do site, faixa de repertório depois de 12 referências e rodapé "O repertório continua".
+    const hostOf = (u) => { try { return new URL(/^https?:\/\//i.test(u) ? u : 'https://' + u).host.replace(/^www\./, ''); } catch { return null; } };
+    const shot = (it) => { const wrap = h('div', { class: 'dc-shot' }, h('div', { class: 'swatch' }, h('b', it.title)));
+      if (it.url) { const abs = /^https?:\/\//i.test(it.url) ? it.url : 'https://' + it.url; const img = h('img', { src: `https://image.thum.io/get/width/900/crop/560/${abs}`, alt: `Prévia de ${it.title}`, loading: 'lazy', referrerpolicy: 'no-referrer' }); img.addEventListener('error', () => img.remove()); wrap.append(img); }
+      wrap.append(h('span', { class: 'dc-chip' }, 'REFERÊNCIA')); return wrap; };
+    const dcard = (it) => h('article', { class: 'dcard2' + (it.locked ? ' lock' : ''), tabindex: 0, onclick: () => (it.locked ? toast('Recurso de um plano superior.', 'err') : openItem(it, ctx, load).catch(fail)), onkeydown: (e) => { if (e.key === 'Enter') e.currentTarget.click(); } },
+      shot(it), h('div', { class: 'dc-body' }, h('div', { class: 'dc-top' }, h('i', { class: 'cav' }, (it.title || '?')[0].toUpperCase()), h('div', h('b', it.title), h('p', it.summary || 'Uma direção visual selecionada pela Neva Design.')),
+        it.url ? h('a', { class: 'dc-ext', href: /^https?:\/\//i.test(it.url) ? it.url : 'https://' + it.url, target: '_blank', rel: 'noopener noreferrer', title: 'Abrir o site', 'aria-label': 'Abrir o site', onclick: (e) => e.stopPropagation() }, icon('external')) : h('span', { class: 'dc-ext' }, icon('external'))),
+        h('div', { class: 'dc-meta' }, h('span', (it.url && hostOf(it.url)) || 'neva.growth'), h('i', '·'), h('span', 'DESIGN.md')),
+        h('div', { class: 'dc-tags' }, [it.site_type || 'Site', it.niche, it.style || 'Curadoria'].filter(Boolean).map((t) => h('span', t)), it.locked && h('span', { class: 'warn' }, 'plano superior'), !it.published && h('span', { class: 'warn' }, 'rascunho')),
+        h('div', { class: 'dc-bar' }, h('i'), h('i'), h('i'))));
+    const promo = () => h('section', { class: 'dpromo' }, h('div', { class: 'dp-l' }, h('span', { class: 'k' }, h('i', '/'), ' Neva Growth / Design'), h('h2', 'Repertório não é ornamento. É direção.'),
+      h('p', 'Explore sites reais, encontre padrões e leve um DESIGN.md para orientar sua próxima criação.'), h('div', { class: 'dp-row' }, h('button', { type: 'button', class: 'dp-btn', onclick: () => { window.scrollTo({ top: 0, behavior: 'smooth' }); box.querySelector('.ksearch input')?.focus(); } }, 'Refinar busca', h('i', icon('search'))), h('small', 'Sites reais. Decisões melhores.'))),
+      h('div', { class: 'dp-r' }, mascotImg('design'), h('em', 'NG / 18—01')));
+    const endcap = (n) => h('section', { class: 'dend' }, h('div', { class: 'de-n' }, h('small', 'SELEÇÃO ABERTA'), h('b', String(n)), h('small', n === 1 ? 'REFERÊNCIA EXIBIDA' : 'REFERÊNCIAS EXIBIDAS')),
+      h('div', { class: 'de-m' }, h('span', { class: 'k' }, '— O REPERTÓRIO CONTINUA'), h('h2', 'Seu acervo de referências.', h('em', ' Direção pronta para construir.')), h('p', 'Explore o acervo completo com referências organizadas, leitura visual e arquivos DESIGN.md preparados para levar ao seu próximo projeto.'),
+        h('div', { class: 'de-chips' }, h('span', icon('globe'), 'Curadoria internacional'), h('span', icon('file'), 'DESIGN.md pronto para copiar'))),
+      h('a', { class: 'de-cta', href: '#/acervo' }, h('small', 'CONTINUAR EXPLORANDO'), h('b', 'Ver o Acervo', icon('external'))));
+    function designCards(items) { const out = []; items.forEach((it, i) => { if (i === 12) out.push(promo()); out.push(dcard(it)); }); out.push(endcap(items.length)); return out; }
     function drawShortcuts() {
       const quick = meta.niches.slice(0, 6);
       mount(shortcuts, h('span', { class: 'k' }, 'Atalhos'), pills({ items: [['', 'Tudo'], ...quick.map((n) => [n, n])], value: st.niche, onChange: (v) => { st.niche = v; load(); } }),
@@ -43,10 +62,8 @@ export const design = {
       meta = await api.get('/library/meta', { kind: 'design' });
       mount(filtersBox, sel('niche', 'Nicho', 'building', meta.niches), sel('style', 'Estilo visual', 'palette', meta.styles), sel('site_type', 'Tipo de site', 'layout', meta.siteTypes));
       drawShortcuts();
-      const { items } = await api.get('/library', { kind: 'design', q: st.q, niche: st.niche, style: st.style, site_type: st.site_type, sort: st.sort, all: isAdmin ? 1 : '' }); count.textContent = `${items.length} referência(s)`;
-      mount(grid, items.length ? items.map((it) => h('article', { class: 'card refcard' + (it.locked ? ' lock' : ''), tabindex: 0, onclick: () => (it.locked ? toast('Recurso de um plano superior.', 'err') : openItem(it, ctx, load).catch(fail)) },
-        h('div', { class: 'swatch' }, it.title), h('div', { class: 'row' }, it.niche && h('span', { class: 'badge' }, it.niche), it.style && h('span', { class: 'badge' }, it.style), it.locked && h('span', { class: 'badge warn' }, '🔒 plano superior'), !it.published && h('span', { class: 'badge warn' }, 'rascunho')),
-        h('p', { class: 'sm mut', style: 'margin:0' }, it.summary || ''))) : h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('palette')), h('b', 'Nenhuma referência encontrada'), isAdmin ? 'Cadastre referências com DESIGN.md em "+ Nova referência".' : 'Peça a um administrador para cadastrar referências.'));
+      const { items } = await api.get('/library', { kind: 'design', q: st.q, niche: st.niche, style: st.style, site_type: st.site_type, sort: st.sort, all: isAdmin ? 1 : '' }); count.textContent = `${items.length} referência${items.length === 1 ? '' : 's'}`;
+      mount(grid, items.length ? designCards(items) : h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('palette')), h('b', 'Nenhuma referência encontrada'), isAdmin ? 'Cadastre referências com DESIGN.md em "+ Nova referência".' : 'Peça a um administrador para cadastrar referências.'));
     }
     const sortSel = h('select', { 'aria-label': 'Ordenar', style: 'width:auto', onchange: (e) => { st.sort = e.target.value; load(); } }, [['title', 'Nome: A → Z'], ['recent', 'Mais recentes']].map(([v, l]) => h('option', { value: v }, l)));
     mount(box, hero({ kicker: 'Design Neva / Referências', title: 'Identidades reais. DESIGN.md prontos.', art: 'design', subtitle: 'Explore sites do mundo todo, encontre sua próxima referência e leve o DESIGN.md completo para o seu projeto.',

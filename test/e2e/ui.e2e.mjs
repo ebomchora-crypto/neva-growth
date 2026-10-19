@@ -186,10 +186,10 @@ await step('Builder: só o pedido, sem nome obrigatório (IA não configurada = 
   await page.click('button[aria-label="Detalhes do negócio e site atual"]'); await page.waitForSelector('.bdetails:not(.hide) input[name=businessName]'); await page.waitForSelector('button:has-text("Ler site")');
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
-  await nav('design'); await page.waitForSelector('.refcard:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');
+  await nav('design'); await page.waitForSelector('.dcard2:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');
   await page.fill('.modal input[name=title]', 'Editorial Verde'); await page.fill('.modal input[name=niche]', 'Fintech'); await page.fill('.modal input[name=style]', 'Escuro'); await page.fill('.modal textarea[name=content]', '# DESIGN.md\nCores: #0a0');
-  await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.refcard:has-text("Editorial Verde")');
-  await page.selectOption('select[aria-label="Nicho"]', 'Fintech'); await page.waitForFunction(() => document.querySelectorAll('.refcard').length === 1); await page.click('.refcard'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
+  await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.dcard2:has-text("Editorial Verde")');
+  await page.selectOption('select[aria-label="Nicho"]', 'Fintech'); await page.waitForFunction(() => document.querySelectorAll('.dcard2').length === 1); await page.click('.dcard2'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
 });
 await step('Acervo: recursos iniciais e novo recurso', async () => {
   await nav('acervo'); await page.waitForSelector('.libitem:has-text("Direção de landing page")'); await page.click('.libitem:has-text("Direção de landing page")'); await page.waitForSelector('pre.code:has-text("designer de produto")');
@@ -201,15 +201,19 @@ await step('Play: cadastrar vídeo e marcar como visto', async () => {
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("Como vender sites")'); await page.click('article:has-text("Como vender sites") >> button:has-text("Assistir")');
   await page.waitForSelector('.modal iframe'); await page.click('.modal button:has-text("Marcar como visto")'); await page.waitForSelector('.stat:has-text("Conteúdos vistos") b:text-is("100%")'); await page.waitForSelector('.badge:has-text("visto")');
   await page.waitForSelector('.askband:has-text("ilimitadas")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
-  await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("2")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
+  await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("∞")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
 });
 await step('Gerador de prompts: IA não configurada + Meus prompts', async () => {
   await nav('prompts'); await page.waitForSelector('text=IA não configurada'); await page.waitForSelector('button:has-text("Gerar prompt")[disabled]'); await page.click('.seg button:has-text("JSON")');
   await page.click('.tabs button:has-text("Meus prompts")'); await page.waitForSelector('text=Nenhum prompt salvo');
 });
-await step('Associação: planos e edição por admin', async () => {
-  await nav('associacao'); await page.waitForSelector('text=Seu plano: Member'); await page.waitForSelector('.plan:has-text("Elite")');
-  await page.click('.plan:has-text("Creator") >> button:has-text("Editar plano")'); await page.fill('.modal input[name=tagline]', 'Plano para criadores'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.plan:has-text("Plano para criadores")'); await page.waitForSelector('.plan:has-text("ilimitados")');
+await step('Associação: cartões de plano, edição por admin e key de acesso', async () => {
+  await nav('associacao'); await page.waitForSelector('.hero h1:has-text("Seu lugar dentro da Neva Growth.")'); await page.waitForSelector('.mk-pill:has-text("ASSOCIAÇÃO ATIVA"):has-text("Neva Member")'); await page.waitForSelector('.mc.cur:has-text("Seu acesso atual")'); await page.waitForSelector('.mc:has-text("Neva Elite") >> text=ACESSO RESERVADO');
+  await page.click('.mc:has-text("Neva Creator") >> button:has-text("Editar plano")'); await page.fill('.modal input[name=tagline]', 'Plano para criadores'); await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.mc:has-text("Plano para criadores")');
+  await page.selectOption('select[aria-label="Plano da key"]', 'creator'); await page.click('button:has-text("Gerar keys")'); await page.waitForSelector('.mk-admin code:has-text("NEVA-")');
+  const code = await page.textContent('.mk-admin code >> nth=0'); await page.fill('input[aria-label="Sua key"]', 'NEVA-ERRADA'); await page.click('button:has-text("Ativar acesso")'); await page.waitForSelector('text=Key não encontrada');
+  await page.fill('input[aria-label="Sua key"]', code); await page.click('button:has-text("Ativar acesso")'); await page.waitForSelector('.mk-pill:has-text("Neva Creator")');
+  await page.fill('input[aria-label="Sua key"]', code); await page.click('button:has-text("Ativar acesso")'); await page.waitForSelector('text=já foi resgatada');
 });
 await step('Usuários: plano e créditos', async () => {
   await nav('usuarios'); await page.waitForSelector('th:has-text("Créditos")'); await page.click('button:has-text("Novo usuário")'); await page.fill('.modal input[name=name]', 'Bia'); await page.fill('.modal input[name=email]', 'bia@neva.test'); await page.fill('.modal input[name=password]', 'senha-forte-456');
