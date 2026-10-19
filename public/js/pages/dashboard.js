@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { h, mount, brl, dt, dtt, money, toast, fail, pills, icon, heroArt } from '../ui.js';
+import { riseMoney } from '../motion.js';
 
 const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3 meses'], ['6m', '6 meses'], ['1a', '1 ano']];
 const SVG = 'http://www.w3.org/2000/svg';
@@ -43,7 +44,7 @@ export default {
     const aiOn = (await api.get('/integrations/status').catch(() => null))?.ai.configured;
     async function load() {
       if (!area.firstChild) mount(area, h('p', { class: 'mut' }, 'Carregando…'));
-      const d = await api.get('/dashboard', { period }); draw(d);
+      const d = await api.get('/dashboard', { period }); draw(d); riseMoney(area);
     }
     const summaryBox = h('div');
     async function genSummary(btn) {

@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { h, mount, money } from '../ui.js';
+import { rise, riseMoney } from '../motion.js';
 
 const SVG = 'http://www.w3.org/2000/svg';
 const sv = (tag, attrs = {}, ...kids) => { const e = document.createElementNS(SVG, tag); for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v); kids.flat().forEach((k) => e.append(k instanceof Node ? k : document.createTextNode(String(k)))); return e; };
@@ -40,7 +41,7 @@ export default {
     const plot = h('div', { class: 'lv-plot' }); const cbox = h('div', { class: 'lv-cbox' }, h('small', { class: 'lv-yl' }, 'Vendas (R$)'), plot);
     const paintChart = () => { const r = plot.getBoundingClientRect(); if (r.width > 40 && r.height > 40) mount(plot, chart(d, Math.round(r.width), Math.round(r.height))); };
     const ro = new ResizeObserver(paintChart); ro.observe(plot);
-    function draw() {
+    function draw(animate = false) {
       const v = d.variation; const vtxt = v === null ? (d.revenue > 0 ? 'novo' : '+0%') : `${v >= 0 ? '+' : ''}${v.toLocaleString('pt-BR')}%`;
       mount(panel, h('section', { class: 'lv-panel' },
         h('i', { class: 'lv-rail l' }), h('i', { class: 'lv-rail r' }),
@@ -49,10 +50,12 @@ export default {
         h('div', { class: 'lv-pfoot' }, h('span', { class: 'lv-auto' }, raw(LIVE), 'Atualização automática'), h('i', { class: 'lv-sep' }), h('span', h('b', { class: v !== null && v < 0 ? 'neg' : '' }, vtxt), h('small', all ? ' vs. mês anterior' : ' vs. ontem')))),
         h('div', { class: 'lv-glow' }));
       mount(trend, cbox); paintChart();
-      mount(stats, h('div', { class: 'lv-stats' }, [['VENDAS REGISTRADAS', h('b', String(d.count))], ['TICKET MÉDIO', h('b', money(d.ticket))], [all ? 'LUCRO TOTAL' : 'LUCRO DE HOJE', h('b', money(d.profit))]].map(([l, val]) => h('div', h('small', l), val))));
+      const cnt = h('b', String(d.count));
+      mount(stats, h('div', { class: 'lv-stats' }, [['VENDAS REGISTRADAS', cnt], ['TICKET MÉDIO', h('b', money(d.ticket))], [all ? 'LUCRO TOTAL' : 'LUCRO DE HOJE', h('b', money(d.profit))]].map(([l, val]) => h('div', h('small', l), val))));
+      if (animate) { rise(panel.querySelector('.lv-big strong'), d.revenue, num, 1.4); rise(cnt, d.count); riseMoney(stats); }
     }
-    const setScope = async (v) => { if (v === all) return; all = v; try { localStorage.setItem('neva.live.scope', all ? 'all' : 'today'); } catch { /* ok */ } try { d = await fetchLive(); } catch { all = !all; return; } build(); };
-    function build() {
+    const setScope = async (v) => { if (v === all) return; all = v; try { localStorage.setItem('neva.live.scope', all ? 'all' : 'today'); } catch { /* ok */ } try { d = await fetchLive(); } catch { all = !all; return; } build(true); };
+    function build(animate = false) {
       mount(box, h('div', { class: 'lv' },
         h('header', { class: 'lv-top' },
           h('a', { class: 'lv-back', href: '#/dashboard' }, raw(BACK), 'Voltar à dashboard'),
@@ -68,9 +71,9 @@ export default {
               h('div', { class: 'lv-leg' }, h('span', h('i', { class: 'a' }), all ? 'Acumulado' : 'Hoje'), !all && h('span', h('i', { class: 'b' }), day(d.yesterday)))),
             trend, stats)),
         h('i', { class: 'lv-water', 'aria-hidden': 'true' })));
-      draw();
+      draw(animate);
     }
-    box.classList.add('lvbox'); setClock(); build();
+    box.classList.add('lvbox'); setClock(); build(true);
     const t1 = setInterval(setClock, 1000);
     const t2 = setInterval(async () => { try { d = await fetchLive(); draw(); } catch { /* tenta de novo no próximo ciclo */ } }, 15000);
     return () => { clearInterval(t1); clearInterval(t2); ro.disconnect(); box.classList.remove('lvbox'); };

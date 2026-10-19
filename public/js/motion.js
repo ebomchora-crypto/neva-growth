@@ -60,6 +60,16 @@ function countUp(el) {
   el.dataset.counted = '1'; const o = { n: 0 };
   G.to(o, { n: v, duration: 1.2, ease: 'power2.out', delay: 0.15, onUpdate: () => { el.textContent = brl(o.n); }, onComplete: () => { el.textContent = brl(v); } });
 }
+// Números subindo do zero até o valor (troca de período, Hoje → Tudo). Sem movimento reduzido: mostra o valor direto.
+export function rise(el, v, fmt = (n) => String(Math.round(n)), dur = 1.1) {
+  if (!el) return; v = Number(v) || 0;
+  if (!motionEnabled() || v === 0) { el.textContent = fmt(v); return; }
+  const o = { n: 0 }; el.textContent = fmt(0);
+  G.to(o, { n: v, duration: dur, ease: 'power2.out', onUpdate: () => { el.textContent = fmt(o.n); }, onComplete: () => { el.textContent = fmt(v); } });
+}
+export function riseMoney(root = document) {
+  root.querySelectorAll('.money[data-v]').forEach((el) => { const v = Number(el.dataset.v); if (Number.isFinite(v)) { el.dataset.counted = '1'; rise(el, v, brl); } });
+}
 const inView = (el) => { const r = el.getBoundingClientRect(); return r.top < innerHeight * 1.05 && r.bottom > -40; };
 
 // ---------- entrada de elementos (observador): tudo que aparece em #view ganha entrada suave
