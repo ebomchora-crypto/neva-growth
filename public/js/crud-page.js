@@ -107,6 +107,7 @@ export function crudPage(cfg) {
       const head = variant === 'board' ? h('div', { class: 'boardhead' }, h('div', h('div', { class: 'k' }, cfg.board?.kicker || 'Board'), h('h2', cfg.board?.title || cfg.title_page), boardInfo), pillsBox)
         : variant === 'plain' && cfg.pills ? pillsBox : null;
       const bar = variant === 'bar' ? h('div', { class: 'card orgbar' }, h('div', { class: 'lab' }, h('b', cfg.pills.bar?.label || 'Visões'), h('small', cfg.pills.bar?.sub || '')), pillsBox, sumBox) : null;
+      if (cfg.pageClass) box.classList.add(cfg.pageClass);
       mount(box,
         cfg.hero ? hero({ kicker: cfg.hero.kicker, title: cfg.hero.title, subtitle: cfg.subtitle, actions, stats: cfg.stats ? statsBox : null, art: cfg.hero.art })
           : h('div', { class: 'pagehead' }, h('div', h('h1', cfg.title_page), cfg.subtitle && h('p', cfg.subtitle)), h('div', { class: 'row' }, actions)),
