@@ -141,7 +141,7 @@ r.post('/generate-ai', async (req, res) => {
   const style = String(b.style || '').slice(0, 200); const color = /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null;
   const model = ai.resolveModel(b.model); const effort = ai.resolveEffort(model, b.effort);
   const text = await ai.complete({
-    model, maxTokens: BUILD_TOKENS[effort],
+    model, effort, maxTokens: BUILD_TOKENS[effort],
     system: 'Você é o Neva Studio, um criador de sites e apps por conversa (como o Lovable). Crie a primeira versão do projeto pedido. ' + STUDIO_STYLE + BUILD_EXTRA[effort] +
       '\nFormato da resposta, exatamente nesta ordem:\nNOME: <nome curto e bonito para o projeto>\nRESUMO: <2 a 4 frases contando o que você criou e sugerindo próximos passos>\n' +
       'Depois, cada arquivo COMPLETO em um bloco de código cuja PRIMEIRA LINHA DENTRO DO BLOCO é o comentário FILE (ex.: ```html\n<!-- FILE: index.html -->\n...``` ou ```css\n/* FILE: style.css */\n...```). Sempre inclua index.html. Máximo de 8 arquivos.',

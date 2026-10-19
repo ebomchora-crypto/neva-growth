@@ -69,7 +69,7 @@ export default {
               lineChart(m.series, W * 0.66 - 60),
               h('div', { class: 'foot' },
                 h('span', { class: 'chip', title: `${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}` }, 'Ticket médio ', h('b', money(m.ticket))),
-                h('div', { class: 'row' }, h('span', { class: 'chip' }, h('i', { class: 'lg prof' }), 'Lucro líquido'), h('span', { class: 'chip' }, h('i', { class: 'lg rev' }), 'Receita total')))),
+                h('div', { class: 'row' }, h('span', { class: 'chip' }, h('i', { class: 'lgd prof' }), 'Lucro líquido'), h('span', { class: 'chip' }, h('i', { class: 'lgd rev' }), 'Receita total')))),
             h('div', { class: 'row2' },
               h('section', { class: 'promo' }, h('h2', 'Sua próxima venda começa agora.'), h('p', `${k.openLeads} ${k.openLeads === 1 ? 'empresa esperando' : 'empresas esperando'} seu próximo movimento.`),
                 canWrite && h('a', { class: 'plus', href: '#/leads', title: 'Nova oportunidade no CRM', 'aria-label': 'Nova oportunidade no CRM' }, icon('plus')),

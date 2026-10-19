@@ -1000,7 +1000,7 @@ table{border-collapse:separate}
 .lmonths{display:flex;gap:6px;margin-top:4px}.lm{flex:1;display:grid;gap:6px}.lm span{font-size:.68rem;color:var(--mut);text-transform:capitalize}.lm.cur span{color:var(--ink);font-weight:700}
 .lm i{height:4px;border-radius:4px;background:var(--ice-200)}.lm.cur i{background:linear-gradient(90deg,var(--ice-200),var(--ice-600));position:relative}.lm.cur i::after{content:"";position:absolute;right:-2px;top:-2px;width:8px;height:8px;border-radius:50%;background:var(--ice-600)}
 .profit .foot .chip{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.74rem}.profit .foot .chip b{margin-left:6px}
-.lg{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.lg.prof{background:var(--ice-600)}.lg.rev{background:var(--ice-300)}
+.lgd{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}.lgd.prof{background:var(--ice-600)}.lgd.rev{background:var(--ice-300)}
 .promo{min-height:260px;padding:22px 22px 18px}.promo h2{font-size:1.25rem}.promo p{font-size:.82rem;max-width:30ch}
 .promo .plus{width:34px;height:34px;box-shadow:0 6px 14px rgba(10,40,70,.25)}
 .promo .bigwhite{position:relative;z-index:2;margin-top:auto;display:block;text-align:center;background:#fff;color:var(--ink);border-radius:999px;padding:13px;font-weight:600;font-size:1.02rem;text-decoration:none;box-shadow:0 10px 24px rgba(10,40,70,.25);transition:transform .2s}.promo .bigwhite:hover{transform:translateY(-2px)}

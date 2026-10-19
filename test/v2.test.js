@@ -236,3 +236,15 @@ test('modelos e esforço: nomes Neva, lista fixa, escolha validada no servidor',
   assert.equal(ai.resolveEffort('neva-1-5', 'xhigh'), 'xhigh');
   assert.equal((await A('POST', '/api/projects/generate-ai', { name: 'Padaria', brief: 'um site para uma padaria', model: 'x', effort: 'zzz' })).body.code, 'ai_not_configured');
 });
+
+test('esforço alto e máximo raciocinam de verdade (análise antes da resposta); baixo e médio respondem direto', async () => {
+  const ai = require('../server/lib/ai'); const realFetch = global.fetch; const prev = process.env.ANTHROPIC_API_KEY;
+  process.env.ANTHROPIC_API_KEY = 'x'; const calls = [];
+  global.fetch = async (url, o) => { const b = JSON.parse(o.body); calls.push(b); return { ok: true, status: 200, json: async () => ({ content: [{ type: 'text', text: calls.length === 1 && /analise/i.test(b.system) ? 'ANALISE-INTERNA' : 'resposta final' }] }) }; };
+  try {
+    const run = async (effort) => { calls.length = 0; const out = await ai.complete({ system: 'sys', messages: [{ role: 'user', content: 'oi' }], maxTokens: 500, model: 'neva-1-5', effort }); return { n: calls.length, out, last: calls[calls.length - 1] }; };
+    for (const e of ['low', 'medium']) { const r = await run(e); assert.equal(r.n, 1); assert.doesNotMatch(r.last.system, /ANALISE-INTERNA/); }
+    for (const e of ['high', 'xhigh']) { const r = await run(e); assert.equal(r.n, 2); assert.equal(r.out, 'resposta final'); assert.match(r.last.system, /ANALISE-INTERNA/); assert.equal(r.last.max_tokens, 500); }
+    assert.ok(calls.length === 2 && ai.THINK.xhigh.tokens > ai.THINK.high.tokens);
+  } finally { global.fetch = realFetch; if (prev === undefined) delete process.env.ANTHROPIC_API_KEY; else process.env.ANTHROPIC_API_KEY = prev; }
+});

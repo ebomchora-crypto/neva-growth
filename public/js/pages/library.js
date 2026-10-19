@@ -97,7 +97,7 @@ export const acervo = {
         mount(detail, h('div', { class: 'dpane' },
           h('div', { class: 'dbanner' }, h('div', { class: 'dk' }, h('span', icon('box')), `${KIND[full.kind][0].toUpperCase()} / ${full.category || 'Geral'}`), h('h2', full.title), full.summary && h('p', full.summary)),
           h('div', { class: 'dbody stack' },
-            h('div', { class: 'dnotice' }, h('b', 'USO INTERNO'), h('span', 'Conteúdo da Neva Growth para uso dentro da sua conta. Evite compartilhar fora da equipe.')),
+            h('div', { class: 'dnotice' }, h('b', 'USO RESTRITO'), h('span', 'É proibido divulgar, compartilhar ou redistribuir este conteúdo. O descumprimento está sujeito à perda de acesso e ao banimento da plataforma.')),
             h('section', { class: 'dcard' }, h('div', { class: 'k' }, `Neva / ${KIND[full.kind][0]}`), h('h3', full.kind === 'prompt' ? 'Prompt final' : 'Conteúdo'), h('p', { class: 'sm mut', style: 'margin:2px 0 10px' }, 'Texto completo para copiar e adaptar no seu chat.'),
               h('pre', { class: 'code', style: 'white-space:pre-wrap;max-height:55vh' }, full.content),
               h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))))));

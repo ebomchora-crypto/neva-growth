@@ -54,7 +54,27 @@ async function completeRiver({ system, messages, maxTokens, model }) {
   return text;
 }
 
-async function complete({ system, messages, maxTokens = 4096, model }) {
+// Raciocínio de verdade: nos níveis alto e máximo a IA primeiro analisa o pedido (rascunho interno, nunca mostrado) e só depois responde usando essa análise.
+// Baixo e médio respondem direto. O orçamento de análise cresce com o nível.
+const THINK = {
+  high: { tokens: 1500, ask: 'Antes de responder, analise o pedido por dentro: o que o usuário realmente quer, o que o contexto já tem, os passos na ordem certa e os erros mais prováveis. Escreva só essa análise, em tópicos curtos, sem a resposta final.' },
+  xhigh: { tokens: 3000, ask: 'Antes de responder, analise o pedido a fundo por dentro: objetivo real, restrições, alternativas e por que escolher uma, passos na ordem certa, casos de borda e riscos. Depois critique a própria análise e corrija o que estiver fraco. Escreva só essa análise, em tópicos, sem a resposta final.' }
+};
+async function think({ system, messages, effort, model }) {
+  const cfg = THINK[effort]; if (!cfg) return '';
+  try {
+    const notes = await complete({ model, maxTokens: cfg.tokens, system: `${system || ''}\n\n${cfg.ask}`, messages, noThink: true });
+    return notes.slice(0, 9000);
+  } catch { return ''; } // sem a análise o pedido ainda é respondido normalmente
+}
+async function answer({ system, messages, maxTokens, model, effort }) {
+  const notes = await think({ system, messages, effort, model });
+  const sys = notes ? `${system || ''}\n\nSua análise interna deste pedido (use para acertar; não a repita nem mencione):\n${notes}` : system;
+  return complete({ system: sys, messages, maxTokens, model, noThink: true });
+}
+
+async function complete({ system, messages, maxTokens = 4096, model, effort, noThink }) {
+  if (effort && !noThink && THINK[effort]) return answer({ system, messages, maxTokens, model, effort });
   if (!configured()) throw new HttpError(503, NOT_CONFIGURED, 'ai_not_configured');
   if (river()) return completeRiver({ system, messages, maxTokens, model });
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -67,4 +87,4 @@ async function complete({ system, messages, maxTokens = 4096, model }) {
   if (!resp.ok) throw new HttpError(502, `Falha na API de IA: ${data?.error?.message || resp.status}`, 'ai_upstream');
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
-module.exports = { complete, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels };
+module.exports = { complete, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels };
