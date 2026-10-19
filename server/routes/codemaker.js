@@ -25,6 +25,14 @@ const { all, get, run, tx } = require('../lib/db');
 const { HttpError, bad } = require('../lib/http');
 const config = require('../lib/config');
 const E = require('../lib/codemaker/engine');
+const ai = require('../lib/ai');
+const { DESIGN_MD } = require('../lib/codemaker/design-md');
+
+// O DESIGN.md (compilado de docs/design/DESIGN.md) é o system prompt do Builder: vem primeiro em
+// todas as etapas. As regras do Code Maker abaixo dele são só a forma técnica de executá-lo.
+const BRIDGE = `COMO APLICAR O DESIGN.md NESTA ETAPA: as instruções técnicas a seguir (formato da resposta, blocos, efeitos, campos) são a forma de executar o DESIGN.md no Builder da Neva Growth. Siga o formato à risca. Em qualquer conflito de conteúdo ou visual, vale a hierarquia do DESIGN.md (pedido explícito do usuário > segurança e acessibilidade > consistência do sistema > exemplos).`;
+const PLAN_BRIDGE = `${BRIDGE}\nNo <acoes>, a primeira frase diz em palavras simples que tipo de site é (o contexto do DESIGN.md) e qual é a ação principal que o visitante deve fazer.`;
+const systemFor = (stage) => `${DESIGN_MD}\n\n${stage === 'plan' ? PLAN_BRIDGE : BRIDGE}\n\n${stage === 'plan' ? E.PLAN_SYSTEM : stage === 'part' ? E.PART_SYSTEM : E.EDIT_SYSTEM}`;
 
 const r = express.Router();
 
@@ -34,7 +42,18 @@ const CALLS_PER_DAY = 600;
 const CALL_BUDGET_MS = Number(process.env.CODE_MAKER_BUDGET_MS) || 115_000;
 // Escolha dos arquivos que a alteração precisa ler inteiros (projeto grande).
 const SELECT_SYSTEM = `Você escolhe quais arquivos de um projeto de site precisam ser lidos inteiros para fazer o pedido do usuário. Responda só JSON: {"arquivos":["caminho", ...]}. Inclua todo arquivo que o pedido pode mudar ou que serve de modelo (ex.: para criar uma página nova, a seção parecida que já existe e o cabeçalho com o menu; para responsividade, as seções com grades e textos grandes). Não invente caminhos.`;
-const MAX_TOKENS = { plan: 9000, part: 6000, edit: 9000 };
+// Orçamento de resposta por etapa e nível de esforço (o esforço também liga a análise prévia no plano e na alteração).
+const MAX_TOKENS = {
+  plan: { low: 7000, medium: 9000, high: 12000, xhigh: 16000 },
+  part: { low: 4000, medium: 6000, high: 8000, xhigh: 10000 },
+  edit: { low: 8000, medium: 9000, high: 12000, xhigh: 16000 }
+};
+const ANALYSIS = {
+  plan: 'Você vai planejar este site. ANTES do plano, faça uma análise interna seguindo o DESIGN.md: contexto do site, objetivo primário, público, ação principal, proposta de valor, conteúdo disponível × o que falta (e que portanto NÃO pode ser inventado: preços, números, depoimentos, contatos), diferenciação visual tirada do mundo do negócio, anti-padrões que este pedido tende a cair e como evitar. Em tópicos curtos. Não escreva o plano nem JSON.',
+  edit: 'Você vai alterar este site. ANTES da alteração, faça uma análise interna: o que exatamente o usuário pediu, quais arquivos mudam, o que não pode mudar (identidade, fatos, o que não foi pedido), riscos para o DESIGN.md (contraste, mobile, acessibilidade, dados inventados) e a ordem das operações. Em tópicos curtos. Não escreva as operações.'
+};
+const ANALYSIS_TOKENS = { high: 1500, xhigh: 3000 };
+const CRITIQUE = 'Depois critique a própria análise: o que está genérico, o que contraria o DESIGN.md, o que falta. Corrija antes de terminar.';
 
 const J = (v, fallback) => { if (v == null) return fallback; try { return JSON.parse(v); } catch { return fallback; } };
 const S = (v) => JSON.stringify(v ?? null);
@@ -152,20 +171,30 @@ function cleanBrief(input) {
   };
 }
 
-async function completeJson(apiKey, model, system, content, signal) {
+// Chamada sem streaming (requisitos, escolha de arquivos, análise prévia). `meta` = { sel, kind, userId, maxTokens, raw }.
+async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
+  const started = Date.now();
+  let body = { model, max_tokens: meta.maxTokens || 9000, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
+    ...(meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort) : {}), messages: [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
     response = await fetch(AI_URL(), {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ model, max_tokens: 9000, stream: false, messages: [{ role: 'system', content: system }, { role: 'user', content }] }),
+      body: JSON.stringify(body),
       signal
     });
+    if (response.status === 400 && ai.hasNative(body)) { ai.markRefused(); body = ai.withoutNative(body); continue; }
     if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 4) break;
     await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** attempt + Math.random() * 800));
   }
-  if (!response.ok) throw new Error('Não foi possível interpretar os requisitos agora.');
+  if (!response.ok) {
+    ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, ok: false, note: `HTTP ${response.status}` });
+    throw new Error(meta.raw ? 'A análise não respondeu agora.' : 'Não foi possível interpretar os requisitos agora.');
+  }
   const data = await response.json();
+  ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, usage: data.usage });
+  if (meta.raw) return String(data.choices?.[0]?.message?.content || '').trim();
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('A leitura dos requisitos não terminou. Tente novamente.');
   const text = data.choices?.[0]?.message?.content;
   if (typeof text !== 'string') throw new Error('A IA não retornou uma especificação válida.');
@@ -241,24 +270,32 @@ async function streamAi(req, res, options) {
   let text = '';
   let timedOut = false;
   let preparing = true;
+  let usage = null; let reasoningChars = 0; const started = Date.now();
+  const logUsage = (ok, note) => ai.logCall({ kind: options.kind || 'cm', userId: options.userId, model: options.sel?.model, effort: options.sel?.effort, providerModel: options.model,
+    ms: Date.now() - started, usage, reasoningTokens: reasoningChars ? Math.round(reasoningChars / 4) : null, ok, note });
   const recordFailure = async () => {
     try { await options.onFailure?.(); } catch (error) { console.error('code-maker failure status', error); }
   };
   try {
-    const baseMessages = options.prepare ? await options.prepare(abort.signal) : options.messages;
+    const baseMessages = options.prepare ? await options.prepare(abort.signal, send) : options.messages;
     preparing = false;
     const messages = options.partial
       ? [...baseMessages, { role: 'assistant', content: options.partial }, { role: 'user', content: E.CONTINUE_PROMPT }]
       : baseMessages;
     // A River limita pedidos por minuto: com várias partes ao mesmo tempo, espera e tenta de novo.
+    const sel = options.sel || {};
+    let body = { model: options.model, max_tokens: options.maxTokens, stream: true, stream_options: { include_usage: true },
+      ...(sel.model ? { temperature: ai.temperatureOf(sel.model) } : {}), ...(sel.effort ? ai.reasoningParams(sel.effort) : {}), messages };
     let response;
     for (let attempt = 0; attempt < 5; attempt++) {
       response = await fetch(AI_URL(), {
         method: 'POST',
         headers: { Authorization: `Bearer ${options.apiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: options.model, max_tokens: options.maxTokens, stream: true, messages }),
+        body: JSON.stringify(body),
         signal: abort.signal
       });
+      // A River recusou o parâmetro nativo de raciocínio: tira e tenta de novo.
+      if (response.status === 400 && ai.hasNative(body)) { ai.markRefused(); body = ai.withoutNative(body); await response.body?.cancel().catch(() => {}); continue; }
       if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 4) break;
       await response.body?.cancel().catch(() => {});
       await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** attempt + Math.random() * 800));
@@ -286,7 +323,10 @@ async function streamAi(req, res, options) {
         const data = line.slice(5).trim();
         if (!data || data === '[DONE]') continue;
         try {
-          const choice = JSON.parse(data).choices?.[0];
+          const chunk = JSON.parse(data);
+          if (chunk.usage) usage = chunk.usage;
+          const choice = chunk.choices?.[0];
+          if (choice?.delta?.reasoning_content) reasoningChars += choice.delta.reasoning_content.length;
           if (choice?.finish_reason === 'length') timedOut = true;
           const delta = choice?.delta?.content;
           if (delta) { text += delta; send(delta); }
@@ -308,6 +348,7 @@ async function streamAi(req, res, options) {
     }
   }
   if (cancelled) { clearTimeout(timer); return; }
+  logUsage(!timedOut, timedOut ? 'continua' : null);
   if (timedOut) {
     clearTimeout(timer);
     send('\n<<<CONTINUA>>>');
@@ -315,7 +356,7 @@ async function streamAi(req, res, options) {
     return;
   }
   try {
-    const full = repairDsml(options.partial ? E.joinContinuation(options.partial, text) : text);
+    const full = repairDsml((options.partial ? E.joinContinuation(options.partial, text) : text).replace(/<etapa>[^<]*<\/etapa>\n?/g, ''));
     abort.signal.throwIfAborted();
     const problem = await options.finish(full, abort.signal, send);
     if (problem) await recordFailure();
@@ -378,6 +419,32 @@ r.get('/:id(\\d+)/document', async (req, res) => {
   res.json({ html, pages, status: site.status });
 });
 
+// ---- Revisão da última alteração da IA (aceitar / rejeitar por arquivo, como o AI Diff Review)
+// Antes = a versão logo anterior à alteração; depois = a própria alteração. Rejeitar um arquivo volta só ele.
+async function lastEdit(siteId) {
+  const edit = await get("SELECT id, instruction, plan, parts, files, created_at FROM site_versions WHERE project_id=? AND kind='edit' ORDER BY id DESC LIMIT 1", siteId);
+  if (!edit) return null;
+  if (await get("SELECT 1 x FROM site_versions WHERE project_id=? AND id>? AND kind<>'review' LIMIT 1", siteId, edit.id)) return null;
+  const before = await get('SELECT plan, parts, files FROM site_versions WHERE project_id=? AND id<? ORDER BY id DESC LIMIT 1', siteId, edit.id);
+  if (!before) return null;
+  const state = (row) => ({ plan: J(row.plan, null), parts: J(row.parts, {}), files: J(row.files, {}) });
+  const b = state(before); const a = state(edit);
+  if (!b.plan || !a.plan) return null;
+  const tA = E.projectTree(b.plan, b.parts, b.files); const tB = E.projectTree(a.plan, a.parts, a.files);
+  const paths = [...new Set([...Object.keys(tA), ...Object.keys(tB)])].filter((p) => (tA[p] ?? null) !== (tB[p] ?? null));
+  return { edit, after: a, tA, tB, paths };
+}
+r.get('/:id(\\d+)/changes', async (req, res) => {
+  const site = await loadSite(req.params.id, req);
+  if (!site) throw new HttpError(404, 'Site não encontrado.');
+  const le = site.plan && site.status === 'ready' ? await lastEdit(site.id) : null;
+  if (!le || !le.paths.length) return res.json({ version_id: null, files: [] });
+  const cur = E.projectTree(site.plan, site.parts, site.files);
+  res.json({ version_id: le.edit.id, instruction: le.edit.instruction, created_at: le.edit.created_at,
+    files: le.paths.map((p) => ({ path: p, created: !(p in le.tA), deleted: !(p in le.tB), before: le.tA[p] ?? '', after: le.tB[p] ?? '',
+      state: (cur[p] ?? null) === (le.tA[p] ?? null) ? 'rejected' : (cur[p] ?? null) === (le.tB[p] ?? null) ? 'kept' : 'changed' })) });
+});
+
 r.post('/', async (req, res) => {
   const body = req.body || {};
   const user = req.user;
@@ -409,6 +476,7 @@ r.post('/', async (req, res) => {
   if (action === 'create') {
     const brief = cleanBrief(body.brief ?? {});
     if (!brief) throw bad('Escreva o que você quer no site.');
+    brief.ai = ai.selection(body);
     const created = await tx(async () => {
       // Sem nome ainda (pedido livre): link provisório até a IA ler o pedido.
       const slug = brief.businessName ? await uniqueSlug(brief.businessName) : `site-${crypto.randomUUID().slice(0, 8)}`;
@@ -421,7 +489,7 @@ r.post('/', async (req, res) => {
     return res.json({ site: created });
   }
 
-  if (!['plan', 'part', 'edit', 'restore', 'finish'].includes(action)) throw bad('Ação inválida.');
+  if (!['plan', 'part', 'edit', 'restore', 'finish', 'review'].includes(action)) throw bad('Ação inválida.');
 
   const site = await loadSite(body.site_id, req);
   if (!site) throw new HttpError(404, 'Site não encontrado.');
@@ -454,6 +522,36 @@ r.post('/', async (req, res) => {
     return res.json({ site: await loadSite(site.id, req) });
   }
 
+  // Decisões da revisão: o site fica igual à alteração, menos os arquivos rejeitados (que voltam ao que eram).
+  if (action === 'review') {
+    if (site.status !== 'ready') throw new HttpError(409, 'Espere o site terminar de ser gerado.');
+    const le = await lastEdit(site.id);
+    if (!le || le.edit.id !== Number(body.version_id)) throw new HttpError(409, 'Esta alteração não pode mais ser revisada (o site mudou depois dela).');
+    const rejected = (Array.isArray(body.rejected) ? body.rejected : []).map(String).filter((p) => le.paths.includes(p));
+    const operations = rejected.map((p) => (p in le.tA ? { kind: 'write', path: p, content: le.tA[p] } : { kind: 'delete', path: p }));
+    const base = le.after;
+    const applied = operations.length
+      ? E.applyProjectEdit(base.plan, base.parts, base.files, { actions: [], operations, blocks: [], invalid: 0 }, { brief: site.brief, fresh: [] })
+      : { plan: base.plan, parts: base.parts, files: base.files, results: [] };
+    const failed = applied.results.filter((x) => !x.ok);
+    if (failed.length) throw new HttpError(422, `Não consegui desfazer: ${failed.map((x) => `${x.path} (${x.reason})`).join('; ')}`);
+    const html = E.assembleSite(applied.plan, applied.parts, { files: applied.files });
+    const pagesHtml = E.assemblePages(applied.plan, applied.parts, applied.files);
+    if (!/<main\b/.test(html)) throw new HttpError(422, 'A revisão deixaria o site sem montar. Nada foi salvo.');
+    const nextPlan = { ...applied.plan, actions: site.plan.actions ?? [] };
+    const saved = await tx(async () => {
+      const next = await saveSite(site, { plan: nextPlan, parts: applied.parts, files: applied.files, html, pages_html: pagesHtml });
+      if (!next) return null;
+      await syncProjectFiles(site.id, html, pagesHtml);
+      await versionInsert(site, user.id, { kind: 'review', instruction: null,
+        actions: [`Revisão: ${le.paths.length - rejected.length} arquivo(s) mantido(s), ${rejected.length} desfeito(s)`, ...rejected.map((p) => `Desfeito: ${p}`)],
+        plan: nextPlan, parts: applied.parts, files: applied.files });
+      return next;
+    });
+    if (!saved) throw new HttpError(409, 'O site mudou durante a revisão. Atualize e tente novamente.');
+    return res.json({ site: await loadSite(site.id, req), rejected });
+  }
+
   // Todas as partes salvas, mas a conexão caiu antes de marcar pronto: o
   // site ficava em "construindo" para sempre. Termina sem chamar a IA.
   if (action === 'finish') {
@@ -475,7 +573,10 @@ r.post('/', async (req, res) => {
   if ((await countToday(user.id)) >= CALLS_PER_DAY) throw new HttpError(429, 'Limite de uso da IA de hoje atingido. Amanhã libera de novo.');
 
   const apiKey = config.get('RIVER_API_KEY');
-  const model = config.get('RIVER_MODEL') || 'deepseek-ai/DeepSeek-V4.1-Flash';
+  // Modelo e esforço escolhidos no seletor (ou os guardados na criação do site).
+  const sel = ai.selection(body, site.brief?.ai);
+  const model = ai.providerModelFor(sel.model);
+  const metaOf = (kind) => ({ sel, kind, userId: user.id });
   const configuredBudget = Number(config.get('CODE_MAKER_MAX_INPUT_CHARS'));
   const inputBudget = Number.isFinite(configuredBudget) && configuredBudget >= 16000 ? configuredBudget : 60000;
   if (!apiKey) throw new HttpError(503, 'O Code Maker ainda não foi configurado (preencha RIVER_API_KEY na tabela app_settings).');
@@ -490,21 +591,37 @@ r.post('/', async (req, res) => {
     const recentRows = await all('SELECT plan FROM code_sites WHERE user_id=? AND project_id<>? AND plan IS NOT NULL ORDER BY created_at DESC LIMIT 6', user.id, site.id);
     const recipe = E.siteRecipe(site.brief, recentRows.map((row) => J(row.plan, {})), String(site.id));
     return streamAi(req, res, {
-      apiKey, model, maxTokens: MAX_TOKENS.plan, partial,
+      apiKey, model, maxTokens: MAX_TOKENS.plan[sel.effort], partial, sel, kind: 'cm_plan', userId: user.id,
       onFailure: () => setStatus(site.id, 'error', 'planning'),
-      prepare: async (signal) => {
+      prepare: async (signal, emit) => {
         if (!planningBrief.specification) {
           const prompt = planningBrief.details || JSON.stringify(planningBrief);
           const specification = await E.prepareSpecificationContext(
-            prompt, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal), Math.min(24000, Math.floor(inputBudget / 2))
+            prompt, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2))
           );
           planningBrief = { ...planningBrief, specification };
           signal.throwIfAborted();
           await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
         }
         const literal = E.buildPlanMessage(planningBrief, true, recipe);
-        const content = literal.length + E.PLAN_SYSTEM.length < inputBudget ? literal : E.buildPlanMessage(planningBrief, false, recipe);
-        return [{ role: 'system', content: E.PLAN_SYSTEM }, { role: 'user', content }];
+        const system = systemFor('plan');
+        let content = literal.length + system.length < inputBudget ? literal : E.buildPlanMessage(planningBrief, false, recipe);
+        // Esforço alto/máximo: análise prévia (guardada no brief para a continuação não pensar de novo).
+        if (ANALYSIS_TOKENS[sel.effort]) {
+          let notes = planningBrief.analysis?.effort === sel.effort ? planningBrief.analysis.notes : '';
+          if (!notes) {
+            emit('<etapa>analise</etapa>\n');
+            try {
+              notes = (await completeJson(apiKey, model, system, `${ANALYSIS.plan}${sel.effort === 'xhigh' ? ` ${CRITIQUE}` : ''}\n\n${content}`, signal,
+                { ...metaOf('cm_plan:analise'), raw: true, native: true, maxTokens: ANALYSIS_TOKENS[sel.effort] })).slice(0, 9000);
+              planningBrief = { ...planningBrief, analysis: { effort: sel.effort, notes } };
+              await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
+            } catch (error) { if (signal.aborted) throw error; notes = ''; }
+            emit('<etapa>plano</etapa>\n');
+          }
+          if (notes) content += `\n\nSUA ANÁLISE PRÉVIA (interna; use para decidir o plano e não a repita):\n${notes}`;
+        }
+        return [{ role: 'system', content: system }, { role: 'user', content }];
       },
       finish: async (full, signal) => {
         const { actions, plan: parsedPlan, business } = E.parsePlan(full, planningBrief, recipe);
@@ -562,12 +679,14 @@ r.post('/', async (req, res) => {
     if (fixed) return instantStream(res, `\`\`\`html\n${fixed}\n\`\`\``, (signal) => savePart(fixed, signal), markError);
 
     if (!partial) await recordCall(user.id, 'part');
+    const partCheck = { high: '\n\nAntes de responder, confira o conteúdo contra o CONTRATO DE ENTREGA do DESIGN.md (nada inventado, ação clara, texto escaneável).',
+      xhigh: '\n\nAntes de responder, confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md (nada inventado, nada genérico, ação clara, texto escaneável e específico deste negócio) e reescreva o que falhar.' }[sel.effort] || '';
     return streamAi(req, res, {
-      apiKey, model, maxTokens: MAX_TOKENS.part, partial,
+      apiKey, model, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: 'cm_part', userId: user.id,
       onFailure: markError,
       messages: [
-        { role: 'system', content: E.PART_SYSTEM },
-        { role: 'user', content: E.buildPartMessage(partId, planForAi, site.brief) }
+        { role: 'system', content: systemFor('part') },
+        { role: 'user', content: E.buildPartMessage(partId, planForAi, site.brief) + partCheck }
       ],
       finish: async (full, signal, emit) => {
         // A IA escreve o conteúdo (JSON) e o código monta o bloco. Se ela
@@ -606,8 +725,8 @@ r.post('/', async (req, res) => {
   const tree = E.projectTree(plan, site.parts, files);
   const treeChars = Object.values(tree).reduce((sum, content) => sum + content.length, 0);
 
-  const buildMessages = async (signal) => {
-    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal), Math.min(24000, Math.floor(inputBudget / 2)));
+  const buildMessages = async (signal, emit = () => {}) => {
+    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2)));
     // Só o que precisa de servidor fica de fora (spec.ts filtra o resto).
     const limits = editSpecification.limitations.length
       ? `\n\nEstes itens normalmente pedem servidor: ${editSpecification.limitations.join('; ')}. Não recuse nem deixe de fora: entregue a versão funcional que roda no navegador (telas e fluxo completos, dados no localStorage, links de pagamento/WhatsApp/e-mail) e conte numa ação o que foi feito. Faça também todo o resto do pedido.`
@@ -618,7 +737,7 @@ r.post('/', async (req, res) => {
     let chosen = [];
     if (treeChars > filesBudget) {
       try {
-        const picked = await completeJson(apiKey, model, SELECT_SYSTEM, `Pedido:\n${compacted.slice(0, 6000)}\n\nArquivos:\n${E.fileIndex(tree)}`, signal);
+        const picked = await completeJson(apiKey, model, SELECT_SYSTEM, `Pedido:\n${compacted.slice(0, 6000)}\n\nArquivos:\n${E.fileIndex(tree)}`, signal, metaOf('cm_select'));
         chosen = Array.isArray(picked?.arquivos) ? picked.arquivos.filter((p) => typeof p === 'string') : [];
       } catch (error) {
         logEdit('select_failed', { edit: editId, reason: error instanceof Error ? error.message : 'erro' });
@@ -631,12 +750,27 @@ r.post('/', async (req, res) => {
       sent: selected.length, sent_chars: selected.reduce((sum, p) => sum + tree[p].length, 0),
       ai_selected: chosen.length, budget: filesBudget, limitations: editSpecification.limitations.length
     });
-    const content = E.buildEditMessage(planForAi, site.parts, compacted, brief, fresh, recent, { index: E.fileIndex(tree), contents }) + limits;
-    return [{ role: 'system', content: E.EDIT_SYSTEM }, { role: 'user', content }];
+    let content = E.buildEditMessage(planForAi, site.parts, compacted, brief, fresh, recent, { index: E.fileIndex(tree), contents }) + limits;
+    const system = systemFor('edit');
+    if (ANALYSIS_TOKENS[sel.effort]) {
+      const key = crypto.createHash('sha1').update(`${sel.effort}:${instruction}`).digest('hex').slice(0, 16);
+      let notes = brief.edit_analysis?.key === key ? brief.edit_analysis.notes : '';
+      if (!notes) {
+        emit('<etapa>analise</etapa>\n');
+        try {
+          notes = (await completeJson(apiKey, model, system, `${ANALYSIS.edit}${sel.effort === 'xhigh' ? ` ${CRITIQUE}` : ''}\n\n${content}`, signal,
+            { ...metaOf('cm_edit:analise'), raw: true, native: true, maxTokens: ANALYSIS_TOKENS[sel.effort] })).slice(0, 9000);
+          await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S({ ...brief, edit_analysis: { key, notes } }), site.id);
+        } catch (error) { if (signal.aborted) throw error; notes = ''; }
+        emit('<etapa>alteracao</etapa>\n');
+      }
+      if (notes) content += `\n\nSUA ANÁLISE PRÉVIA (interna; use para fazer a alteração e não a repita):\n${notes}`;
+    }
+    return [{ role: 'system', content: system }, { role: 'user', content }];
   };
 
   return streamAi(req, res, {
-    apiKey, model, maxTokens: MAX_TOKENS.edit, partial,
+    apiKey, model, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id,
     prepare: buildMessages,
     messages: [],
     finish: async (full, signal, emit) => {

@@ -19,17 +19,17 @@ const count = (hunks) => hunks.reduce((a, hk) => { for (const l of hk.lines) { i
 const SIGN = { add: '+', remove: '−', context: ' ' };
 
 /** files: [{path, created?, hunks}] → { el, accepted(): paths, onChange } */
-export function diffReview(files, { onChange } = {}) {
-  const dec = Object.fromEntries(files.map((f) => [f.path, 'pending'])); const openSet = new Set(files.length === 1 ? [files[0].path] : []);
+export function diffReview(files, { onChange, initial = {} } = {}) {
+  const dec = Object.fromEntries(files.map((f) => [f.path, initial[f.path] || 'pending'])); const openSet = new Set(files.length === 1 ? [files[0].path] : []);
   const root = h('div', { class: 'dreview' }); const head = h('div', { class: 'dr-head' }); const ul = h('ul', { class: 'dr-list' });
   const pending = () => files.filter((f) => dec[f.path] === 'pending'); const accepted = () => files.filter((f) => dec[f.path] === 'accepted');
-  const decide = (p, v) => { dec[p] = v; if (v !== 'pending') openSet.delete(p); paint(); onChange?.(accepted().map((f) => f.path)); };
+  const decide = (p, v) => { dec[p] = v; if (v !== 'pending') openSet.delete(p); paint(); onChange?.(accepted().map((f) => f.path), { ...dec }); };
   function paint() {
     const tot = files.reduce((a, f) => { const c = count(f.hunks); return { added: a.added + c.added, removed: a.removed + c.removed }; }, { added: 0, removed: 0 });
     const all = pending().length === 0;
     mount(head, h('output', { class: 'dr-title' }, all ? `${accepted().length} de ${files.length} aceita(s)` : `${files.length} arquivo(s) alterado(s)`), h('span', { class: 'dr-cnt' }, h('b', { class: 'add' }, `+${tot.added}`), ' ', h('b', { class: 'rem' }, `−${tot.removed}`)),
-      h('span', { class: 'grow' }), !all && h('button', { type: 'button', class: 'dr-btn', onclick: () => { pending().forEach((f) => { dec[f.path] = 'rejected'; }); paint(); onChange?.(accepted().map((f) => f.path)); } }, 'Rejeitar tudo'),
-      !all && h('button', { type: 'button', class: 'dr-btn solid', onclick: () => { pending().forEach((f) => { dec[f.path] = 'accepted'; }); paint(); onChange?.(accepted().map((f) => f.path)); } }, 'Aceitar tudo'));
+      h('span', { class: 'grow' }), !all && h('button', { type: 'button', class: 'dr-btn', onclick: () => { pending().forEach((f) => { dec[f.path] = 'rejected'; }); paint(); onChange?.(accepted().map((f) => f.path), { ...dec }); } }, 'Rejeitar tudo'),
+      !all && h('button', { type: 'button', class: 'dr-btn solid', onclick: () => { pending().forEach((f) => { dec[f.path] = 'accepted'; }); paint(); onChange?.(accepted().map((f) => f.path), { ...dec }); } }, 'Aceitar tudo'));
     mount(ul, files.map((f) => {
       const d = dec[f.path]; const { added, removed } = count(f.hunks); const sl = f.path.lastIndexOf('/'); const isOpen = openSet.has(f.path) && d === 'pending';
       const total = added + removed; const green = total ? Math.round((added / total) * 5) : 0;

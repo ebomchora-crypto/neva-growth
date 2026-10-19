@@ -33,7 +33,7 @@ r.post('/ai/chat', async (req, res) => {
   for (const f of files) { if (budget <= 0) break; const chunk = `\n--- ${f.path} ---\n${f.content.slice(0, Math.min(budget, 12000))}`; ctx += chunk; budget -= chunk.length; }
   const model = ai.resolveModel(req.body?.model); const effort = ai.resolveEffort(model, req.body?.effort);
   const reply = await ai.complete({
-    model, effort, maxTokens: ai.EFFORTS[effort].maxTokens,
+    model, effort, kind: 'ide', userId: req.user.id, maxTokens: ai.EFFORTS[effort].maxTokens,
     system: 'Você é o assistente de programação da IDE Neva Growth. Responda em português do Brasil, de forma objetiva. ' +
       'Ao criar ou modificar arquivos, devolva cada arquivo COMPLETO em um bloco de código cuja PRIMEIRA LINHA DENTRO DO BLOCO é um comentário no formato "FILE: caminho/do/arquivo.ext" (ex.: ```html\n<!-- FILE: index.html -->\n... ou ```js\n// FILE: main.js\n...). ' +
       'Nunca proponha excluir arquivos. Os projetos são estáticos (HTML/CSS/JS, sem build nem servidor).' + ai.EFFORTS[effort].extra + ' ' +

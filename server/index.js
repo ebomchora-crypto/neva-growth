@@ -40,6 +40,7 @@ function createApp() {
   const api = express.Router();
   api.use(A.csrfGuard);
   api.use('/auth', require('./routes/auth'));
+  api.use('/qa', require('./routes/qa'));   // sonda de testes da IA (desligada sem QA_TOKEN)
   api.use(A.requireAuth, A.blockViewerWrites);
   api.use('/me', require('./routes/me'));
   api.use('/users', require('./routes/users'));

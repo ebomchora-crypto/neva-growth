@@ -99,7 +99,7 @@ async function writeFile(project, fp, content, source, userId) {
 const touch = async (id) => await run("UPDATE projects SET updated_at=datetime('now') WHERE id=?", id);
 
 r.get('/', async (req, res) => {
-  const rows = (await all(`SELECT p.*, u.name owner_name, c.name client_name, (SELECT COUNT(*) FROM project_files f WHERE f.project_id=p.id) files_count, EXISTS (SELECT 1 FROM code_sites cs WHERE cs.project_id=p.id) studio
+  const rows = (await all(`SELECT p.*, u.name owner_name, c.name client_name, (SELECT COUNT(*) FROM project_files f WHERE f.project_id=p.id) files_count, EXISTS (SELECT 1 FROM code_sites cs WHERE cs.project_id=p.id) studio, (SELECT cs2.status FROM code_sites cs2 WHERE cs2.project_id=p.id) cm_status
     FROM projects p LEFT JOIN users u ON u.id=p.owner_id LEFT JOIN clients c ON c.id=p.client_id WHERE p.ws=? ORDER BY p.updated_at DESC`, req.user.ws)).map((p) => ({ ...p, status: statusOf(p), can_edit: req.user.role === 'admin' || p.owner_id == null || p.owner_id === req.user.id }));
   const q = String(req.query.q || '').toLowerCase();
   let items = rows.filter((p) => !q || [p.name, p.domain, p.client_name, p.slug].some((x) => x && x.toLowerCase().includes(q)));
@@ -141,7 +141,7 @@ r.post('/generate-ai', async (req, res) => {
   const style = String(b.style || '').slice(0, 200); const color = /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null;
   const model = ai.resolveModel(b.model); const effort = ai.resolveEffort(model, b.effort);
   const text = await ai.complete({
-    model, effort, maxTokens: BUILD_TOKENS[effort],
+    model, effort, kind: 'gerar-projeto', userId: req.user.id, maxTokens: BUILD_TOKENS[effort],
     system: 'Você é o Neva Studio, um criador de sites e apps por conversa (como o Lovable). Crie a primeira versão do projeto pedido. ' + STUDIO_STYLE + BUILD_EXTRA[effort] +
       '\nFormato da resposta, exatamente nesta ordem:\nNOME: <nome curto e bonito para o projeto>\nRESUMO: <2 a 4 frases contando o que você criou e sugerindo próximos passos>\n' +
       'Depois, cada arquivo COMPLETO em um bloco de código cuja PRIMEIRA LINHA DENTRO DO BLOCO é o comentário FILE (ex.: ```html\n<!-- FILE: index.html -->\n...``` ou ```css\n/* FILE: style.css */\n...```). Sempre inclua index.html. Máximo de 8 arquivos.',
@@ -196,7 +196,11 @@ r.post('/:id/publish', async (req, res) => {
 r.post('/:id/duplicate', async (req, res) => {
   const p = await projectOr404(req.params.id, req);
   const files = Object.fromEntries((await all('SELECT path,content FROM project_files WHERE project_id=?', p.id)).map((f) => [f.path, f.content]));
-  res.status(201).json(await createProject({ name: `${p.name} (cópia)`.slice(0, 80), description: p.description, kind: p.kind, owner: req.user.id, files, ws: req.user.ws }));
+  const copy = await createProject({ name: `${p.name} (cópia)`.slice(0, 80), description: p.description, kind: p.kind, owner: req.user.id, files, ws: req.user.ws });
+  // Site do Builder: a cópia continua editável no Studio (plano, seções e arquivos-fonte juntos).
+  const cs = await get('SELECT brief, plan, parts, files, html, pages_html, status FROM code_sites WHERE project_id=?', p.id);
+  if (cs) await run('INSERT INTO code_sites(project_id,user_id,brief,plan,parts,files,html,pages_html,status) VALUES (?,?,?,?,?,?,?,?,?)', copy.id, req.user.id, cs.brief, cs.plan, cs.parts, cs.files, cs.html, cs.pages_html, cs.status);
+  res.status(201).json(copy);
 });
 
 // ---- Arquivos
