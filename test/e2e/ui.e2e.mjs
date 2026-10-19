@@ -120,6 +120,10 @@ await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () =>
 await step('Dashboard com lucro real', async () => {
   await nav('dashboard'); await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('b:has-text("1.800,00")'); await page.waitForSelector('text=Ticket médio');
 });
+await step('AO VIVO: abre Vendas hoje com gráfico e volta', async () => {
+  await nav('dashboard'); await page.click('.livepill'); await page.waitForSelector('.lv h1:has-text("Vendas hoje")'); await page.waitForSelector('.lv .lv-chart'); await page.waitForSelector('.lv-stats:has-text("Ticket médio")');
+  await page.click('.lv-back'); await page.waitForFunction(() => !document.querySelector('.lv') && location.hash === '#/dashboard');
+});
 await step('notificações (sino)', async () => { await page.click('button[aria-label="Notificações"]'); await page.waitForSelector('.dropdown'); await page.waitForSelector('text=Tudo em dia'); await page.click('button[aria-label="Notificações"]'); });
 let projUrl;
 await step('Sites: Adicionar site (link, status, cliente) e abrir IDE de um projeto com arquivos', async () => {

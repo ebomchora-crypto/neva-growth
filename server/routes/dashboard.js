@@ -65,6 +65,22 @@ r.get('/', async (req, res) => {
   });
 });
 
+// "Vendas hoje" ao vivo: valor do dia (horário de Brasília), comparação com ontem e acumulado por hora.
+const brt = (ms) => new Date(ms - 3 * 3600 * 1000);
+const hourOf = (created) => { const t = Date.parse(String(created || '').replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(created)) ? '' : 'Z')); return Number.isFinite(t) ? brt(t).getUTCHours() : 12; };
+r.get('/live', async (req, res) => {
+  const ws = req.user.ws; const now = brt(Date.now()); const today = iso(now); const yest = iso(addDays(now, -1));
+  const rows = await all(`SELECT s.id, s.description, s.amount, s.cost, s.created_at, ${PAID_DATE} d, c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id
+    WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE} IN (?, ?) ORDER BY s.id DESC`, ws, today, yest);
+  const cum = (list) => { const per = Array(24).fill(0); for (const x of list) per[hourOf(x.created_at)] += Number(x.amount) || 0; let a = 0; return per.map((v) => (a += v)); };
+  const t = rows.filter((x) => x.d === today); const y = rows.filter((x) => x.d === yest);
+  const sum = (l, k) => l.reduce((a, x) => a + (k === 'profit' ? x.amount - x.cost : Number(x[k]) || 0), 0);
+  const revenue = sum(t, 'amount'); const prev = sum(y, 'amount');
+  res.json({ today, name: req.user.name, hour: now.getUTCHours(), now: now.toISOString().slice(11, 19), revenue, profit: sum(t, 'profit'), count: t.length, ticket: t.length ? revenue / t.length : 0,
+    variation: prev > 0 ? Math.round(((revenue - prev) / prev) * 1000) / 10 : null, previous: prev, yesterday: yest, series: { today: cum(t), yesterday: cum(y) },
+    recent: t.slice(0, 8).map(({ id, description, amount, client_name }) => ({ id, description, amount, client_name })) });
+});
+
 // Resumo do período escrito por IA a partir dos números reais (exige RIVER_API_KEY)
 r.post('/summary', async (req, res) => {
   if (!ai.configured()) throw new (require('../lib/http').HttpError)(503, ai.NOT_CONFIGURED, 'ai_not_configured');
