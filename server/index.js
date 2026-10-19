@@ -49,6 +49,7 @@ function createApp() {
   api.use('/prompts', require('./routes/prompts'));
   api.use('/search', require('./routes/search'));
   api.use('/projects', projects);
+  api.use('/code-maker', require('./routes/codemaker'));
   api.use('/integrations', require('./routes/integrations'));
   api.use(require('./routes/resources').router);
   api.use((_req, _res, next) => next(new HttpError(404, 'Rota não encontrada.')));
@@ -63,7 +64,7 @@ function createApp() {
     if (err.type === 'entity.too.large') err = new HttpError(413, 'Conteúdo grande demais.');
     const status = err instanceof HttpError ? err.status : err.code === '23505' ? 409 : 500;
     if (status === 500) console.error(err);
-    const message = status === 409 ? 'Registro duplicado.' : status === 500 ? 'Erro interno do servidor.' : err.message;
+    const message = status === 409 && !(err instanceof HttpError) ? 'Registro duplicado.' : status === 500 ? 'Erro interno do servidor.' : err.message;
     res.status(status).json({ error: message, code: err.code });
   });
   return app;

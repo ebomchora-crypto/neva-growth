@@ -142,22 +142,16 @@ await step('Sites: domínio, cliente, arquivar, filtros', async () => {
   const r2 = await page.request.get(base + '/s/studio-aurora/'); if (r2.status() !== 404) throw new Error('arquivado ainda no ar');
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
 });
-await step('Builder: IA não configurada, criar de modelo', async () => {
-  await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site"):not([disabled])'); await page.waitForSelector('button:has-text("Otimizar prompt")[disabled]');
+await step('Builder: só o pedido, sem nome obrigatório (IA não configurada = botão desligado)', async () => {
+  await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site")[disabled]'); await page.waitForSelector('button:has-text("Otimizar pedido")[disabled]');
   await page.waitForSelector('.dotfield canvas'); await page.waitForSelector('.orb'); await page.waitForSelector('.orb-text:has-text("Neva Studio")');
   await page.mouse.move(400, 200); await page.mouse.move(520, 260, { steps: 5 });
   await page.waitForFunction(() => { const c = document.querySelector('.dotfield canvas'); return c && c.width > 0; });
   if (await page.locator('.mascot-img').count() !== 0) throw new Error('mascote ainda aparece no Builder');
-  // seletor de modelo + esforço: abre, troca o modelo (o trilho se ajusta) e arrasta o esforço
-  await page.click('.ms-trigger'); await page.waitForSelector('.ms-panel:not(.hide)');
-  await page.click('.ms-opt:has-text("Neva 1.5")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 4);
-  const tb = await page.locator('.ms-track').boundingBox();
-  await page.mouse.move(tb.x + tb.width * 0.12, tb.y + tb.height / 2); await page.mouse.down(); await page.mouse.move(tb.x + tb.width * 0.62, tb.y + tb.height / 2, { steps: 6 }); await page.mouse.move(tb.x + tb.width * 0.95, tb.y + tb.height / 2, { steps: 4 }); await page.mouse.up();
-  await page.waitForSelector('.ms-trigger:has-text("Máximo")');
-  await page.click('.ms-opt:has-text("Neva 1.0")'); await page.waitForFunction(() => document.querySelectorAll('.ms-labels span').length === 2); await page.waitForSelector('.ms-trigger:has-text("Médio")');
-  await page.click('.ms-opt:has-text("Neva 1.2")'); await page.focus('.ms-track'); await page.keyboard.press('ArrowLeft'); await page.waitForSelector('.ms-trigger:has-text("Baixo")');
-  await page.mouse.click(5, 300); await page.waitForSelector('.ms-panel.hide', { state: 'attached' });
-  await page.click('button[aria-label="Detalhes do projeto"]'); await page.fill('input[name=name]', 'App de tarefas'); await page.click('button:has-text("Ver todos os modelos")'); await page.click('.modal .tpl:has-text("Aplicação de tarefas")'); await page.waitForFunction(() => !document.querySelector('.modal-back')); await page.click('button:has-text("Criar site")'); await page.waitForURL(/#\/ide\/\d+/);
+  if (await page.locator('input[name=name][required]').count() !== 0) throw new Error('nome ainda é obrigatório');
+  await page.click('.bidea:has-text("Barbearia")'); await page.waitForFunction(() => /Navalha de Ouro/.test(document.querySelector('.cleft textarea').value));
+  await page.click('.bchip:has-text("Elegante")'); await page.waitForSelector('.bchip.on:has-text("Elegante")');
+  await page.click('button[aria-label="Detalhes do negócio e site atual"]'); await page.waitForSelector('.bdetails:not(.hide) input[name=businessName]'); await page.waitForSelector('button:has-text("Ler site")');
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
   await nav('design'); await page.waitForSelector('.refcard:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');

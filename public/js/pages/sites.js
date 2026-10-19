@@ -25,7 +25,7 @@ export default {
           h('dl', { class: 'kv sm' }, p.domain && [h('dt', 'Domínio'), h('dd', p.domain)], p.client_name && [h('dt', 'Cliente'), h('dd', p.client_name)], [h('dt', 'Responsável'), h('dd', p.owner_name || '—')]),
           h('div', { class: 'sm mut' }, `${p.files_count} arquivo(s) · atualizado em ${dt(p.updated_at)}`),
           !!p.published && h('a', { class: 'sm', href: `/s/${p.slug}/`, target: '_blank', rel: 'noopener' }, `${location.origin}/s/${p.slug}/`),
-          h('div', { class: 'row' }, h('a', { class: 'btn', href: '#/ide/' + p.id }, p.can_edit ? 'Abrir na IDE' : 'Ver na IDE'),
+          h('div', { class: 'row' }, p.studio ? [h('a', { class: 'btn', href: '#/studio/' + p.id }, 'Abrir no Studio'), h('a', { class: 'btn ghost sm', href: '#/ide/' + p.id }, 'Código')] : h('a', { class: 'btn', href: '#/ide/' + p.id }, p.can_edit ? 'Abrir na IDE' : 'Ver na IDE'),
             canWrite && p.can_edit && h('button', { class: 'btn ghost sm', onclick: () => info(p) }, 'Dados'),
             canWrite && p.can_edit && !p.archived && h('button', { class: 'btn ghost sm', onclick: async () => { try { await api.post(`/projects/${p.id}/publish`, { published: !p.published }); toast(p.published ? 'Site despublicado.' : 'Site publicado.', 'ok'); load(); } catch (e) { fail(e); } } }, p.published ? 'Despublicar' : 'Publicar'),
             canWrite && p.can_edit && h('button', { class: 'btn ghost sm', onclick: async () => { try { await api.put('/projects/' + p.id, { archived: !p.archived }); toast(p.archived ? 'Projeto desarquivado.' : 'Projeto arquivado (saiu do ar).', 'ok'); load(); } catch (e) { fail(e); } } }, p.archived ? 'Desarquivar' : 'Arquivar'),

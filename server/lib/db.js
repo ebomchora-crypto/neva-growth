@@ -13,7 +13,7 @@ const als = new AsyncLocalStorage();
 const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
 const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
 const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
-  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches']);
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions']);
 
 // Tradução mínima de construções herdadas do SQLite + placeholders
 function translate(sql) {
@@ -243,6 +243,22 @@ ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.app_settings FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.app_settings FROM authenticated'; END IF;
+END $$;
+` }
+, { v: 6, name: 'v6-code-maker-sites-por-ia', sql: `
+-- Code Maker: o site gerado por IA guardado como plano, partes (seções) e arquivos-fonte; o HTML montado vai para project_files.
+CREATE TABLE IF NOT EXISTS code_sites (project_id INTEGER PRIMARY KEY REFERENCES projects(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  brief TEXT NOT NULL DEFAULT '{}', plan TEXT, parts TEXT NOT NULL DEFAULT '{}', files TEXT NOT NULL DEFAULT '{}', html TEXT, pages_html TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'planning', rev INTEGER NOT NULL DEFAULT 0, created_at ${TS}, updated_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_code_sites_user ON code_sites(user_id, created_at);
+CREATE TABLE IF NOT EXISTS site_versions (id ${ID}, project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  kind TEXT NOT NULL, instruction TEXT, actions TEXT NOT NULL DEFAULT '[]', plan TEXT, parts TEXT, files TEXT NOT NULL DEFAULT '{}', created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_site_versions ON site_versions(project_id, id);
+ALTER TABLE public.code_sites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.site_versions ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.code_sites, public.site_versions FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.code_sites, public.site_versions FROM authenticated'; END IF;
 END $$;
 ` }];
 

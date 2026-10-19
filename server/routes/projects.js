@@ -6,6 +6,7 @@ const { generate, KINDS } = require('../lib/templates');
 const { zip } = require('../lib/zip');
 const ai = require('../lib/ai');
 const S = require('../lib/services');
+const { extractFiles } = require('../lib/aifiles');
 
 const crypto = require('node:crypto');
 // Segredo estável entre instâncias serverless: PREVIEW_SECRET, ou derivado de DATABASE_URL; aleatório só em dev local.
@@ -81,7 +82,7 @@ async function writeFile(project, fp, content, source, userId) {
 const touch = async (id) => await run("UPDATE projects SET updated_at=datetime('now') WHERE id=?", id);
 
 r.get('/', async (req, res) => {
-  const rows = (await all(`SELECT p.*, u.name owner_name, c.name client_name, (SELECT COUNT(*) FROM project_files f WHERE f.project_id=p.id) files_count
+  const rows = (await all(`SELECT p.*, u.name owner_name, c.name client_name, (SELECT COUNT(*) FROM project_files f WHERE f.project_id=p.id) files_count, EXISTS (SELECT 1 FROM code_sites cs WHERE cs.project_id=p.id) studio
     FROM projects p LEFT JOIN users u ON u.id=p.owner_id LEFT JOIN clients c ON c.id=p.client_id WHERE p.ws=? ORDER BY p.updated_at DESC`, req.user.ws)).map((p) => ({ ...p, status: statusOf(p), can_edit: req.user.role === 'admin' || p.owner_id == null || p.owner_id === req.user.id }));
   const q = String(req.query.q || '').toLowerCase();
   let items = rows.filter((p) => !q || [p.name, p.domain, p.client_name, p.slug].some((x) => x && x.toLowerCase().includes(q)));
@@ -104,36 +105,41 @@ r.post('/', async (req, res) => {
   res.status(201).json(await get('SELECT * FROM projects WHERE id=?', proj.id));
 });
 
-// Geração com IA (requer RIVER_API_KEY)
+// Geração com IA no estilo Lovable: só o pedido é obrigatório; a IA dá o nome, o resumo e os arquivos.
+const STUDIO_STYLE = 'Design moderno e caprichado, responsivo (mobile primeiro), com hierarquia visual clara, espaçamentos generosos, tipografia boa (pode usar Google Fonts via <link>), ' +
+  'microinterações em CSS e conteúdo realista em português do Brasil (sem lorem ipsum). Imagens: use somente SVG inline, gradientes, formas em CSS ou emojis — nunca URLs de imagens externas. ' +
+  'HTML, CSS e JavaScript puros, sem build e sem bibliotecas externas. localStorage só dentro de try/catch.';
+const BUILD_EXTRA = { low: ' Nível rápido: projeto enxuto, até 3 arquivos.', medium: ' Projeto completo, com todas as seções que o pedido sugere.', high: ' Acabamento alto: mais seções, estados (hover, foco, vazio), animações sutis e copy persuasiva.', xhigh: ' Capricho máximo: estrutura completa em até 8 arquivos, muitas seções e estados, animações sutis, acessibilidade cuidada e copy persuasiva.' };
+const BUILD_TOKENS = { low: 8000, medium: 14000, high: 20000, xhigh: 28000 };
+const fileContext = (files, budget = 60000) => { let ctx = ''; for (const f of files) { if (budget <= 0) break; const chunk = `\n--- ${f.path} ---\n${f.content.slice(0, Math.min(budget, 20000))}`; ctx += chunk; budget -= chunk.length; } return ctx; };
+
 r.post('/generate-ai', async (req, res) => {
   const b = req.body || {};
   const brief = String(b.brief || '').trim();
-  const name = String(b.name || '').trim();
-  if (brief.length < 10) throw bad('Descreva o que deseja criar (mínimo 10 caracteres).');
-  if (name.length < 2) throw bad('Informe um nome para o projeto.');
+  if (brief.length < 4) throw bad('Descreva o que você quer criar.');
   const kind = ['site', 'app', 'system'].includes(b.kind) ? b.kind : 'site';
   await S.checkAiQuota(req.user, 'builder');
   const style = String(b.style || '').slice(0, 200); const color = /^#[0-9a-f]{6}$/i.test(b.color || '') ? b.color : null;
   const model = ai.resolveModel(b.model); const effort = ai.resolveEffort(model, b.effort);
-  const BUILD_EXTRA = { low: ' Nível rápido: projeto enxuto, no máximo 3 arquivos e poucas seções, código curto e direto.', medium: '', high: ' Nível alto: acabamento caprichado, mais seções e estados (hover, foco, vazio), microinterações em CSS, copy cuidadosa e até 8 arquivos bem organizados.', xhigh: ' Nível máximo: o máximo de capricho. Estrutura completa e bem separada em até 8 arquivos, muitas seções e estados (hover, foco, vazio, erro), animações sutis em CSS, acessibilidade cuidada, copy persuasiva e responsividade impecável.' };
-  const BUILD_TOKENS = { low: 6000, medium: 12000, high: 16000, xhigh: 24000 };
-  const [maxTokens, extra] = [BUILD_TOKENS[effort], BUILD_EXTRA[effort]];
   const text = await ai.complete({
-    model, maxTokens,
-    system: 'Você gera projetos web estáticos completos (HTML, CSS e JavaScript puros, sem build, sem dependências externas). ' +
-      'Responda APENAS com um objeto JSON: {"files":{"index.html":"...","style.css":"...","main.js":"..."}}. ' +
-      'Código original, responsivo, acessível, em português do Brasil, paleta azul-gelo e branca minimalista. Máximo de 8 arquivos. Não use localStorage além de try/catch.' + extra,
-    messages: [{ role: 'user', content: `Tipo: ${kind}\nNome: ${name}\nPedido: ${brief}${style ? `\nEstilo visual: ${style}` : ''}${color ? `\nCor principal: ${color}` : ''}${b.reference ? `\nReferência de design (DESIGN.md):\n${String(b.reference).slice(0, 8000)}` : ''}` }]
+    model, maxTokens: BUILD_TOKENS[effort],
+    system: 'Você é o Neva Studio, um criador de sites e apps por conversa (como o Lovable). Crie a primeira versão do projeto pedido. ' + STUDIO_STYLE + BUILD_EXTRA[effort] +
+      '\nFormato da resposta, exatamente nesta ordem:\nNOME: <nome curto e bonito para o projeto>\nRESUMO: <2 a 4 frases contando o que você criou e sugerindo próximos passos>\n' +
+      'Depois, cada arquivo COMPLETO em um bloco de código cuja PRIMEIRA LINHA DENTRO DO BLOCO é o comentário FILE (ex.: ```html\n<!-- FILE: index.html -->\n...``` ou ```css\n/* FILE: style.css */\n...```). Sempre inclua index.html. Máximo de 8 arquivos.',
+    messages: [{ role: 'user', content: `Tipo: ${kind}${b.name ? `\nNome: ${String(b.name).slice(0, 80)}` : ''}\nPedido: ${brief.slice(0, 6000)}${style ? `\nEstilo visual: ${style}` : ''}${color ? `\nCor principal: ${color}` : ''}${b.reference ? `\nReferência de design (DESIGN.md):\n${String(b.reference).slice(0, 8000)}` : ''}` }]
   });
   await S.recordAiUse(req.user, 'builder');
-  const m = text.match(/\{[\s\S]*\}/);
-  let files;
-  try { files = JSON.parse(m[0]).files; } catch { throw new HttpError(502, 'A IA não retornou um projeto válido. Tente novamente.', 'ai_bad_output'); }
-  if (!files || typeof files !== 'object' || !files['index.html']) throw new HttpError(502, 'A IA não retornou um index.html.', 'ai_bad_output');
-  const clean = {}; for (const [p, c] of Object.entries(files).slice(0, 8)) clean[cleanPath(p)] = String(c).slice(0, MAX_FILE);
+  const { files, prose } = extractFiles(text);
+  const clean = {}; for (const f of files.slice(0, 8)) { try { clean[cleanPath(f.path)] = f.content.slice(0, MAX_FILE); } catch { /* caminho inválido: ignora */ } }
+  if (!clean['index.html']) throw new HttpError(502, 'A IA não entregou um index.html. Tente de novo (ou use um esforço maior).', 'ai_bad_output');
+  const aiName = (prose.match(/NOME:\s*(.+)/i)?.[1] || '').replace(/[*_`#]/g, '').trim();
+  const summary = (prose.match(/RESUMO:\s*([\s\S]+)/i)?.[1] || '').trim() || 'Criei a primeira versão do projeto.';
+  const name = (String(b.name || '').trim() || aiName || brief.split(/\s+/).slice(0, 5).join(' ')).slice(0, 80);
   const proj = await createProject({ name, description: brief.slice(0, 300), kind, owner: req.user.id, files: clean, ws: req.user.ws });
   await extraMeta(proj.id, b, {}, req.user.ws);
-  res.status(201).json({ ...(await get('SELECT * FROM projects WHERE id=?', proj.id)), usage: (await S.usageOf(req.user)).builder });
+  await run('INSERT INTO ai_conversations(project_id,user_id,role,content) VALUES (?,?,?,?)', proj.id, req.user.id, 'user', brief.slice(0, 20000));
+  await run('INSERT INTO ai_conversations(project_id,user_id,role,content) VALUES (?,?,?,?)', proj.id, req.user.id, 'assistant', `${summary}\n\nArquivos criados: ${Object.keys(clean).join(', ')}`);
+  res.status(201).json({ ...(await get('SELECT * FROM projects WHERE id=?', proj.id)), summary, files: Object.keys(clean), usage: (await S.usageOf(req.user)).builder });
 });
 
 // Otimizar prompt do builder (IA)
@@ -318,7 +324,10 @@ async function serve(project, rel, res, preview = false) {
   let fp = rel ? decodeURIComponent(rel) : 'index.html';
   if (fp.endsWith('/')) fp += 'index.html';
   try { fp = cleanPath(fp); } catch { return res.status(404).type('text').send('Não encontrado'); }
-  const f = await get('SELECT content FROM project_files WHERE project_id=? AND path=?', project.id, fp);
+  let f = await get('SELECT content FROM project_files WHERE project_id=? AND path=?', project.id, fp);
+  // Sites do Code Maker: links entre páginas ("paginas/x.html", "index.html#contato") funcionam de qualquer página.
+  const page = !f && fp.match(/(?:^|\/)([a-z0-9-]+)\.html$/i)?.[1]?.toLowerCase();
+  if (page) { fp = page === 'index' ? 'index.html' : `paginas/${page}.html`; f = await get('SELECT content FROM project_files WHERE project_id=? AND path=?', project.id, fp); }
   if (!f) return res.status(404).type('text').send('Arquivo não encontrado');
   let out = f.content;
   if (preview && fp.endsWith('.html')) out = /<head[^>]*>/i.test(out) ? out.replace(/<head[^>]*>/i, (m) => m + BRIDGE) : BRIDGE + out;

@@ -1,85 +1,84 @@
 import { api } from '../api.js';
 import { dotField } from '../dot-field.js';
-import { modelSelector } from '../model-selector.js';
-import { aiLoading } from '../ai-loading.js';
 import { generatingOrb } from '../generating-orb.js';
 import { motionEnabled } from '../motion.js';
-import { h, mount, toast, fail, fieldEl, icon, modal } from '../ui.js';
+import { h, mount, toast, fail, icon } from '../ui.js';
 
-const TEMPLATES = [
-  { id: 'inst', title: 'Site institucional', desc: 'Apresentação da empresa com benefícios, serviços, depoimentos e contato.', kind: 'site', sections: ['beneficios', 'servicos', 'depoimentos', 'contato'] },
-  { id: 'land', title: 'Landing de captação', desc: 'Página focada em conversão: benefícios, prova social, FAQ e formulário.', kind: 'site', sections: ['beneficios', 'depoimentos', 'faq', 'contato'] },
-  { id: 'serv', title: 'Site de serviços', desc: 'Lista de serviços, perguntas frequentes e contato direto.', kind: 'site', sections: ['servicos', 'faq', 'contato'] },
-  { id: 'app', title: 'Aplicação de tarefas', desc: 'Interface interativa com persistência local.', kind: 'app' },
-  { id: 'sys', title: 'Sistema de cadastros', desc: 'CRUD com várias entidades definidas por um esquema editável.', kind: 'system' }
+// Estilos do Code Maker (mesmas chaves do servidor: auto, dark, minimal, elegant, vibrant).
+const STYLES = [['auto', 'A IA escolhe'], ['dark', 'Moderno escuro'], ['minimal', 'Minimalista claro'], ['elegant', 'Elegante'], ['vibrant', 'Vibrante']];
+const IDEAS = [
+  { t: 'Barbearia', p: 'Site para a barbearia Navalha de Ouro em Curitiba, com serviços de corte, barba e sobrancelha, preços, galeria e agendamento pelo WhatsApp (41) 99888-7766.' },
+  { t: 'Clínica odontológica', p: 'Site para uma clínica odontológica em Recife com tratamentos (implante, clareamento, ortodontia), equipe, perguntas frequentes e botão de agendamento pelo WhatsApp.' },
+  { t: 'Restaurante', p: 'Site para um restaurante italiano familiar em São Paulo, com cardápio em destaque, ambiente, horários de funcionamento, localização e reservas pelo WhatsApp.' },
+  { t: 'Advocacia', p: 'Site institucional para um escritório de advocacia trabalhista em Belo Horizonte, sóbrio e confiável, com áreas de atuação, como funciona o atendimento e contato.' },
+  { t: 'Academia', p: 'Landing page para uma academia de bairro em Porto Alegre com modalidades, planos mensais, horários e aula experimental grátis pelo WhatsApp.' },
+  { t: 'Pet shop', p: 'Site para um pet shop com banho e tosa em Fortaleza, serviços, diferenciais, perguntas frequentes e agendamento pelo WhatsApp.' }
 ];
-const thumb = (t) => h('div', { class: 'th' }, [14, 34, 54, 74].map((top, i) => h('i', { style: `top:${top}px;width:${[60, 80, 45, 70][i]}%` })));
 
 export default {
   async render(box, ctx) {
     const canWrite = ctx.user.role !== 'viewer';
-    const [st, me, refs] = await Promise.all([api.get('/integrations/status'), api.get('/me'), api.get('/library', { kind: 'design' }).catch(() => ({ items: [] }))]);
-    const aiOn = st.ai.configured; let tpl = TEMPLATES[0]; const U = me.usage;
-    const brief = h('textarea', { rows: 6, placeholder: 'Descreva o site que você quer criar. Ex.: Landing page para uma clínica odontológica em Curitiba, com tratamentos, depoimentos e botão de agendamento pelo WhatsApp.', 'aria-label': 'Descrição do site' });
-    const defs = [{ k: 'name', l: 'Nome do projeto', req: true }, { k: 'kind', l: 'Tipo', type: 'select', opts: [['site', 'Site'], ['app', 'Aplicação'], ['system', 'Sistema']] }, { k: 'color', l: 'Cor principal', type: 'color', default: '#2f7bbd' },
-      { k: 'style', l: 'Estilo visual', ph: 'minimalista, editorial, tecnológico…' },
-      { k: 'reference', l: 'Referência de design (DESIGN.md)', type: 'select', empty: 'Nenhuma', opts: refs.items.filter((r) => !r.locked).map((r) => [r.id, r.title]) }];
-    const form = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() }, defs.map((d) => fieldEl(d)));
-    const quota = h('span', { class: 'sm mut' }, aiOn ? `Geração com IA: ${U.builder.used}/${U.builder.limit} no mês · Prompts/assistente: ${U.ai.used}/${U.ai.limit}` : '');
+    const st = await api.get('/integrations/status');
+    const aiOn = st.ai.configured;
+    let style = 'auto';
+
+    const brief = h('textarea', { rows: 6, placeholder: 'Descreva o site que você quer. Ex.: site para uma clínica odontológica em Curitiba, com tratamentos, depoimentos e botão de agendamento pelo WhatsApp.', 'aria-label': 'O que você quer no site' });
+    const field = (name, label, ph) => h('label', { class: 'field' }, h('span', label), h('input', { name, placeholder: ph, autocomplete: 'off' }));
+    const form = h('form', { class: 'grid g2', onsubmit: (e) => e.preventDefault() },
+      field('businessName', 'Nome do negócio (opcional)', 'A IA descobre pelo pedido'),
+      field('niche', 'Ramo (opcional)', 'barbearia, clínica, restaurante…'),
+      field('city', 'Cidade (opcional)', 'Curitiba'),
+      field('phone', 'WhatsApp (opcional)', '(41) 99999-9999'));
+    // "Já tem site?": lê o site atual do cliente e preenche o pedido com os textos e contatos dele.
+    const siteUrl = h('input', { placeholder: 'www.empresa.com.br', 'aria-label': 'Endereço do site atual', autocomplete: 'off' });
+    const btnRead = h('button', { type: 'button', class: 'btn ghost sm', disabled: !canWrite, onclick: async () => {
+      if (!siteUrl.value.trim()) { siteUrl.focus(); return; }
+      btnRead.disabled = true; btnRead.textContent = 'Lendo o site…';
+      try {
+        const r = await api.post('/code-maker', { action: 'read_site', url: siteUrl.value.trim() });
+        brief.value = [brief.value.trim(), r.details].filter(Boolean).join('\n\n');
+        if (r.name && !form.businessName.value) form.businessName.value = r.name;
+        if (r.phone && !form.phone.value) form.phone.value = r.phone;
+        toast('Li o site atual e coloquei as informações no pedido.', 'ok');
+      } catch (e) { fail(e); } finally { btnRead.disabled = false; btnRead.textContent = 'Ler site'; }
+    } }, 'Ler site');
+    const details = h('div', { class: 'bdetails hide' }, form, h('div', { class: 'bimport' }, h('span', { class: 'sm' }, 'Já tem site? A IA aproveita os textos e contatos dele.'), h('div', { class: 'row' }, siteUrl, btnRead)));
+    const plusBtn = h('button', { type: 'button', class: 'bicon', title: 'Detalhes do negócio e site atual', 'aria-label': 'Detalhes do negócio e site atual', onclick: () => details.classList.toggle('hide') }, icon('plus'));
+
+    const chips = h('div', { class: 'bstyles', role: 'radiogroup', 'aria-label': 'Estilo do site' });
+    const drawChips = () => mount(chips, STYLES.map(([k, l]) => h('button', { type: 'button', role: 'radio', 'aria-checked': String(style === k), class: 'bchip' + (style === k ? ' on' : ''), onclick: () => { style = k; drawChips(); } }, l)));
+    drawChips();
+
     const btnOpt = h('button', { type: 'button', class: 'btn ghost', disabled: !aiOn || !canWrite, onclick: async () => {
       btnOpt.disabled = true; btnOpt.textContent = 'Otimizando…';
-      try { const r = await api.post('/projects/optimize-prompt', { brief: brief.value }); brief.value = r.brief; toast('Prompt otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar prompt'; } } }, 'Otimizar prompt');
-    const name = () => form.name.value.trim();
-    // um único botão, como no original: com IA configurada gera pelo pedido; sem IA cria a partir do modelo escolhido
-    const btnCreate = h('button', { type: 'button', class: 'btn', disabled: !canWrite, title: aiOn ? 'Gera o projeto com IA a partir da sua descrição' : 'IA não configurada: cria a partir do modelo selecionado', onclick: async () => {
-      if (!form.reportValidity()) { details.classList.remove('hide'); form.reportValidity(); return; }
-      btnCreate.disabled = true; const old = btnCreate.textContent; btnCreate.textContent = aiOn ? 'Gerando…' : 'Criando…';
-      const sel = selector.get(); const L = aiLoading([{ id: 'send', label: 'Enviando o pedido', status: 'running', detail: [`modelo: ${selector.label()}`, `tipo: ${form.kind.value}`] }, { id: 'gen', label: aiOn ? 'Gerando os arquivos com a IA' : 'Montando o projeto a partir do modelo', status: 'pending' }, { id: 'make', label: 'Criando o projeto', status: 'pending' }], { collapseWhenDone: false });
-      mount(loadingBox, L.el); loadingBox.classList.remove('hide'); orb.setRunning(true);
-      const set = (a, b2, c) => L.update([{ id: 'send', label: 'Enviando o pedido', status: a, detail: [`modelo: ${selector.label()}`, `tipo: ${form.kind.value}`] }, { id: 'gen', label: aiOn ? 'Gerando os arquivos com a IA' : 'Montando o projeto a partir do modelo', status: b2 }, { id: 'make', label: 'Criando o projeto', status: c }]);
+      try { const r = await api.post('/projects/optimize-prompt', { brief: brief.value }); brief.value = r.brief; toast('Pedido otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar pedido'; }
+    } }, 'Otimizar pedido');
+
+    const orb = generatingOrb({ text: 'Neva Studio', size: 150 });
+    const btnCreate = h('button', { type: 'button', class: 'btn', disabled: !aiOn || !canWrite, onclick: async () => {
+      const d = Object.fromEntries(new FormData(form));
+      if (!brief.value.trim() && !d.businessName.trim()) { brief.focus(); toast('Escreva o que você quer no site.', 'err'); return; }
+      btnCreate.disabled = true; btnCreate.textContent = 'Criando…'; orb.setRunning(true);
       try {
-        if (aiOn) {
-          let reference; if (form.reference.value) reference = (await api.get('/library/' + form.reference.value)).content;
-          set('done', 'running', 'pending');
-          const p = await api.post('/projects/generate-ai', { name: name(), kind: form.kind.value, brief: brief.value, style: form.style.value, color: form.color.value, ...sel, reference });
-          set('done', 'done', 'done'); toast('Projeto gerado. Revise o código na IDE.', 'ok'); location.hash = '#/ide/' + p.id;
-        } else {
-          set('done', 'running', 'pending');
-          const p = await api.post('/projects', { name: name(), kind: tpl.kind, color: form.color.value, sections: tpl.sections, tagline: brief.value.trim().split('\n')[0].slice(0, 90) || name(), description: brief.value.slice(0, 300) });
-          set('done', 'done', 'done'); location.hash = '#/ide/' + p.id;
-        }
-      } catch (e) { L.stop(); orb.setRunning(false); loadingBox.classList.add('hide'); fail(e); btnCreate.disabled = false; btnCreate.textContent = old; } } }, 'Criar site →');
-    // detalhes do projeto (nome, tipo, cor, estilo, referência) ficam recolhidos sob o botão "+"
-    const details = h('div', { class: 'bdetails hide' }, form);
-    const toggleDetails = () => details.classList.toggle('hide');
-    const colorBtn = h('button', { type: 'button', class: 'bicon', title: 'Escolher a cor principal', 'aria-label': 'Escolher a cor principal', onclick: () => { details.classList.remove('hide'); form.color.focus(); form.color.click?.(); } }, icon('palette'));
-    const plusBtn = h('button', { type: 'button', class: 'bicon', title: 'Detalhes do projeto: nome, tipo, estilo e referência', 'aria-label': 'Detalhes do projeto', onclick: toggleDetails }, icon('plus'));
-    // modelos: 4 por página (grade 2x2 com o título sobre a miniatura), setas reais e "Ver todos"
-    let page = 0; const PER = 4; const models = h('div', { class: 'bmodels' }); const pager = h('div', { class: 'bpager' });
-    const pick = (t) => { tpl = t; form.kind.value = t.kind; drawModels(); };
-    const drawModels = () => {
-      const pages = Math.ceil(TEMPLATES.length / PER);
-      mount(models, TEMPLATES.slice(page * PER, page * PER + PER).map((t) => h('button', { type: 'button', class: 'bmodel' + (tpl.id === t.id ? ' on' : ''), title: t.desc, onclick: () => pick(t) }, thumb(t), h('span', t.title))));
-      mount(pager, h('button', { type: 'button', class: 'bmore', onclick: allModels }, 'Ver todos os modelos ', h('i', '→')),
-        h('span', { class: 'row' }, h('button', { type: 'button', class: 'bround', 'aria-label': 'Modelos anteriores', disabled: page === 0, onclick: () => { page--; drawModels(); } }, '‹'), h('button', { type: 'button', class: 'bround', 'aria-label': 'Próximos modelos', disabled: page >= pages - 1, onclick: () => { page++; drawModels(); } }, '›')));
-    };
-    function allModels() {
-      const list = h('div', { class: 'cards' }, TEMPLATES.map((t) => h('button', { type: 'button', class: 'card tpl' + (tpl.id === t.id ? ' on' : ''), style: 'text-align:left', onclick: () => { pick(t); m.close(); } }, thumb(t), h('div', { class: 'body' }, h('b', t.title), h('div', { class: 'sm mut' }, t.desc)))));
-      const m = modal({ title: 'Todos os modelos', size: 'lg', body: list, actions: [{ label: 'Fechar', kind: 'ghost' }] });
-    }
-    drawModels();
-    // modelo + esforço (valem de verdade no servidor: escolhem o modelo e o limite/instruções da geração)
-    const selector = modelSelector({ models: st.ai.models, defaultModel: st.ai.defaultModel, theme: 'dark', placement: 'up' });
-    const orb = generatingOrb({ text: 'Neva Studio', size: 150 }); const loadingBox = h('div', { class: 'bloading hide' });
-    const status = aiOn ? h('span', { class: 'bstatus ok' }, h('i'), quota.textContent) : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: defina ', h('code', st.ai.envVar), ' no servidor. Os modelos funcionam sem IA.');
+        const r = await api.post('/code-maker', { action: 'create', brief: { ...d, details: brief.value, style } });
+        location.hash = '#/studio/' + r.site.id;
+      } catch (e) { fail(e); orb.setRunning(false); btnCreate.disabled = false; btnCreate.textContent = 'Criar site →'; }
+    } }, 'Criar site →');
+    brief.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) btnCreate.click(); });
+
+    const ideas = h('div', { class: 'bideas' }, h('b', 'Ideias para começar'),
+      IDEAS.map((i) => h('button', { type: 'button', class: 'bidea', onclick: () => { brief.value = i.p; brief.focus(); } }, h('span', i.t), h('small', i.p))));
+    const status = aiOn
+      ? h('span', { class: 'bstatus ok' }, h('i'), 'Só o pedido é obrigatório. A IA planeja, escreve cada seção e monta o site ao vivo.')
+      : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: preencha RIVER_API_KEY na tabela app_settings do banco.');
     box.classList.add('fill');
     mount(box, h('div', { class: 'bstage' },
       h('div', { class: 'btop' }, h('a', { href: '#/sites' }, '← Voltar aos sites'), h('span', { class: 'k' }, h('i', '●'), ' Builder de sites')),
       h('div', { class: 'bhero' }, orb.el, h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`)),
-      loadingBox,
       h('div', { class: 'composer' },
-        h('div', { class: 'cleft' }, brief, details, status, h('div', { class: 'effwrap' }, selector.el), h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), colorBtn, btnCreate)),
-        h('div', { class: 'cright' }, models, pager))));
+        h('div', { class: 'cleft' }, brief, details, chips, status, h('div', { class: 'cbar' }, plusBtn, btnOpt, h('span', { class: 'grow' }), btnCreate)),
+        h('div', { class: 'cright' }, ideas))));
+    brief.focus();
     return dotField(box.querySelector('.bstage'), { animate: motionEnabled(), color: 'rgb(205,230,255)' });
   }
 };
