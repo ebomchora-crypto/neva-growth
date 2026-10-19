@@ -2,6 +2,7 @@ import { api } from './api.js';
 import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
 import { drapeBg } from './drape-bg.js';
 import { pushNew, resetPush } from './push.js';
+import { openTips } from './tips.js';
 import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill } from './motion.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
@@ -207,6 +208,7 @@ function shell() {
   const top = h('div', { class: 'topbar2' },
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
     h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
+    h('button', { type: 'button', class: 'alertbtn hide', id: 'tipsbtn', title: 'Dicas para vender', 'aria-label': 'Dicas para vender', onclick: openTips }, icon('alert')),
     h('span', { class: 'grow' }), h('a', { class: 'livepill', id: 'syncinfo', href: '#/ao-vivo', title: 'Abrir as vendas de hoje ao vivo' }, h('i'), h('span', 'AO VIVO')), eye,
     h('button', { class: 'iconbtn', title: 'Atualizar a página atual', 'aria-label': 'Atualizar dados', onclick: () => route() }, icon('refresh')),
     h('div', { style: 'position:relative' }, bell),
@@ -224,6 +226,7 @@ async function route() {
   if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
   document.querySelectorAll('.side a[data-path]').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
   navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on'));
+  document.getElementById('tipsbtn')?.classList.toggle('hide', !['dashboard', 'clientes', 'vendas'].includes(r.path));
   const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';
   state.cleanup?.(); state.cleanup = null;
   await routeStart(view);

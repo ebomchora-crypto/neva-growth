@@ -122,7 +122,15 @@ await step('Dashboard com lucro real', async () => {
 });
 await step('AO VIVO: abre Vendas hoje com gráfico e volta', async () => {
   await nav('dashboard'); await page.click('.livepill'); await page.waitForSelector('.lv h1:has-text("Vendas hoje")'); await page.waitForSelector('.lv .lv-chart'); await page.waitForSelector('.lv-stats:has-text("Ticket médio")');
+  await page.click('.lv-mode button:has-text("Tudo")'); await page.waitForSelector('.lv h1:has-text("Vendas totais")'); await page.waitForSelector('.lv-stats:has-text("Lucro total")'); await page.click('.lv-mode button:has-text("Hoje")'); await page.waitForSelector('.lv h1:has-text("Vendas hoje")');
   await page.click('.lv-back'); await page.waitForFunction(() => !document.querySelector('.lv') && location.hash === '#/dashboard');
+});
+await step('botão de alerta: dicas de venda no Dashboard/Clientes/Vendas e aviso some em 2,5 s', async () => {
+  for (const r of ['dashboard', 'clientes', 'vendas']) { await nav(r); await page.waitForSelector('#tipsbtn:not(.hide)'); }
+  await page.click('#tipsbtn'); await page.waitForSelector('.tips h2:has-text("Se você quer vender")'); await page.waitForFunction(() => document.querySelectorAll('.tips-card').length === 6);
+  await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('.tips-back'));
+  await nav('sites'); await page.waitForSelector('#tipsbtn.hide', { state: 'attached' });
+  await page.evaluate(() => import('/js/ui.js').then((m) => m.toast('Teste de aviso.', 'ok'))); await page.waitForSelector('.toast .ttx:has-text("Teste de aviso.")'); await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 4500 });
 });
 await step('notificações (sino)', async () => { await page.click('button[aria-label="Notificações"]'); await page.waitForSelector('.dropdown'); await page.waitForSelector('text=Tudo em dia'); await page.click('button[aria-label="Notificações"]'); });
 let projUrl;

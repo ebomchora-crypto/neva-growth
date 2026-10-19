@@ -33,10 +33,13 @@ export const dt = (s) => {
 export const dtt = (s) => { const d = new Date(String(s).replace(' ', 'T') + 'Z'); return isNaN(d) ? s : d.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }); };
 export const debounce = (fn, ms = 300) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 
+// Aviso rápido: cartão escuro com ícone, legenda e mensagem; some sozinho em 2,5 s.
+const TOAST_KICK = { ok: 'ATUALIZAÇÃO', err: 'ALERTA', '': 'AVISO' };
 export function toast(msg, type = '') {
-  const t = h('div', { class: 'toast ' + type }, msg);
+  const t = h('div', { class: 'toast ' + type, role: type === 'err' ? 'alert' : 'status' },
+    h('i', { class: 'tico' }, icon(type === 'err' ? 'alert' : 'check')), h('div', { class: 'ttx' }, h('small', `NEVA GROWTH / ${TOAST_KICK[type] || TOAST_KICK['']}`), h('b', msg)));
   document.getElementById('toasts').append(t); toastIn(t);
-  setTimeout(() => toastOut(t, () => t.remove()), type === 'err' ? 6000 : 3200);
+  setTimeout(() => toastOut(t, () => t.remove()), 2500);
 }
 export const fail = (e) => toast(e?.message || 'Erro inesperado.', 'err');
 

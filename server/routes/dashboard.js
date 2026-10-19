@@ -68,7 +68,23 @@ r.get('/', async (req, res) => {
 // "Vendas hoje" ao vivo: valor do dia (horário de Brasília), comparação com ontem e acumulado por hora.
 const brt = (ms) => new Date(ms - 3 * 3600 * 1000);
 const hourOf = (created) => { const t = Date.parse(String(created || '').replace(' ', 'T') + (/[zZ]|[+-]\d\d:?\d\d$/.test(String(created)) ? '' : 'Z')); return Number.isFinite(t) ? brt(t).getUTCHours() : 12; };
+// Modo "tudo": total de todas as vendas pagas, acumulado mês a mês (até 12 meses) e comparação do mês atual com o anterior.
+async function liveAll(req, res) {
+  const ws = req.user.ws; const now = brt(Date.now()); const today = iso(now); const ym = today.slice(0, 7);
+  const rows = await all(`SELECT s.id, s.description, s.amount, s.cost, ${PAID_DATE} d, c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id WHERE s.status='pago' AND s.ws=? ORDER BY ${PAID_DATE} DESC, s.id DESC`, ws);
+  const months = []; for (let i = 11; i >= 0; i--) { const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1)); months.push(d.toISOString().slice(0, 7)); }
+  const before = rows.filter((x) => String(x.d).slice(0, 7) < months[0]).reduce((a, x) => a + Number(x.amount), 0);
+  let acc = before; const cum = months.map((m) => { acc += rows.filter((x) => String(x.d).slice(0, 7) === m).reduce((a, x) => a + Number(x.amount), 0); return acc; });
+  const monthSum = (m) => rows.filter((x) => String(x.d).slice(0, 7) === m).reduce((a, x) => a + Number(x.amount), 0);
+  const prevM = months[10]; const cur = monthSum(ym); const prev = monthSum(prevM);
+  const revenue = rows.reduce((a, x) => a + Number(x.amount), 0); const cost = rows.reduce((a, x) => a + Number(x.cost), 0);
+  res.json({ scope: 'all', today, name: req.user.name, hour: 23, now: now.toISOString().slice(11, 19), revenue, profit: revenue - cost, count: rows.length, ticket: rows.length ? revenue / rows.length : 0,
+    variation: prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : null, previous: prev, yesterday: prevM + '-01',
+    labels: months.map((m) => new Date(m + '-15T12:00:00Z').toLocaleDateString('pt-BR', { month: 'short', timeZone: 'UTC' }).replace('.', '')), series: { today: cum, yesterday: cum.map(() => 0) },
+    recent: rows.slice(0, 8).map(({ id, description, amount, client_name }) => ({ id, description, amount, client_name })) });
+}
 r.get('/live', async (req, res) => {
+  if (req.query.scope === 'all') return liveAll(req, res);
   const ws = req.user.ws; const now = brt(Date.now()); const today = iso(now); const yest = iso(addDays(now, -1));
   const rows = await all(`SELECT s.id, s.description, s.amount, s.cost, s.created_at, ${PAID_DATE} d, c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id
     WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE} IN (?, ?) ORDER BY s.id DESC`, ws, today, yest);
