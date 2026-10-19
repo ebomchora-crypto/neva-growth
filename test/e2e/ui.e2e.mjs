@@ -187,9 +187,9 @@ await step('Builder: só o pedido, sem nome obrigatório (IA não configurada = 
 });
 await step('Referências de design: criar, filtrar, abrir', async () => {
   await nav('design'); await page.waitForSelector('.dcard2:has-text("Neva Growth — azul-gelo")'); await page.click('button:has-text("+ Nova referência")');
-  await page.fill('.modal input[name=title]', 'Editorial Verde'); await page.fill('.modal input[name=niche]', 'Fintech'); await page.fill('.modal input[name=style]', 'Escuro'); await page.fill('.modal textarea[name=content]', '# DESIGN.md\nCores: #0a0');
+  await page.fill('.modal input[name=title]', 'Editorial Verde'); await page.fill('.modal input[name=niche]', 'Nicho Teste'); await page.fill('.modal input[name=style]', 'Escuro'); await page.fill('.modal textarea[name=content]', '# DESIGN.md\nCores: #0a0');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('.dcard2:has-text("Editorial Verde")');
-  await page.selectOption('select[aria-label="Nicho"]', 'Fintech'); await page.waitForFunction(() => document.querySelectorAll('.dcard2').length === 1); await page.click('.dcard2'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
+  await page.selectOption('select[aria-label="Nicho"]', 'Nicho Teste'); await page.waitForFunction(() => document.querySelectorAll('.dcard2').length === 1); await page.click('.dcard2'); await page.waitForSelector('.modal pre:has-text("Cores: #0a0")'); await page.click('.modal button:has-text("Baixar")'); await page.keyboard.press('Escape');
 });
 await step('Acervo: recursos iniciais e novo recurso', async () => {
   await nav('acervo'); await page.waitForSelector('.libitem:has-text("Direção de landing page")'); await page.click('.libitem:has-text("Direção de landing page")'); await page.waitForSelector('pre.code:has-text("designer de produto")');

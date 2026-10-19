@@ -28,4 +28,17 @@ async function seedLibrary() {
     await run("INSERT INTO meta(key,value) VALUES ('library_seeded','1') ON CONFLICT (key) DO NOTHING");
   });
 }
-module.exports = { seedLibrary };
+// Conteúdo ampliado (referências de design, prompts, skills e animações): entra uma vez, só os títulos que ainda não existem.
+async function seedLibraryV2() {
+  if (await get("SELECT 1 x FROM meta WHERE key='library_seed_v2'")) return;
+  const { ITEMS: MORE } = require('./seed-content');
+  await tx(async () => {
+    if (await get("SELECT 1 x FROM meta WHERE key='library_seed_v2'")) return;
+    for (const i of MORE) {
+      if (await get('SELECT 1 x FROM library_items WHERE kind=? AND title=?', i.kind, i.title)) continue;
+      await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,url,min_plan) VALUES (?,?,?,?,?,?,?,?,?,?)', i.kind, i.title, i.category || null, i.summary || null, i.content, i.niche || null, i.style || null, i.site_type || null, i.url || null, i.min_plan || 'member');
+    }
+    await run("INSERT INTO meta(key,value) VALUES ('library_seed_v2','1') ON CONFLICT (key) DO NOTHING");
+  });
+}
+module.exports = { seedLibrary, seedLibraryV2 };
