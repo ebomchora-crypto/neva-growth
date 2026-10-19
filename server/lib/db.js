@@ -285,10 +285,12 @@ UPDATE pipeline_stages SET description='Aprendizados para o próximo', probabili
 INSERT INTO pipeline_stages(key, label, position, kind, ws, description, probability)
   SELECT s.key, s.label, s.position, s.kind, u.ws, s.description, s.probability FROM pipeline_stages s CROSS JOIN (SELECT DISTINCT ws FROM users WHERE ws <> 1) u WHERE s.ws = 1
   ON CONFLICT (ws, key) DO NOTHING;
-UPDATE plans SET benefits = replace(replace(replace(benefits, 'Assistente de IA com limite mensal', 'Assistente de IA sem limites'), 'Mais gerações de IA e do Builder', 'IA e Builder sem limites'), 'Limites ampliados de IA e Builder', 'Prioridade em novos recursos');
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS contact TEXT;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS tags TEXT;
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS client_id INTEGER;
+` }
+, { v: 9, name: 'v9-keys-de-acesso-e-planos-sem-limites', sql: `
+UPDATE plans SET benefits = replace(replace(replace(benefits, 'Assistente de IA com limite mensal', 'Assistente de IA sem limites'), 'Mais gerações de IA e do Builder', 'IA e Builder sem limites'), 'Limites ampliados de IA e Builder', 'Prioridade em novos recursos');
 CREATE TABLE IF NOT EXISTS access_keys (code TEXT PRIMARY KEY, plan TEXT NOT NULL, created_by INTEGER REFERENCES users(id) ON DELETE SET NULL, created_at ${TS}, used_by INTEGER REFERENCES users(id) ON DELETE SET NULL, used_at TEXT);
 ALTER TABLE public.access_keys ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
