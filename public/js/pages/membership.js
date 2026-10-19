@@ -50,7 +50,7 @@ export default {
     mount(box, hero({ kicker: h('a', { class: 'mk-back', href: '#/dashboard' }, '← Voltar à central'), title: 'Seu lugar dentro da Neva Growth.', art: 'membership', subtitle: null,
       stats: h('div', { class: 'mk-pill' }, h('i'), h('div', h('b', 'ASSOCIAÇÃO ATIVA'), h('small', 'Acesso concedido pela Neva Growth')), h('span', 'SEU CARTÃO'), h('strong', full(cur))) }),
       h('div', { class: 'mplans' }, plans.map(planCard)),
-      h('div', { class: 'mk-info' }, h('span', h('b', String(me.user.credits)), ' créditos de prospecção'), h('span', 'IA, Builder, Play e sugestões ilimitados'), h('a', { href: '#/configuracoes' }, 'Ver meu uso')),
+      h('div', { class: 'mk-info' }, h('span', h('b', String(me.user.credits)), ' créditos de prospecção'), h('a', { href: '#/configuracoes' }, 'Ver meu uso')),
       h('section', { class: 'mk-key' }, h('div', h('small', 'ACESSO CONCEDIDO / NEVA GROWTH'), h('h2', 'Tem uma key de acesso?'), h('p', 'Ative sua credencial nesta conta e entre no próximo nível da Neva Growth. Cada código é pessoal e pode ser resgatado uma única vez.'), h('span', { class: 'mk-shield' }, icon('shield'), 'Resgate protegido · vinculado à sua conta')),
         h('div', { class: 'mk-box' }, h('small', 'SUA KEY'), h('div', { class: 'mk-in' }, icon('lock'), keyInput, activate), h('small', { class: 'mk-hint' }, higher.length ? `Sua conta ${full(cur)} aceita keys ${higher.map(full).join(' ou ')}.` : 'Você já está no plano mais alto.'))),
       h('p', { class: 'mk-foot' }, 'Acesso pessoal e vinculado à sua conta Neva Growth. O plano é liberado na hora, ao ativar a key.'), adminBox);

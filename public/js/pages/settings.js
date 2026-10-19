@@ -125,7 +125,7 @@ export default {
         return h('div', { class: 'stack' }, h('section', { class: 'scard planrow' }, cardArt, h('div', { class: 'stack' },
           h('div', { class: 'skick' }, 'NEVA GROWTH / MEMBERSHIP'), h('h3', { class: 'planname' }, me.plan.name), h('p', { class: 'sm mut', style: 'margin:0' }, `${me.plan.tagline ? me.plan.tagline + '. ' : ''}Seu acesso atual é definido por um administrador. Consulte benefícios e peça uma mudança na área de membros.`),
           h('ul', { class: 'sm' }, (me.plan.benefits || '').split('\n').filter(Boolean).map((b) => h('li', b))),
-          h('div', { class: 'kvrow' }, h('span', 'Uso de IA neste mês'), h('b', `${u.ai.used} · ilimitado`)), h('div', { class: 'kvrow' }, h('span', 'Gerações do Builder neste mês'), h('b', `${u.builder.used} · ilimitado`)),
+          h('div', { class: 'kvrow' }, h('span', 'Uso de IA neste mês'), h('b', String(u.ai.used))), h('div', { class: 'kvrow' }, h('span', 'Gerações do Builder neste mês'), h('b', String(u.builder.used))),
           h('div', { class: 'kvrow' }, h('span', 'Créditos de prospecção'), h('b', String(me.user.credits))),
           h('div', h('a', { class: 'btn', href: '#/associacao' }, 'Abrir área de membros', h('i', { class: 'bico' }, icon('arrow')))))));
       },

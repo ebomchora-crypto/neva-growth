@@ -34,7 +34,7 @@ export default {
     function drawAsk() {
       const canAsk = ctx.user.role !== 'viewer';
       mount(askBand, h('div', { class: 'ab-l' }, h('h2', 'O que você quer aprender?'), h('p', { class: 'sm mut', style: 'margin:6px 0 0;max-width:60ch' }, 'Conte o tema e o resultado que gostaria de alcançar. A equipe editorial recebe cada pedido dentro do painel do Play.')),
-        h('div', { class: 'ab-r' }, h('div', { class: 'ab-n' }, h('b', '∞'), h('span', h('b', { style: 'display:block' }, 'sugestões ilimitadas'), h('small', 'envie quantas quiser'))),
+        h('div', { class: 'ab-r' }, h('div', { class: 'ab-n' }, h('b', '+'), h('span', h('b', { style: 'display:block' }, 'sugestões de aulas'), h('small', 'conte o que quer aprender'))),
           canAsk && h('button', { class: 'btn', onclick: suggest }, 'Sugerir uma aula →')));
       adminBox.classList.toggle('hide', !isAdmin);
       mount(adminBox, isAdmin ? [h('div', { class: 'k' }, 'Painel editorial'), h('h2', 'Pedidos de aulas'),

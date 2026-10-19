@@ -214,8 +214,8 @@ await step('Play: cadastrar vídeo e marcar como visto', async () => {
   await nav('play'); await page.click('button:has-text("Novo conteúdo")'); await page.fill('.modal input[name=title]', 'Como vender sites'); await page.fill('.modal input[name=video_url]', 'https://youtu.be/dQw4w9WgXcQ'); await page.fill('.modal input[name=category]', 'Vendas');
   await page.click('.modal button:has-text("Salvar")'); await page.waitForSelector('article:has-text("Como vender sites")'); await page.click('article:has-text("Como vender sites") >> button:has-text("Assistir")');
   await page.waitForSelector('.modal iframe'); await page.click('.modal button:has-text("Marcar como visto")'); await page.waitForSelector('.stat:has-text("Conteúdos vistos") b:text-is("100%")'); await page.waitForSelector('.badge:has-text("visto")');
-  await page.waitForSelector('.askband:has-text("ilimitadas")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
-  await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("∞")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
+  await page.waitForSelector('.askband:has-text("sugestões de aulas")'); await page.click('button:has-text("Sugerir uma aula")'); await page.fill('.modal input[name=topic]', 'Como fechar o primeiro cliente'); await page.fill('.modal textarea[name=outcome]', 'Vender meu primeiro site');
+  await page.click('.modal button:has-text("Enviar sugestão")'); await page.waitForSelector('.ab-n:has-text("sugestões de aulas")'); await page.waitForSelector('td:has-text("Como fechar o primeiro cliente")');
 });
 await step('Gerador de prompts: IA não configurada + Meus prompts', async () => {
   await nav('prompts'); await page.waitForSelector('text=IA não configurada'); await page.waitForSelector('button:has-text("Gerar prompt")[disabled]'); await page.click('.seg button:has-text("JSON")');

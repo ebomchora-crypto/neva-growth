@@ -297,6 +297,9 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.access_keys FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.access_keys FROM authenticated'; END IF;
 END $$;
+` }
+, { v: 10, name: 'v10-beneficios-sem-mencao-a-limites', sql: `
+UPDATE plans SET benefits = replace(replace(benefits, 'Assistente de IA sem limites', 'Assistente de IA'), 'IA e Builder sem limites', 'IA e Builder');
 ` }];
 
 async function migrate() {
