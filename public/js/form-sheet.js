@@ -4,17 +4,44 @@ import { h, icon, toast, fail } from './ui.js';
 // field: { k, l, ic, type: text|select|money|date|textarea|url, ph, req, opt, opts: [[valor, rótulo, subtítulo]], def, span }
 // variant 'sheet' (faixa colorida, tela cheia) ou 'dialog' (janela compacta com cabeçalho simples).
 
+// Ajusta a folha à altura da tela do usuário (sem rolagem): reduz a escala só o necessário, até 70%.
+export function fitToViewport(card) {
+  const run = () => { card.style.zoom = ''; const avail = window.innerHeight - 24; const hgt = card.getBoundingClientRect().height; const z = hgt > 0 ? Math.max(0.7, Math.min(1, avail / hgt)) : 1; card.style.zoom = z < 1 ? String(z) : ''; };
+  run(); requestAnimationFrame(run); window.addEventListener('resize', run);
+  const mo = new MutationObserver(run); mo.observe(card, { childList: true, subtree: true, attributes: true, attributeFilter: ['hidden'] });
+  return () => { window.removeEventListener('resize', run); mo.disconnect(); };
+}
+
 const money = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
 
 function control(f, value) {
   const v = value ?? f.def ?? '';
   if (f.type === 'select') {
+    const opts = f.opts || [];
     const wrap = h('div', { class: 'fs-select' });
-    const sel = h('select', { name: f.k, 'aria-label': f.l }, (f.opts || []).map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
-    const shown = h('div', { class: 'fs-shown' }, h('b'), h('small'), h('i', { class: 'fs-chev', 'aria-hidden': 'true' }));
-    const draw = () => { const o = (f.opts || []).find((x) => String(x[0]) === String(sel.value)) || (f.opts || [])[0] || []; shown.firstChild.textContent = o[1] ?? ''; shown.children[1].textContent = o[2] ?? ''; };
-    sel.addEventListener('change', draw); draw();
-    wrap.append(shown, sel);
+    const sel = h('select', { name: f.k, 'aria-hidden': 'true', tabindex: '-1' }, opts.map(([val, lab]) => h('option', { value: val, selected: String(val) === String(v) }, lab)));
+    const tTitle = h('b'); const tSub = h('small');
+    const trigger = h('button', { type: 'button', class: 'fs-shown', 'aria-haspopup': 'listbox', 'aria-expanded': 'false', 'aria-label': f.l }, h('span', { class: 'fs-tt' }, tTitle, tSub), h('i', { class: 'fs-chev', 'aria-hidden': 'true' }));
+    const rows = opts.map(([val, lab, sub]) => h('button', { type: 'button', role: 'option', class: 'fs-opt', dataset: { v: String(val) }, onclick: () => pick(val) },
+      h('i', { class: 'fs-oav' }, String(lab).trim()[0]?.toUpperCase() || '·'), h('span', { class: 'fs-ot' }, h('b', lab), sub && h('small', sub)), h('i', { class: 'fs-ock', 'aria-hidden': 'true' })));
+    const panel = h('div', { class: 'fs-panel', role: 'listbox', hidden: true }, h('div', { class: 'fs-phead' }, h('span', 'Selecione uma opção'), h('small', `${opts.length} disponíve${opts.length === 1 ? 'l' : 'is'}`)), h('div', { class: 'fs-plist' }, rows));
+    const draw = () => { const cur = opts.find((o) => String(o[0]) === String(sel.value)) || opts[0] || []; tTitle.textContent = cur[1] ?? ''; tSub.textContent = cur[2] ?? ''; tSub.hidden = !cur[2];
+      rows.forEach((r) => { const on = r.dataset.v === String(sel.value); r.classList.toggle('on', on); r.setAttribute('aria-selected', String(on)); }); };
+    let open = false; let onDoc;
+    const close = () => { if (!open) return; open = false; panel.hidden = true; wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', onDoc, true); };
+    const show = () => { open = true; panel.hidden = false; wrap.classList.add('open'); trigger.setAttribute('aria-expanded', 'true');
+      const r = trigger.getBoundingClientRect(); const need = Math.min(panel.offsetHeight, 330) + 14; wrap.classList.toggle('ral', r.left > window.innerWidth / 2); wrap.classList.toggle('up', window.innerHeight - r.bottom < need && r.top > window.innerHeight - r.bottom);
+      panel.querySelector('.fs-opt.on')?.scrollIntoView({ block: 'nearest' });
+      onDoc = (e) => { if (!wrap.contains(e.target)) close(); }; document.addEventListener('mousedown', onDoc, true); };
+    function pick(val) { sel.value = String(val); sel.dispatchEvent(new Event('change', { bubbles: true })); close(); trigger.focus(); }
+    sel.addEventListener('change', draw);
+    trigger.addEventListener('click', () => (open ? close() : show()));
+    wrap.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && open) { e.stopPropagation(); close(); trigger.focus(); return; }
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (!open) show(); const i = opts.findIndex((o) => String(o[0]) === String(sel.value)); const n = Math.max(0, Math.min(opts.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1))); sel.value = String(opts[n][0]); draw(); panel.querySelector('.fs-opt.on')?.scrollIntoView({ block: 'nearest' }); }
+      if (e.key === 'Enter' && open) { e.preventDefault(); e.stopPropagation(); close(); }
+    });
+    draw(); wrap.append(trigger, panel, sel);
     return { el: wrap, input: sel };
   }
   if (f.type === 'profit') {
@@ -42,7 +69,8 @@ export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot
   const inputs = {};
   const back = h('div', { class: 'fs-back' });
   let closing = false;
-  const close = () => { if (closing) return; closing = true; document.removeEventListener('keydown', esc); document.body.classList.remove('fs-open'); back.classList.add('out'); setTimeout(() => back.remove(), 180); };
+  let unfit = () => {};
+  const close = () => { if (closing) return; closing = true; unfit(); document.removeEventListener('keydown', esc); document.body.classList.remove('fs-open'); back.classList.add('out'); setTimeout(() => back.remove(), 180); };
   const esc = (e) => { if (e.key === 'Escape') close(); };
 
   const secEls = sections.map((s, i) => h('section', { class: 'fs-sec' },
@@ -50,7 +78,7 @@ export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot
     h('div', { class: 'fs-grid', style: `--cols:${s.cols || s.fields.length}` }, s.fields.map((f) => {
       const c = control(f, values[f.k]); inputs[f.k] = c.input; if (c.out) inputs[f.k].out = c.out;
       if (f.type === 'profit') return h('div', { class: 'fs-field profit' }, c.el);
-      return h('label', { class: 'fs-field' + (f.type === 'select' ? ' sel' : ''), style: f.span ? `grid-column:span ${f.span}` : null },
+      return h(f.type === 'select' ? 'div' : 'label', { class: 'fs-field' + (f.type === 'select' ? ' sel' : ''), style: f.span ? `grid-column:span ${f.span}` : null },
         h('span', { class: 'fs-label' }, f.ic && icon(f.ic), h('em', f.l), f.opt && h('small', 'opcional')), c.el);
     })),
     s.extra && s.extra(inputs)));
@@ -74,6 +102,7 @@ export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   document.addEventListener('keydown', esc);
   document.body.append(back); document.body.classList.add('fs-open');
+  unfit = fitToViewport(card);
   requestAnimationFrame(() => { back.classList.add('in'); (card.querySelector('input:not([type=hidden]),textarea') || card).focus?.(); });
   extra?.({ inputs, card });
   return { close, inputs };

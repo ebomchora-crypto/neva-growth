@@ -100,11 +100,15 @@ await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () =>
   await page.click('.fs-submit'); await page.waitForSelector('.fs-err:has-text("Preencha: Projeto")');
   await page.fill('.fs-card input[name=description]', 'Site Aurora'); await page.fill('.fs-card input[name=amount]', '3000'); await page.fill('.fs-card input[name=cost]', '1200'); await page.fill('.fs-card input[name=delivery_date]', yesterday);
   await page.waitForSelector('.fs-profit b:has-text("1.800,00")');
-  await page.selectOption('.fs-card select[name=client_id]', { label: 'Clínica Aurora' }); await page.click('.fs-submit'); await page.waitForSelector('td:has-text("Site Aurora")');
-  await page.waitForSelector('.pill:has-text("Atrasadas") .cnt:text-is("1")'); await page.waitForSelector('td:has-text("atrasada")');
-  await page.click('button:has-text("Marcar pago")'); await page.waitForSelector('.stat:has-text("Lucro líquido") b:has-text("1.800,00")'); await page.waitForSelector('.stat:has-text("Margem média") b:has-text("60%")');
-  await page.click('tbody button:has-text("Entregue")'); await page.waitForSelector('.badge:has-text("entregue")'); await page.click('.pill:has-text("Entregues")'); await page.waitForSelector('td:has-text("Site Aurora")');
-  await page.click('.pill:has-text("Sem cliente")'); await page.waitForSelector('text=Nenhum resultado');
+  await page.click('.fs-card .fs-select >> nth=0'); await page.waitForSelector('.fs-panel:not([hidden])'); await page.click('.fs-opt:has-text("Clínica Aurora")'); await page.click('.fs-card .fs-select >> nth=1'); await page.click('.fs-opt:has-text("Sistema web")');
+  await page.click('.fs-submit'); await page.waitForSelector('.sv-row.on:has-text("Site Aurora")'); await page.waitForSelector('.sv-top h2:has-text("Site Aurora")'); await page.waitForSelector('.sv-top p:has-text("Clínica Aurora · Sistema web")');
+  await page.waitForSelector('.pill:has-text("Atrasadas") .cnt:text-is("1")'); await page.waitForSelector('.sv-row:has-text("Atrasada")');
+  await page.waitForSelector('.stat:has-text("Lucro líquido") b:has-text("1.800,00")'); await page.waitForSelector('.stat:has-text("Margem média") b:has-text("60%")'); await page.waitForSelector('.sv-donut b:text-is("60%")');
+  await page.waitForSelector('.sv-fin:has-text("Receita bruta"):has-text("Custo de produção"):has-text("Lucro líquido")'); await page.waitForSelector('.sv-deliv:has-text("Entrega pendente")');
+  await page.click('button:has-text("Marcar como entregue")'); await page.waitForSelector('.sv-deliv:has-text("Projeto entregue")'); await page.click('.pill:has-text("Entregues")'); await page.waitForSelector('.sv-row:has-text("Site Aurora")');
+  await page.click('button:has-text("Reabrir entrega")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Todas")');
+  await page.click('.pill:has-text("Sem cliente")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Todas")');
+  await page.click('.sv-edit'); await page.waitForSelector('.fs-banner h2:has-text("Editar venda.")'); await page.click('.fs-x'); await page.waitForFunction(() => !document.querySelector('.fs-back'));
 });
 await step('Dashboard com lucro real', async () => {
   await nav('dashboard'); await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('b:has-text("1.800,00")'); await page.waitForSelector('text=Ticket médio');

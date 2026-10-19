@@ -1,7 +1,7 @@
 import { crudPage } from '../crud-page.js';
 import { api } from '../api.js';
 import { h, brl, dt, fail, toast, money, statCard, icon } from '../ui.js';
-import { formSheet, money as brlf } from '../form-sheet.js';
+import { formSheet } from '../form-sheet.js';
 
 const waIcon = () => { const NS = 'http://www.w3.org/2000/svg'; const sv = document.createElementNS(NS, 'svg'); sv.setAttribute('viewBox', '0 0 24 24'); sv.setAttribute('aria-hidden', 'true'); sv.setAttribute('class', 'waico');
   const pa = document.createElementNS(NS, 'path'); pa.setAttribute('d', 'M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z'); sv.append(pa); return sv; };
@@ -112,65 +112,6 @@ export const products = crudPage({
   ],
   columns: [{ k: 'name', l: 'Nome' }, { k: 'type', l: 'Tipo', render: (p) => badge(p.type) }, { k: 'price', l: 'Preço', right: true, render: (p) => money(p.price) },
     { k: 'active', l: 'Situação', render: (p) => badge(p.active ? 'ativo' : 'inativo', p.active ? 'ok' : '') }]
-});
-
-const today = () => new Date().toISOString().slice(0, 10);
-const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
-export const sales = crudPage({
-  api: '/sales', singular: 'venda', newLabel: 'Nova venda', title_page: 'Vendas', subtitle: 'Abra cada venda, entenda a margem e acompanhe o que precisa ser entregue. Indicadores consideram vendas pagas.',
-  hero: { kicker: 'Neva Growth / Result Room', title: 'Projetos que viraram resultado.', art: 'chart' }, emptyIcon: 'target', emptyGlyph: true, emptyTitle: 'A primeira venda abre o painel.', emptyText: 'Registre receita, custo e prazo. A análise financeira nasce automaticamente.', emptyButton: '+ Registrar primeira venda',
-  sheet: ({ rec, lookups, reload }) => {
-    const clientOpts = [['', 'Projeto independente', 'Sem cliente vinculado'], ...(lookups.client_id || []).map(([id, l]) => [id, l, 'Cliente da carteira'])];
-    const TYPES = [['Site institucional', 'Site institucional', 'Presença digital completa'], ['Landing page', 'Landing page', 'Página focada em conversão'], ['E-commerce', 'E-commerce', 'Loja virtual completa'], ['Sistema web', 'Sistema web', 'Aplicação sob medida'], ['Aplicativo', 'Aplicativo', 'App para celular'], ['Outro', 'Outro', 'Serviço personalizado']];
-    formSheet({
-      kicker: 'Neva Growth / Nova operação', title: rec ? 'Editar venda.' : 'Registrar venda.', subtitle: 'Organize o projeto, os valores e a entrega em um único lançamento.', ic: 'briefcase',
-      values: { description: rec?.description, client_id: rec?.client_id ?? '', amount: rec?.amount, cost: rec?.cost, project_type: rec?.project_type || 'Site institucional', sold_at: rec?.sold_at || today(), delivery_date: rec?.delivery_date, status: rec?.status || 'pendente', delivery_status: rec?.delivery_status || 'pendente' },
-      submit: rec ? 'Salvar alterações' : 'Registrar venda', foot: 'O lucro entra na sua carteira após o registro.', ic2: 'dollar',
-      sections: [
-        { title: 'Identificação', sub: 'O que foi vendido e para quem.', cols: 2, fields: [{ k: 'description', l: 'Projeto', ic: 'briefcase', ph: 'Ex.: Landing page premium', req: true, max: 160 }, { k: 'client_id', l: 'Cliente', ic: 'user', opt: true, type: 'select', opts: clientOpts }] },
-        { title: 'Resultado financeiro', sub: 'Informe receita e custo para prever o lucro.', cols: 3, fields: [{ k: 'amount', l: 'Valor vendido', type: 'money', req: true }, { k: 'cost', l: 'Custo do projeto', type: 'money' }, { k: 'profit', l: 'Lucro', type: 'profit' }] },
-        { title: 'Entrega', sub: 'Classifique o projeto e organize as datas.', cols: 3, fields: [{ k: 'project_type', l: 'Tipo de projeto', ic: 'layers', type: 'select', opts: TYPES }, { k: 'sold_at', l: 'Data da venda', ic: 'calendar', type: 'date' }, { k: 'delivery_date', l: 'Previsão de entrega', ic: 'calendar', type: 'date', opt: true }] },
-        ...(rec ? [{ title: 'Situação', sub: 'Pagamento e entrega desta venda.', cols: 2, fields: [{ k: 'status', l: 'Pagamento', type: 'select', opts: [['pendente', 'Pendente', 'Ainda não recebido'], ['pago', 'Pago', 'Entrou no caixa'], ['cancelado', 'Cancelado', 'Venda desfeita']] }, { k: 'delivery_status', l: 'Entrega', type: 'select', opts: [['pendente', 'Pendente', 'Em produção'], ['entregue', 'Entregue', 'Projeto finalizado']] }] }] : [])],
-      extra: ({ inputs }) => { const calc = () => { const v = (Number(inputs.amount.value) || 0) - (Number(inputs.cost.value) || 0); inputs.profit.out.textContent = brlf(v); inputs.profit.out.style.color = v < 0 ? '#ffb4b8' : ''; }; inputs.amount.addEventListener('input', calc); inputs.cost.addEventListener('input', calc); calc(); },
-      onSubmit: async (d, close) => {
-        const amount = Number(d.amount); const cost = Number(d.cost || 0);
-        if (!(amount >= 0) || d.amount === '') throw new Error('Informe o valor vendido.');
-        if (cost > amount) throw new Error('O custo não pode ser maior que o valor da venda.');
-        const body = { description: d.description, client_id: d.client_id === '' ? null : Number(d.client_id), amount, cost, project_type: d.project_type, sold_at: d.sold_at || today(), delivery_date: d.delivery_date || null, ...(rec ? { status: d.status, delivery_status: d.delivery_status } : {}) };
-        if (rec) await api.put('/sales/' + rec.id, body); else await api.post('/sales', body);
-        toast(rec ? 'Alterações salvas.' : 'Venda registrada.', 'ok'); close(); reload();
-      } });
-  },
-  title: (s) => s.description, filters: [{ k: 'status', l: 'Pagamento', opts: ['pendente', 'pago', 'cancelado'] }],
-  stats: async (st) => { const s = await api.get('/sales/summary', { view: st.pill, q: st.q }); return [statCard('Faturamento', money(s.faturamento), [money(s.pendente), ' a receber']), statCard('Lucro líquido', money(s.lucro)),
-    statCard('Margem média', s.margem + '%'), statCard('Ticket médio', money(s.ticket), `${s.pagas} paga(s)`)]; },
-  pills: { variant: 'bar', bar: { label: 'Organizar projetos', sub: 'Escolha uma visão da fila' }, summary: (total, c) => [h('span', h('b', total), ' no recorte'), h('span', { class: 'chip' }, '● ', h('b', c.atrasadas ?? 0), ' atrasadas')], param: 'view', default: 'todas', items: SVIEWS, counts: async (st) => (await api.get('/sales/summary', { q: st.q })).counts },
-  fields: [
-    { k: 'description', l: 'Descrição / projeto', req: true, wide: true },
-    { k: 'client_id', l: 'Cliente', lookup: { url: '/clients', label: (c) => c.name } },
-    { k: 'product_id', l: 'Produto', lookup: { url: '/products', label: (p) => `${p.name} — ${brl(p.price)}` } },
-    { k: 'amount', l: 'Valor (R$)', type: 'number', req: true }, { k: 'cost', l: 'Custo (R$)', type: 'number', default: 0 },
-    { k: 'sold_at', l: 'Data da venda', type: 'date', default: today() }, { k: 'delivery_date', l: 'Prazo de entrega', type: 'date' },
-    { k: 'status', l: 'Pagamento', type: 'select', opts: ['pendente', 'pago', 'cancelado'], default: 'pendente' },
-    { k: 'delivery_status', l: 'Entrega', type: 'select', opts: [['pendente', 'Pendente'], ['entregue', 'Entregue']], default: 'pendente' }
-  ],
-  columns: [
-    { k: 'sold_at', l: 'Data', render: (s) => dt(s.sold_at) },
-    { k: 'description', l: 'Projeto', render: (s) => h('div', h('b', s.description), h('div', { class: 'sm mut' }, s.client_name || 'sem cliente')) },
-    { k: 'amount', l: 'Valor', right: true, render: (s) => money(s.amount) },
-    { k: 'profit', l: 'Lucro', right: true, render: (s) => h('div', money(s.profit), h('div', { class: 'sm mut' }, `${s.margin}%`)) },
-    { k: 'delivery_status', l: 'Entrega', render: (s) => {
-      if (s.delivery_status === 'entregue') return badge('entregue', 'ok');
-      const late = s.delivery_date && s.delivery_date < today();
-      return s.delivery_date ? h('span', { class: late ? 'late' : '' }, dt(s.delivery_date), late ? ' · atrasada' : '') : h('span', { class: 'mut' }, 'sem prazo');
-    } },
-    { k: 'status', l: 'Pagamento', render: (s) => badge(s.status, { pago: 'ok', pendente: 'warn', cancelado: 'bad' }[s.status]) }
-  ],
-  exportCols: [['sold_at', 'data'], ['description', 'projeto'], ['client_name', 'cliente'], ['amount', 'valor'], ['cost', 'custo'], ['profit', 'lucro'], ['margin', 'margem_pct'], ['status', 'pagamento'], ['delivery_date', 'prazo'], ['delivery_status', 'entrega']].map(([k, l]) => ({ k, l })),
-  rowActions: [
-    { l: 'Marcar pago', show: (s) => s.status === 'pendente', run: async (s, reload) => { await api.put('/sales/' + s.id, { status: 'pago' }); toast('Venda marcada como paga.', 'ok'); reload(); } },
-    { l: 'Entregue', show: (s) => s.delivery_status !== 'entregue' && s.status !== 'cancelado', run: async (s, reload) => { await api.put('/sales/' + s.id, { delivery_status: 'entregue' }); toast('Entrega registrada.', 'ok'); reload(); } }
-  ]
 });
 
 export const users = crudPage({
