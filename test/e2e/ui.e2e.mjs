@@ -128,6 +128,8 @@ await step('AO VIVO: abre Vendas hoje com gráfico e volta', async () => {
 await step('botão de alerta: dicas de venda no Dashboard/Clientes/Vendas e aviso some em 2,5 s', async () => {
   for (const r of ['dashboard', 'clientes', 'vendas']) { await nav(r); await page.waitForSelector('#tipsbtn:not(.hide)'); }
   await page.click('#tipsbtn'); await page.waitForSelector('.tips h2:has-text("Se você quer vender")'); await page.waitForFunction(() => document.querySelectorAll('.tips-card').length === 6);
+  await page.click('.tips-card >> nth=1'); await page.waitForSelector('.tips-full .tips-return'); await page.waitForFunction(() => { const r = document.querySelector('.tips-full').getBoundingClientRect(); return r.width >= innerWidth - 2 && r.height >= innerHeight - 2; });
+  await page.click('.tips-return'); await page.waitForFunction(() => !document.querySelector('.tips-full') && document.querySelectorAll('.tips-card').length === 6);
   await page.keyboard.press('Escape'); await page.waitForFunction(() => !document.querySelector('.tips-back'));
   await nav('sites'); await page.waitForSelector('#tipsbtn.hide', { state: 'attached' });
   await page.evaluate(() => import('/js/ui.js').then((m) => m.toast('Teste de aviso.', 'ok'))); await page.waitForSelector('.toast .ttx:has-text("Teste de aviso.")'); await page.waitForFunction(() => !document.querySelector('.toast'), null, { timeout: 4500 });

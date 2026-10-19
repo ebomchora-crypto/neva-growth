@@ -17,12 +17,21 @@ const CARDS = [
 
 export function openTips() {
   if (document.querySelector('.tips-back')) return;
-  const close = () => { document.removeEventListener('keydown', esc); back.classList.add('out'); setTimeout(() => back.remove(), 160); };
-  const esc = (e) => { if (e.key === 'Escape') close(); };
+  let full = null;
+  const closeFull = () => { if (!full) return; const f = full; full = null; f.classList.add('out'); setTimeout(() => f.remove(), 160); back.querySelector('.tips-card:focus,.tips-card.last')?.focus?.(); };
+  const close = () => { document.removeEventListener('keydown', esc, true); back.classList.add('out'); setTimeout(() => back.remove(), 160); };
+  // Esc volta do cartão aberto para a grade; na grade, fecha a janela.
+  const esc = (e) => { if (e.key !== 'Escape') return; e.stopPropagation(); if (full) closeFull(); else close(); };
+  const open = (i, card) => {
+    if (full) return; card.classList.add('last');
+    const back2 = h('button', { type: 'button', class: 'tips-return', onclick: closeFull }, icon('arrow'), 'Voltar');
+    full = h('div', { class: 'tips-full', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Dica de venda' }, h('div', { class: 'tips-card big' }, CARDS[i]()), back2);
+    back.append(full); back2.focus();
+  };
   const back = h('div', { class: 'tips-back', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Dicas de venda' },
     h('div', { class: 'tips' }, h('header', h('h2', 'Se você quer vender, você tem que aplicar isso.'), h('button', { type: 'button', class: 'tips-x', 'aria-label': 'Fechar', onclick: close }, icon('x'))),
-      h('div', { class: 'tips-grid' }, CARDS.map((c) => h('article', { class: 'tips-card' }, c())))));
+      h('div', { class: 'tips-grid' }, CARDS.map((c, i) => { const card = h('article', { class: 'tips-card', tabindex: 0, role: 'button', 'aria-label': `Abrir dica ${i + 1} em tela cheia`, onclick: () => open(i, card), onkeydown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i, card); } } }, c()); return card; }))));
   back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
-  document.addEventListener('keydown', esc); document.body.append(back);
+  document.addEventListener('keydown', esc, true); document.body.append(back);
   back.querySelector('.tips-x').focus();
 }
