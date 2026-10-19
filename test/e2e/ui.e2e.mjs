@@ -118,7 +118,7 @@ await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () =>
   await page.click('.sv-edit'); await page.waitForSelector('.fs-banner h2:has-text("Editar venda.")'); await page.click('.fs-x'); await page.waitForFunction(() => !document.querySelector('.fs-back'));
 });
 await step('Dashboard com lucro real', async () => {
-  await nav('dashboard'); await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('b:has-text("1.800,00")'); await page.waitForSelector('text=Ticket médio');
+  await nav('dashboard'); await page.waitForFunction(() => { const e = document.querySelector('.periodbar .pill:not(.on)'); return e && getComputedStyle(e).color !== 'rgb(255, 255, 255)'; }); await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('b:has-text("1.800,00")'); await page.waitForSelector('text=Ticket médio');
 });
 await step('AO VIVO: abre Vendas hoje com gráfico e volta', async () => {
   await nav('dashboard'); await page.click('.livepill'); await page.waitForSelector('.lv h1:has-text("Vendas hoje")'); await page.waitForSelector('.lv .lv-chart'); await page.waitForSelector('.lv-stats:has-text("Ticket médio")');
