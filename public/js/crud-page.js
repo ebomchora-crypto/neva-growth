@@ -68,6 +68,16 @@ export function crudPage(cfg) {
             canWrite && !filtered && cfg.canCreate !== false && cfg.emptyButton && h('button', { class: 'btn whitepill', style: 'margin-top:10px', onclick: () => openForm(null) }, cfg.emptyButton),
             )); mount(pager); return;
         }
+        if (cfg.renderRows) {
+          mount(body, cfg.renderRows(r.items, { reload: load, canWrite, user: ctx.user, openForm, remove: async (it) => {
+            if (!(await confirmBox(`Excluir "${cfg.title(it)}"? Esta ação não pode ser desfeita.`))) return false;
+            try { await api.del(`${cfg.api}/${it.id}`); toast('Excluído.', 'ok'); load(); return true; } catch (e) { fail(e); return false; } } }));
+          const pages = Math.max(1, Math.ceil(r.total / r.limit));
+          mount(pager, h('span', `${r.total} registro(s)`), h('div', { class: 'row' },
+            h('button', { class: 'btn ghost sm', disabled: r.page <= 1, onclick: () => { st.page--; load(); } }, '← Anterior'), h('span', `Página ${r.page} de ${pages}`),
+            h('button', { class: 'btn ghost sm', disabled: r.page >= pages, onclick: () => { st.page++; load(); } }, 'Próxima →')));
+          return;
+        }
         mount(body, h('div', { class: 'tablewrap' }, h('table',
           h('thead', h('tr', cfg.columns.map((c) => h('th', { class: c.right ? 'right' : '' }, c.l)), canWrite ? h('th') : null)),
           h('tbody', r.items.map((it) => h('tr', cfg.columns.map((c) => h('td', { class: c.right ? 'right nowrap' : '' }, c.render ? c.render(it, { reload: load, user: ctx.user }) : (it[c.k] ?? '—'))),

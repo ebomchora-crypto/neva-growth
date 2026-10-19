@@ -38,7 +38,7 @@ function control(f, value) {
   return { el: h('div', { class: 'fs-in' }, i), input: i };
 }
 
-export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot, ic2, submit = 'Salvar', cancel, values = {}, variant = 'sheet', onSubmit, extra }) {
+export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot, ic2, submit = 'Salvar', cancel, danger, values = {}, variant = 'sheet', onSubmit, extra }) {
   const inputs = {};
   const back = h('div', { class: 'fs-back' });
   let closing = false;
@@ -64,7 +64,7 @@ export function formSheet({ kicker, title, subtitle, ic = 'plus', sections, foot
     btn.disabled = true; btn.classList.add('busy');
     try { const r = await onSubmit(data, close); if (r === false) return; } catch (x) { err.textContent = x?.message || 'Não foi possível salvar.'; err.hidden = false; }
     finally { btn.disabled = false; btn.classList.remove('busy'); }
-  } }, secEls, err, h('footer', { class: 'fs-foot' + (cancel ? ' dlg' : '') }, cancel ? h('button', { type: 'button', class: 'fs-cancel', onclick: close }, cancel) : h('span', { class: 'fs-note' }, ic2 && icon(ic2), foot), btn));
+  } }, secEls, err, h('footer', { class: 'fs-foot' + (cancel ? ' dlg' : '') }, cancel ? h('button', { type: 'button', class: 'fs-cancel', onclick: close }, cancel) : h('span', { class: 'fs-note' }, ic2 && icon(ic2), foot, danger && h('button', { type: 'button', class: 'fs-danger', onclick: async () => { if (await danger.run()) close(); } }, danger.label)), btn));
 
   const head = variant === 'sheet'
     ? h('header', { class: 'fs-banner' }, h('span', { class: 'fs-bico' }, icon(ic)), h('div', h('small', kicker), h('h2', title), subtitle && h('p', subtitle)), h('button', { type: 'button', class: 'fs-x', 'aria-label': 'Fechar', onclick: close }, icon('x')))

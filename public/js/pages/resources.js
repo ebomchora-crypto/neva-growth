@@ -1,6 +1,6 @@
 import { crudPage } from '../crud-page.js';
 import { api } from '../api.js';
-import { h, brl, dt, fail, toast, money, statCard } from '../ui.js';
+import { h, brl, dt, fail, toast, money, statCard, icon } from '../ui.js';
 import { formSheet, money as brlf } from '../form-sheet.js';
 
 const badge = (text, kind = '') => h('span', { class: 'badge ' + kind }, text);
@@ -23,7 +23,8 @@ export const clients = crudPage({
         h('button', { type: 'button', class: 'btn ghost', style: 'width:100%;margin-top:6px', onclick: () => setPill('') }, 'Ver carteira completa')),
       h('section', { class: 'next' }, h('div', { class: 'k' }, 'Próximo movimento'), h('h2', next.t), h('p', next.d), canWrite || !next.go ? h('button', { type: 'button', class: 'btn whitepill big', onclick: next.go }, next.b) : null));
   },
-  sheet: ({ rec, reload }) => formSheet({
+  sheet: ({ rec, reload, remove }) => formSheet({
+    danger: rec && remove ? { label: 'Excluir cliente', run: () => remove(rec) } : null,
     kicker: 'Neva Growth / Novo contato', title: rec ? 'Editar cliente.' : 'Registrar cliente.', subtitle: 'Centralize a identidade, o relacionamento e os canais digitais do cliente.', ic: 'userplus',
     values: { ...rec, stage: rec?.stage || 'lead' }, submit: rec ? 'Salvar alterações' : 'Salvar cliente', foot: 'O contato ficará disponível para vendas e projetos.', ic2: 'userplus',
     sections: [
@@ -36,6 +37,22 @@ export const clients = crudPage({
       if (rec) await api.put('/clients/' + rec.id, body); else await api.post('/clients', body);
       toast(rec ? 'Alterações salvas.' : 'Cliente registrado.', 'ok'); close(); reload();
     } }),
+  renderRows: (items, { reload, canWrite, openForm, remove }) => {
+    const abs = (u) => (/^https?:\/\//i.test(u) ? u : 'https://' + u);
+    const since = (d) => new Date(String(d).replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
+    const chan = (c, k, ic, l) => c[k] ? h('a', { class: 'dg on', href: abs(c[k]), target: '_blank', rel: 'noopener', title: l, 'aria-label': l }, icon(ic)) : h('span', { class: 'dg', title: l + ' (não informado)' }, icon(ic));
+    return h('div', { class: 'crows' }, h('div', { class: 'crow head' }, ['Empresa', 'Contato', 'Estágio', 'Entrega digital', 'Resultado'].map((t, i) => h('span', { class: i === 4 ? 'right' : '' }, t))),
+      items.map((c) => {
+        const name = c.company || c.name; const n = ['github', 'vercel_url', 'site_url'].filter((k) => c[k]).length;
+        return h('div', { class: 'crow' },
+          h('div', { class: 'ccell co' }, h('i', { class: 'cav' }, name.trim()[0]?.toUpperCase() || '?'), h('div', h('b', name), h('small', `${c.projects_count} projeto${c.projects_count === 1 ? '' : 's'} · desde ${since(c.created_at)}`))),
+          h('div', { class: 'ccell ct' }, h('span', { class: 'wa' }, icon('phone')), h('div', h('b', c.name), h('small', c.phone || '—'))),
+          h('div', { class: 'ccell st' }, h('div', { class: 'cstage' }, h('select', { 'aria-label': 'Estágio', disabled: !canWrite, onchange: async (e) => { try { await api.put('/clients/' + c.id, { stage: e.target.value }); toast('Estágio atualizado.', 'ok'); reload(); } catch (x) { fail(x); reload(); } } },
+            CSTAGES.map(([k, l]) => h('option', { value: k, selected: c.stage === k }, l))), h('i', { class: 'fs-chev', 'aria-hidden': 'true' }))),
+          h('div', { class: 'ccell dgc' }, h('div', { class: 'dgrow' }, chan(c, 'github', 'github', 'GitHub'), chan(c, 'vercel_url', 'rocket', 'Vercel'), chan(c, 'site_url', 'globe', 'Site publicado'), h('small', `${n}/3`))),
+          h('div', { class: 'ccell rs' }, h('b', money(c.total_profit)), canWrite ? h('button', { type: 'button', class: 'dossie', onclick: () => openForm(c) }, 'Abrir dossiê ', icon('arrow')) : null));
+      }));
+  },
   title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
   stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira', 'users'), statCard('Em negociação', s.emNegociacao, 'oportunidades abertas', 'trend'),
     statCard('Clientes ativos', s.fechados, `${s.conversao}% de conversão`, 'check'), statCard('Receita gerada', money(s.receita), `${s.vendasPagas} venda(s) registrada(s)`, 'building')]; },

@@ -84,15 +84,15 @@ await step('CRM: minimizar header + lista + converter em cliente', async () => {
 });
 await step('Clientes: indicadores, abas por estágio, entrega digital', async () => {
   await nav('clientes'); await page.waitForSelector('.stat:has-text("Clientes cadastrados")'); await page.waitForSelector('.stat:has-text("Clientes cadastrados") b:text-is("1")');
-  await page.click('.pill:has-text("Lead")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Cliente")'); await page.waitForSelector('td:has-text("Clínica Aurora")');
-  await page.waitForSelector('.pulse:has-text("Pulso da carteira")'); await page.waitForSelector('.next:has-text("Próximo movimento")'); await page.waitForSelector('th:has-text("Entrega digital")'); await page.waitForSelector('th:has-text("Resultado")');
+  await page.click('.pill:has-text("Lead")'); await page.waitForSelector('text=Nenhum resultado'); await page.click('.pill:has-text("Cliente")'); await page.waitForSelector('.crow:has-text("Clínica Aurora")');
+  await page.waitForSelector('.pulse:has-text("Pulso da carteira")'); await page.waitForSelector('.next:has-text("Próximo movimento")'); await page.waitForSelector('.crow.head:has-text("Entrega digital")'); await page.waitForSelector('.crow.head:has-text("Resultado")'); await page.waitForSelector('.crow:has-text("Clínica Aurora") .dgrow:has-text("0/3")'); await page.waitForSelector('.crow:has-text("Clínica Aurora") button:has-text("Abrir dossiê")');
 });
 await step('Clientes: Registrar cliente (identidade, relacionamento, presença digital)', async () => {
   await nav('clientes'); await page.click('.hero button:has-text("Novo cliente")');
   await page.waitForSelector('.fs-banner h2:has-text("Registrar cliente.")'); await page.waitForSelector('.fs-sechead:has-text("Identidade")'); await page.waitForSelector('.fs-sechead:has-text("Relacionamento")'); await page.waitForSelector('.fs-sechead:has-text("Presença digital")');
   const opts = await page.$$eval('.fs-card select[name=stage] option', (o) => o.map((x) => x.textContent)); if (opts.join('|') !== 'Lead|Negociação|Proposta enviada|Cliente') throw new Error('status: ' + opts);
   await page.fill('.fs-card input[name=name]', 'Mariana Costa'); await page.fill('.fs-card input[name=company]', 'Nova Era'); await page.fill('.fs-card input[name=phone]', '(11) 99999-9999'); await page.fill('.fs-card input[name=github]', 'github.com/nova/era');
-  await page.selectOption('.fs-card select[name=stage]', 'negociacao'); await page.click('.fs-submit'); await page.click('.pill:has-text("Negociação")'); await page.waitForSelector('td:has-text("Mariana Costa")'); await page.waitForSelector('a:has-text("GitHub")'); await page.click('.pill:has-text("Todos")');
+  await page.selectOption('.fs-card select[name=stage]', 'negociacao'); await page.click('.fs-submit'); await page.click('.pill:has-text("Negociação")'); await page.waitForSelector('.crow:has-text("Nova Era"):has-text("Mariana Costa") .dg.on[title="GitHub"]'); await page.waitForSelector('.crow:has-text("Nova Era") .dgrow:has-text("1/3")'); await page.selectOption('.crow:has-text("Nova Era") .cstage select', 'proposta'); await page.waitForSelector('text=Estágio atualizado'); await page.click('.pill:has-text("Todos")');
 });
 await step('Vendas: custo, margem, entrega, pílulas e indicadores', async () => {
   await nav('vendas'); await page.click('button:has-text("Nova venda")');
