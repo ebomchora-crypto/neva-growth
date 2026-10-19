@@ -134,3 +134,25 @@ test('escada de raciocínio nativo por família (medida na River): DeepSeek liga
   await require('../server/lib/config').refresh(true);
   assert.deepEqual(ai.reasoningParams('high', 'zai-org/GLM-5.3-Flash'), {});
 });
+
+test('folga de tokens para o raciocínio nativo (ele conta no max_tokens)', () => {
+  const ai = require('../server/lib/ai');
+  assert.equal(ai.withHeadroom(9000, 'medium', {}), 9000);
+  assert.equal(ai.withHeadroom(9000, 'medium', { reasoning_effort: 'low' }), 17000);
+  assert.equal(ai.withHeadroom(9000, 'xhigh', { reasoning_effort: 'high' }), 25000);
+});
+
+test('DESIGN.md "preços verdadeiros": preço não informado sai do conteúdo; informado fica', () => {
+  const none = E.informedPrices({ details: 'Clínica de fisioterapia em Campinas' });
+  assert.equal(E.dropInventedPrices('A partir de R$ 120 por sessão.', none), '');
+  assert.equal(E.dropInventedPrices('Pacote mensal: R$ 420/mês, sem fidelidade.', none), 'Pacote mensal, sem fidelidade.');
+  assert.equal(E.dropInventedPrices('Inclui avaliação.', none), 'Inclui avaliação.');
+  const some = E.informedPrices({ details: 'Corte R$ 45 e barba R$ 35,00' });
+  assert.equal(E.dropInventedPrices('Corte por R$ 45 e barba por R$ 40', some), 'Corte por R$ 45 e barba');
+  const brief = { businessName: 'Clínica', details: 'Clínica de fisioterapia', style: 'auto', assets: [] };
+  const plan = E.normalizePlan({ title: 'C', description: 'd', direction: 'x', theme: 'light', palette: { brand: '#0f766e', brandDark: '#115e59', accent: '#f59e0b', ink: '#111827', paper: '#ffffff', surface: '#f3f4f6', muted: '#4b5563' }, fonts: { display: 'Fraunces', body: 'Figtree' },
+    sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'h', brief: 'b', bg: 'paper' }, { id: 'programas', label: 'Programas', layout: 'planos', headline: 'h', brief: 'Sessão avulsa R$ 180', bg: 'surface' }] }, brief);
+  assert.doesNotMatch(plan.sections[1].brief, /R\$/);
+  const html = E.renderPart('programas', plan, brief, { title: 'Programas', items: [{ title: 'Sessão avulsa', text: 'A partir de R$ 180.', price: 'R$ 180', meta: '/sessão' }] });
+  assert.doesNotMatch(html, /R\$/);
+});

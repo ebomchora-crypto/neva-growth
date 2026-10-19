@@ -68,6 +68,16 @@ function reasoningParams(effort, providerModel = '') {
   if (kind === 'thinking') return effort === 'low' ? { thinking: { type: 'disabled' } } : { thinking: { type: 'enabled' } };
   return {};
 }
+// O raciocínio nativo conta no max_tokens: sem folga, ele come a resposta (medido: plano do DeepSeek com 8.319 de 9.000 tokens só pensando).
+const HEADROOM = { low: 4000, medium: 8000, high: 12000, xhigh: 16000 };
+const withHeadroom = (maxTokens, effort, params) => (params && Object.keys(params).length ? maxTokens + (HEADROOM[effort] || 0) : maxTokens);
+// Escrita longa e com formato (plano, seções e alterações do site) sai com o mínimo de raciocínio nativo:
+// medido em produção, GLM e Nemotron gastavam os 9.000 tokens do plano só pensando e não escreviam nada.
+// O "pensar" fica na etapa de análise (chamada própria, com a escada completa).
+function streamParams(providerModel = '') {
+  if (!config.get('RIVER_REASONING') || nativeRefused) return {};
+  return /deepseek/i.test(providerModel) ? {} : { reasoning_effort: 'low' };
+}
 const markRefused = () => { nativeRefused = true; };
 const hasNative = (body) => ['reasoning_effort', 'reasoning', 'thinking'].some((k) => k in body);
 const withoutNative = ({ reasoning_effort, reasoning, thinking, ...rest }) => rest;
@@ -87,7 +97,8 @@ const asText = (c) => (typeof c === 'string' ? c : Array.isArray(c) ? c.map((b) 
 
 async function completeRiver({ system, messages, maxTokens, model, effort, kind, userId }) {
   const started = Date.now();
-  let body = { model: providerModelFor(model), max_tokens: maxTokens, temperature: temperatureOf(model), ...reasoningParams(effort, providerModelFor(model)),
+  const native = reasoningParams(effort, providerModelFor(model));
+  let body = { model: providerModelFor(model), max_tokens: withHeadroom(maxTokens, effort, native), temperature: temperatureOf(model), ...native,
     messages: [...(system ? [{ role: 'system', content: system }] : []), ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: asText(m.content) }))] };
   let resp, data;
   for (let attempt = 0; attempt < 4; attempt++) {
@@ -111,9 +122,10 @@ async function completeRiver({ system, messages, maxTokens, model, effort, kind,
   return text;
 }
 
-// Raciocínio de verdade: nos níveis alto e máximo a IA primeiro analisa o pedido (rascunho interno, nunca mostrado) e só depois responde usando essa análise.
-// Baixo e médio respondem direto. O orçamento de análise cresce com o nível.
+// Raciocínio de verdade: nos níveis médio, alto e máximo a IA primeiro analisa o pedido (rascunho interno, nunca mostrado) e só depois responde usando essa análise.
+// Baixo responde direto; médio pensa rápido; alto e máximo pensam mais. O orçamento de análise cresce com o nível.
 const THINK = {
+  medium: { tokens: 800, ask: 'Antes de responder, analise rapidamente: o que o usuário quer e o principal cuidado para acertar. Escreva só 3 a 5 tópicos curtos, sem a resposta final.' },
   high: { tokens: 1500, ask: 'Antes de responder, analise o pedido por dentro: o que o usuário realmente quer, o que o contexto já tem, os passos na ordem certa e os erros mais prováveis. Escreva só essa análise, em tópicos curtos, sem a resposta final.' },
   xhigh: { tokens: 3000, ask: 'Antes de responder, analise o pedido a fundo por dentro: objetivo real, restrições, alternativas e por que escolher uma, passos na ordem certa, casos de borda e riscos. Depois critique a própria análise e corrija o que estiver fraco. Escreva só essa análise, em tópicos, sem a resposta final.' }
 };
@@ -144,5 +156,5 @@ async function complete({ system, messages, maxTokens = 4096, model, effort, noT
   if (!resp.ok) throw new HttpError(502, `Falha na API de IA: ${data?.error?.message || resp.status}`, 'ai_upstream');
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
-module.exports = { complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, markRefused, hasNative, withoutNative,
+module.exports = { complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
   logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };

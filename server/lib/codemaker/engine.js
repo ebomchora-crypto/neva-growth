@@ -54,6 +54,7 @@ __export(engine_exports, {
   cleanUserText: () => cleanUserText,
   contrastGuide: () => contrastGuide,
   contrastRatio: () => contrastRatio,
+  dropInventedPrices: () => dropInventedPrices,
   faviconDataUri: () => faviconDataUri,
   faviconSvg: () => faviconSvg,
   fetchLimited: () => fetchLimited,
@@ -64,6 +65,7 @@ __export(engine_exports, {
   headerHtml: () => headerHtml,
   imagesMessage: () => imagesMessage,
   importedSummary: () => importedSummary,
+  informedPrices: () => informedPrices,
   isBlockedHost: () => isBlockedHost,
   isProjectPath: () => isProjectPath,
   isReservedSlug: () => isReservedSlug,
@@ -2595,16 +2597,36 @@ function blockTokens(partId, plan, brief, photos) {
     look: plan.look ?? "clean"
   };
 }
+var PRICE_TOKEN = /(?:\b(?:a partir de|por apenas|apenas|por|só|desde)\s+)?R\$\s?\d[\d.]*(?:,\d{1,2})?(?:\s*(?:\/|por)\s*(?:m[eê]s|sess[aã]o|aula|hora|pessoa|programa|unidade|ano|semana|dia|kg|m²))?/gi;
+var priceKey = (text2) => (text2.match(/\d[\d.]*(?:,\d{1,2})?/)?.[0] ?? "").replace(/\./g, "").replace(/,0{1,2}$/, "");
+function informedPrices(brief) {
+  const text2 = `${brief.details ?? ""} ${brief.businessName ?? ""}`;
+  const keys = /* @__PURE__ */ new Set();
+  for (const m of text2.matchAll(/R\$\s?\d[\d.]*(?:,\d{1,2})?|\d[\d.]*(?:,\d{1,2})?\s*reais/gi)) keys.add(priceKey(m[0]));
+  return keys;
+}
+function dropInventedPrices(value, allowed) {
+  if (!value || !/R\$/.test(value)) return value;
+  return value.replace(PRICE_TOKEN, (match) => allowed.has(priceKey(match)) ? match : "").replace(/\(\s*\)/g, "").replace(/\s+([.,;:!?)])/g, "$1").replace(/([(—–-])\s*[,.;:]/g, "$1").replace(/\s*[—–-]\s*$/g, "").replace(/:\s*,/g, ",").replace(/:\s*([.;!?])/g, "$1").replace(/\s{2,}/g, " ").trim().replace(/^[\s.,;:!?—–-]+$/, "");
+}
 function checkContent(content, brief) {
-  const clean2 = (value) => value ? stripInventedClaims(value, brief) : value;
+  const prices = informedPrices(brief);
+  const clean2 = (value) => dropInventedPrices(value ? stripInventedClaims(value, brief) : value, prices);
   return {
     ...content,
     title: clean2(content.title),
     subtitle: clean2(content.subtitle),
     badge: clean2(content.badge),
     note: clean2(content.note),
-    items: content.items?.map((item) => ({ ...item, text: clean2(item.text) })),
-    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief))
+    items: content.items?.map((item) => ({
+      ...item,
+      text: clean2(item.text),
+      title: dropInventedPrices(item.title, prices),
+      meta: dropInventedPrices(item.meta, prices) || void 0,
+      price: item.price && /\d/.test(item.price) && !prices.has(priceKey(item.price)) ? void 0 : item.price,
+      list: item.list?.map((entry) => dropInventedPrices(entry, prices) ?? entry).filter(Boolean)
+    })),
+    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief) && !(/R\$/.test(fact.value) && !prices.has(priceKey(fact.value))))
   };
 }
 function renderPart(partId, plan, brief, content, options = {}) {
@@ -3013,7 +3035,7 @@ function normalizePlan(raw, brief) {
     sections.push({
       id,
       label: String(item?.label ?? id).slice(0, 30),
-      brief: stripInventedClaims(String(item?.brief ?? ""), brief).slice(0, 1400),
+      brief: (dropInventedPrices(stripInventedClaims(String(item?.brief ?? ""), brief), informedPrices(brief)) ?? "").slice(0, 1400),
       bg,
       requirementIds: requirementIds(item.requirementIds),
       layout,
@@ -4230,6 +4252,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   cleanUserText,
   contrastGuide,
   contrastRatio,
+  dropInventedPrices,
   faviconDataUri,
   faviconSvg,
   fetchLimited,
@@ -4240,6 +4263,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   headerHtml,
   imagesMessage,
   importedSummary,
+  informedPrices,
   isBlockedHost,
   isProjectPath,
   isReservedSlug,

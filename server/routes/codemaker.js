@@ -52,7 +52,7 @@ const ANALYSIS = {
   plan: 'Você vai planejar este site. ANTES do plano, faça uma análise interna seguindo o DESIGN.md: contexto do site, objetivo primário, público, ação principal, proposta de valor, conteúdo disponível × o que falta (e que portanto NÃO pode ser inventado: preços, números, depoimentos, contatos), diferenciação visual tirada do mundo do negócio, anti-padrões que este pedido tende a cair e como evitar. Em tópicos curtos. Não escreva o plano nem JSON.',
   edit: 'Você vai alterar este site. ANTES da alteração, faça uma análise interna: o que exatamente o usuário pediu, quais arquivos mudam, o que não pode mudar (identidade, fatos, o que não foi pedido), riscos para o DESIGN.md (contraste, mobile, acessibilidade, dados inventados) e a ordem das operações. Em tópicos curtos. Não escreva as operações.'
 };
-const ANALYSIS_TOKENS = { high: 1500, xhigh: 3000 };
+const ANALYSIS_TOKENS = { medium: 900, high: 1500, xhigh: 3000 };
 const CRITIQUE = 'Depois critique a própria análise: o que está genérico, o que contraria o DESIGN.md, o que falta. Corrija antes de terminar.';
 
 const J = (v, fallback) => { if (v == null) return fallback; try { return JSON.parse(v); } catch { return fallback; } };
@@ -175,8 +175,9 @@ function cleanBrief(input) {
 async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
   const started = Date.now();
-  let body = { model, max_tokens: meta.maxTokens || 9000, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
-    ...(meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort, model) : {}), messages: [{ role: 'system', content: system }, { role: 'user', content }] };
+  const native = meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort, model) : {};
+  let body = { model, max_tokens: ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native), stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
+    ...native, messages: [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
     response = await fetch(AI_URL(), {
       method: 'POST',
@@ -270,7 +271,7 @@ async function streamAi(req, res, options) {
   let text = '';
   let timedOut = false;
   let preparing = true;
-  let usage = null; let reasoningChars = 0; const started = Date.now();
+  let usage = null; let reasoningChars = 0; let lengthHit = false; const started = Date.now();
   const logUsage = (ok, note) => ai.logCall({ kind: options.kind || 'cm', userId: options.userId, model: options.sel?.model, effort: options.sel?.effort, providerModel: options.model,
     ms: Date.now() - started, usage, reasoningTokens: reasoningChars ? Math.round(reasoningChars / 4) : null, ok, note });
   const recordFailure = async () => {
@@ -284,8 +285,9 @@ async function streamAi(req, res, options) {
       : baseMessages;
     // A River limita pedidos por minuto: com várias partes ao mesmo tempo, espera e tenta de novo.
     const sel = options.sel || {};
-    let body = { model: options.model, max_tokens: options.maxTokens, stream: true, stream_options: { include_usage: true },
-      ...(sel.model ? { temperature: ai.temperatureOf(sel.model) } : {}), ...(sel.effort ? ai.reasoningParams(sel.effort, options.model) : {}), messages };
+    const native = ai.streamParams(options.model);
+    let body = { model: options.model, max_tokens: ai.withHeadroom(options.maxTokens, sel.effort, native), stream: true, stream_options: { include_usage: true },
+      ...(sel.model ? { temperature: ai.temperatureOf(sel.model) } : {}), ...native, messages };
     let response;
     for (let attempt = 0; attempt < 5; attempt++) {
       response = await fetch(AI_URL(), {
@@ -327,7 +329,7 @@ async function streamAi(req, res, options) {
           if (chunk.usage) usage = chunk.usage;
           const choice = chunk.choices?.[0];
           if (choice?.delta?.reasoning_content) reasoningChars += choice.delta.reasoning_content.length;
-          if (choice?.finish_reason === 'length') timedOut = true;
+          if (choice?.finish_reason === 'length') { timedOut = true; lengthHit = true; }
           const delta = choice?.delta?.content;
           if (delta) { text += delta; send(delta); }
         } catch {
@@ -348,7 +350,15 @@ async function streamAi(req, res, options) {
     }
   }
   if (cancelled) { clearTimeout(timer); return; }
-  logUsage(!timedOut, timedOut ? 'continua' : null);
+  logUsage(!timedOut, timedOut ? (lengthHit && !text.trim() ? 'sem texto' : 'continua') : null);
+  // A IA gastou o orçamento inteiro pensando e não escreveu nada: continuar só repetiria o mesmo.
+  if (lengthHit && !text.trim()) {
+    clearTimeout(timer);
+    await recordFailure();
+    send('\n<<<ERRO:A IA gastou o tempo pensando e não escreveu esta etapa. Tente de novo ou use um nível de esforço menor.>>>');
+    close();
+    return;
+  }
   if (timedOut) {
     clearTimeout(timer);
     send('\n<<<CONTINUA>>>');

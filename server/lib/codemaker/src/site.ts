@@ -1045,17 +1045,51 @@ export function blockTokens(partId: string, plan: SitePlan, brief: SiteBrief, ph
   }
 }
 
-// Frases com fatos que ninguém informou (nota, anos, clientes) saem do conteúdo.
+// DESIGN.md (Confiança e transparência: "Preços verdadeiros"): valor em reais só se estiver no pedido.
+// Medido em produção: mesmo com a regra no prompt, a IA criava "R$ 180/sessão" para uma clínica sem preços.
+// Aqui o código garante: preço que o usuário não informou sai do campo e da frase.
+const PRICE_TOKEN = /(?:\b(?:a partir de|por apenas|apenas|por|só|desde)\s+)?R\$\s?\d[\d.]*(?:,\d{1,2})?(?:\s*(?:\/|por)\s*(?:m[eê]s|sess[aã]o|aula|hora|pessoa|programa|unidade|ano|semana|dia|kg|m²))?/gi
+const priceKey = (text: string): string => (text.match(/\d[\d.]*(?:,\d{1,2})?/)?.[0] ?? '').replace(/\./g, '').replace(/,0{1,2}$/, '')
+export function informedPrices(brief: SiteBrief): Set<string> {
+  const text = `${brief.details ?? ''} ${brief.businessName ?? ''}`
+  const keys = new Set<string>()
+  for (const m of text.matchAll(/R\$\s?\d[\d.]*(?:,\d{1,2})?|\d[\d.]*(?:,\d{1,2})?\s*reais/gi)) keys.add(priceKey(m[0]))
+  return keys
+}
+export function dropInventedPrices(value: string | undefined, allowed: Set<string>): string | undefined {
+  if (!value || !/R\$/.test(value)) return value
+  return value
+    .replace(PRICE_TOKEN, (match) => (allowed.has(priceKey(match)) ? match : ''))
+    .replace(/\(\s*\)/g, '')
+    .replace(/\s+([.,;:!?)])/g, '$1')
+    .replace(/([(—–-])\s*[,.;:]/g, '$1')
+    .replace(/\s*[—–-]\s*$/g, '')
+    .replace(/:\s*,/g, ',')
+    .replace(/:\s*([.;!?])/g, '$1')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .replace(/^[\s.,;:!?—–-]+$/, '')
+}
+
+// Frases com fatos que ninguém informou (nota, anos, clientes, preços) saem do conteúdo.
 function checkContent(content: BlockContent, brief: SiteBrief): BlockContent {
-  const clean = (value: string | undefined) => (value ? stripInventedClaims(value, brief) : value)
+  const prices = informedPrices(brief)
+  const clean = (value: string | undefined) => dropInventedPrices(value ? stripInventedClaims(value, brief) : value, prices)
   return {
     ...content,
     title: clean(content.title),
     subtitle: clean(content.subtitle),
     badge: clean(content.badge),
     note: clean(content.note),
-    items: content.items?.map((item) => ({ ...item, text: clean(item.text) })),
-    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief)),
+    items: content.items?.map((item) => ({
+      ...item,
+      text: clean(item.text),
+      title: dropInventedPrices(item.title, prices),
+      meta: dropInventedPrices(item.meta, prices) || undefined,
+      price: item.price && /\d/.test(item.price) && !prices.has(priceKey(item.price)) ? undefined : item.price,
+      list: item.list?.map((entry) => dropInventedPrices(entry, prices) ?? entry).filter(Boolean),
+    })),
+    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief) && !(/R\$/.test(fact.value) && !prices.has(priceKey(fact.value)))),
   }
 }
 
@@ -1540,7 +1574,7 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
     sections.push({
       id,
       label: String(item?.label ?? id).slice(0, 30),
-      brief: stripInventedClaims(String(item?.brief ?? ''), brief).slice(0, 1400),
+      brief: (dropInventedPrices(stripInventedClaims(String(item?.brief ?? ''), brief), informedPrices(brief)) ?? '').slice(0, 1400),
       bg,
       requirementIds: requirementIds(item.requirementIds),
       layout,
