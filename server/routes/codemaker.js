@@ -175,8 +175,9 @@ function cleanBrief(input) {
 async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
   const started = Date.now();
-  // Análise (raw): escreve em texto com o mínimo de raciocínio nativo; o resto (JSON) segue sem parâmetro.
-  const native = meta.sel && meta.native ? ai.streamParams(model) : {};
+  // Mínimo de raciocínio nativo em toda chamada daqui (análise em texto e extração de JSON); o pensar fica na análise.
+  // Extração de JSON (requisitos) também: no Nemotron ela pensava 2.838 tokens por padrão (29 s) só para ler o pedido.
+  const native = ai.streamParams(model);
   // Análise: orçamento do nível + folga pequena só para o raciocínio mínimo (ela é texto, não pensamento escondido).
   const maxTokens = meta.raw ? (meta.maxTokens || 900) + (Object.keys(native).length ? 1000 : 0) : ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native);
   let body = { model, max_tokens: maxTokens, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
