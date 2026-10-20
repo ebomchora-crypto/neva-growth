@@ -49,8 +49,8 @@ const MAX_TOKENS = {
   edit: { low: 8000, medium: 9000, high: 12000, xhigh: 16000 }
 };
 const ANALYSIS = {
-  plan: 'Você vai planejar este site. ANTES do plano, faça uma análise interna seguindo o DESIGN.md: contexto do site, objetivo primário, público, ação principal, proposta de valor, conteúdo disponível × o que falta (e que portanto NÃO pode ser inventado: preços, números, depoimentos, contatos), diferenciação visual tirada do mundo do negócio, anti-padrões que este pedido tende a cair e como evitar. Em tópicos curtos. Não escreva o plano nem JSON.',
-  edit: 'Você vai alterar este site. ANTES da alteração, faça uma análise interna: o que exatamente o usuário pediu, quais arquivos mudam, o que não pode mudar (identidade, fatos, o que não foi pedido), riscos para o DESIGN.md (contraste, mobile, acessibilidade, dados inventados) e a ordem das operações. Em tópicos curtos. Não escreva as operações.'
+  plan: 'Você vai planejar este site. ANTES do plano, faça uma análise interna seguindo o DESIGN.md: contexto do site, objetivo primário, público, ação principal, proposta de valor, conteúdo disponível × o que falta (e que portanto NÃO pode ser inventado: preços, números, depoimentos, contatos), diferenciação visual tirada do mundo do negócio, anti-padrões que este pedido tende a cair e como evitar. Em tópicos curtos. Responda SÓ com a análise: sem <acoes>, sem <plano>, sem JSON.',
+  edit: 'Você vai alterar este site. ANTES da alteração, faça uma análise interna: o que exatamente o usuário pediu, quais arquivos mudam, o que não pode mudar (identidade, fatos, o que não foi pedido), riscos para o DESIGN.md (contraste, mobile, acessibilidade, dados inventados) e a ordem das operações. Em tópicos curtos. Responda SÓ com a análise: sem <acoes> e sem as operações.'
 };
 const ANALYSIS_TOKENS = { medium: 900, high: 1500, xhigh: 3000 };
 const CRITIQUE = 'Depois critique a própria análise: o que está genérico, o que contraria o DESIGN.md, o que falta. Corrija antes de terminar.';
@@ -177,7 +177,9 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   const started = Date.now();
   // Análise (raw): escreve em texto com o mínimo de raciocínio nativo; o resto (JSON) segue sem parâmetro.
   const native = meta.sel && meta.native ? ai.streamParams(model) : {};
-  let body = { model, max_tokens: ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native), stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
+  // Análise: orçamento do nível + folga pequena só para o raciocínio mínimo (ela é texto, não pensamento escondido).
+  const maxTokens = meta.raw ? (meta.maxTokens || 900) + (Object.keys(native).length ? 1000 : 0) : ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native);
+  let body = { model, max_tokens: maxTokens, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
     ...native, messages: [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
     response = await fetch(AI_URL(), {
@@ -197,7 +199,11 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   const data = await response.json();
   ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, usage: data.usage });
   // Se o modelo pensou tudo e não escreveu, o próprio raciocínio é a análise.
-  if (meta.raw) { const msg = data.choices?.[0]?.message || {}; return String(msg.content || '').trim() || String(msg.reasoning_content || msg.reasoning || '').trim(); }
+  if (meta.raw) {
+    const msg = data.choices?.[0]?.message || {};
+    const text = String(msg.content || '').replace(/<(acoes|plano)>[\s\S]*?(<\/\1>|$)/gi, '').replace(/<\/?analise>/gi, '').trim();
+    return text || String(msg.reasoning_content || msg.reasoning || '').trim();
+  }
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('A leitura dos requisitos não terminou. Tente novamente.');
   const text = data.choices?.[0]?.message?.content;
   if (typeof text !== 'string') throw new Error('A IA não retornou uma especificação válida.');
