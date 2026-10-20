@@ -23,6 +23,7 @@ const ACT = {
   fixed: ['executando ação', 'preparando'],
   fix: ['corrigindo', 'refazendo', 'ajustando'],
   more: ['continuando de onde parei', 'escrevendo o restante'],
+  reviewPlan: ['revisando o plano com olhar crítico', 'conferindo o plano com o seu pedido', 'lendo o plano de novo'],
   review: ['revisando o texto', 'conferindo com o seu pedido', 'lendo de novo com olhar crítico'],
   finish: ['preparando', 'juntando tudo', 'conferindo o site montado'],
   publish: ['publicando', 'colocando no ar'],
@@ -310,14 +311,15 @@ export default {
         let current = site;
         if (!current.plan) {
           phase = 'planning'; planText = '';
-          let thinking = act(log, pick(ACT.think)); let context = null; let planning = null;
+          let thinking = act(log, pick(ACT.think)); let context = null; let planning = null; let reviewing = null;
           await streamCM({ action: 'plan', site_id: id, ...selector.get() }, (t) => {
             if (/<etapa>analise<\/etapa>/.test(t) && !context) { thinking?.done(); thinking = null; context = act(log, pick(ACT.context)); }
             if (/<etapa>plano<\/etapa>/.test(t) && context && !planning) { context.done(); planning = act(log, pick(ACT.plan)); }
+            if (/<etapa>revisao<\/etapa>/.test(t) && !reviewing) { planning?.done(); planning = null; reviewing = act(log, pick(ACT.reviewPlan)); }
             if (!planning && !context && /<acoes>/i.test(t)) { thinking?.done(); thinking = null; planning = act(log, pick(ACT.plan)); }
             planText = noEtapa(t); drawThread();
           }, signal, () => act(log, pick(ACT.more)).done());
-          thinking?.done(); context?.done(); planning?.done();
+          thinking?.done(); context?.done(); planning?.done(); reviewing?.done();
           current = await refresh(); schedulePreview();
           if (current.plan?.actions?.length) push(log, { t: 'list', title: 'Plano do site', items: current.plan.actions });
           say(log, pick(SAY.planned));

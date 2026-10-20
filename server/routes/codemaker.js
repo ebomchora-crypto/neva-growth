@@ -203,6 +203,31 @@ async function reviewContent(apiKey, model, partId, plan, brief, draft, sel, use
   }
 }
 
+const PLAN_REVIEW = {
+  medium: 'Revise o PLANO ESCRITO abaixo como um diretor de arte exigente. Confira: (1) toda seção do pedido está no plano, na ordem pedida, com os blocos certos (formulário ou simulador pedidos viram os blocos "formulario" e "simulador"); (2) algum título, selo, brief ou item com fato, número, preço ou prazo que NÃO está no pedido (apague); (3) cores com contraste de texto legível e fontes que combinam com o negócio e NÃO com o visual genérico de "tecnologia azul e roxo"; (4) seções repetidas ou vagas (junte ou torne específicas); (5) título da página e descrição seguem o pedido de SEO.',
+  high: 'Revise o PLANO ESCRITO abaixo como um diretor de arte exigente, conferindo item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md: (1) toda seção do pedido está no plano, na ordem pedida, com os blocos certos (formulário ou simulador pedidos viram os blocos "formulario" e "simulador"); (2) fato, número, preço ou prazo que NÃO está no pedido (apague); (3) cores com contraste de texto legível e fontes que combinam com o negócio, sem o visual genérico; (4) seções repetidas ou vagas; (5) título da página e descrição seguem o pedido de SEO; (6) cada seção tem um "brief" que diz o que escrever e o que NÃO inventar.'
+};
+PLAN_REVIEW.xhigh = `${PLAN_REVIEW.high} Depois de corrigir, releia o plano uma vez e corrija de novo o que ainda estiver vago ou contrariar o pedido.`;
+async function reviewPlan(apiKey, model, full, brief, recipe, sel, userId, signal, emit) {
+  const draft = String(full).match(/<plano>([\s\S]*?)<\/plano>/i)?.[1];
+  if (!draft) return full;
+  try {
+    emit?.('<etapa>revisao</etapa>\n');
+    const message = [
+      E.buildPlanMessage(brief, true, recipe),
+      `PLANO ESCRITO (JSON):\n${draft.trim().slice(0, 24000)}`,
+      `${PLAN_REVIEW[sel.effort] || PLAN_REVIEW.medium}\n\nResponda SÓ com o JSON do plano corrigido, no mesmo formato do plano escrito (inclusive "business"). Mantenha o que está certo.`
+    ].join('\n\n');
+    const fixed = await completeJson(apiKey, model, systemFor('plan'), message, signal, { sel, kind: 'cm_plan:revisao', userId, maxTokens: 7000 });
+    const next = `<plano>\n${JSON.stringify(fixed)}\n</plano>`;
+    // Só vale se o plano revisado continua sendo um plano válido.
+    return E.parsePlan(next, brief, recipe).plan ? String(full).replace(/<plano>[\s\S]*?<\/plano>/i, () => next) : full;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return full;
+  }
+}
+
 // Leitura dos requisitos: um deslize de formato tenta mais uma vez antes de parar o site inteiro.
 async function specOnce(apiKey, model, chunk, signal, meta) {
   try { return await completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, meta); }
@@ -677,7 +702,9 @@ r.post('/', async (req, res) => {
         }
         return [{ role: 'system', content: system }, { role: 'user', content }];
       },
-      finish: async (full, signal) => {
+      finish: async (full, signal, emit) => {
+        // Revisão do plano (todos os níveis menos o Baixo): o plano manda no site inteiro, então ele passa por uma segunda leitura crítica.
+        if (sel.effort !== 'low') full = await reviewPlan(apiKey, model, full, planningBrief, recipe, sel, user.id, signal, emit);
         const { actions, plan: parsedPlan, business } = E.parsePlan(full, planningBrief, recipe);
         if (!parsedPlan) {
           await setStatus(site.id, 'error');
