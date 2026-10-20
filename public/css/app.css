@@ -1609,3 +1609,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .cdel{display:grid;place-items:center;width:30px;height:30px;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--mut);cursor:pointer;transition:background .15s,color .15s,border-color .15s}
 .cdel .ico{width:15px;height:15px}.cdel:hover{background:#fdf0f1;color:var(--bad);border-color:#e7a3a8}.cdel:focus-visible{outline:2px solid var(--ice-500);outline-offset:2px}
 .ccell.rs .racts{margin-top:2px}
+
+/* Moldura fixa (como no Code Makers): tudo que fica FORA da linha é uma faixa sólida da cor do fundo.
+   O conteúdo, as sombras e o brilho do menu são cortados na linha e nada aparece do lado de fora, nem ao rolar. */
+.shell::after{border-color:rgba(47,123,189,.4);box-shadow:0 0 0 100vmax #e6f0fa,inset 0 0 0 1px rgba(255,255,255,.9),inset 0 0 36px rgba(127,180,224,.12)}
