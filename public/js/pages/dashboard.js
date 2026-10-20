@@ -2,6 +2,7 @@ import { api } from '../api.js';
 import { h, mount, brl, dt, dtt, money, toast, fail, pills, icon, heroArt } from '../ui.js';
 import { riseMoney, still } from '../motion.js';
 import { openSummary } from '../summary-card.js';
+import { openInsight } from '../insight.js';
 
 const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3 meses'], ['6m', '6 meses'], ['1a', '1 ano']];
 const SVG = 'http://www.w3.org/2000/svg';
@@ -51,12 +52,7 @@ export default {
       draw(d);
       if (!first) { still(area); riseMoney(area); if (sc) sc.scrollTop = st; window.scrollTo(0, y); }
     }
-    const summaryBox = h('div');
-    async function genSummary(btn) {
-      btn.disabled = true; btn.textContent = 'Gerando…';
-      try { const r = await api.post('/dashboard/summary', { period }); mount(summaryBox, h('div', { class: 'notice info', style: 'white-space:pre-wrap;margin-top:12px' }, r.summary, h('div', { class: 'sm mut' }, `Gerado por IA a partir dos números do período `))); }
-      catch (e) { fail(e); } finally { btn.disabled = false; btn.textContent = 'Texto com IA'; }
-    }
+    const genSummary = () => openInsight({ period, load: () => api.post('/dashboard/summary', { period }) });
     function draw(d) {
       const m = d.metrics; const k = d.kpis;
       const monthsSel = h('select', { class: 'monthsel', 'aria-label': 'Período do gráfico', onchange: async (e) => { period = e.target.value; try { sessionStorage.setItem('dashPeriod', period); } catch { /* ok */ } await load().catch(fail); } },
@@ -70,9 +66,8 @@ export default {
                 h('div', h('div', { class: 'ptitle' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, h('span', { class: 'big' }, money(m.profit)), delta(m.profitVariation))),
                 h('div', { class: 'row' },
                   h('button', { class: 'aibtn', title: 'Abre a arte do seu resultado, pronta para compartilhar', onclick: () => openSummary({ name: ctx.user.name, metrics: m, period }) }, h('i', icon('trend')), 'Gerar resumo do período'),
-                  aiOn && h('button', { class: 'aibtn ghost', title: 'Resumo escrito por IA com base nos números do período', onclick: (e) => genSummary(e.currentTarget) }, 'Texto com IA'),
+                  aiOn && h('button', { class: 'aibtn ghost', title: 'Resumo escrito por IA com base nos números do período', onclick: genSummary }, 'Texto com IA'),
                   h('div', { id: 'periodbar' }))),
-              summaryBox,
               lineChart(m.series, W * 0.66 - 60),
               h('div', { class: 'foot' },
                 h('span', { class: 'chip', title: `${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}` }, 'Ticket médio ', h('b', money(m.ticket))),

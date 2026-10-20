@@ -99,6 +99,16 @@ r.get('/live', async (req, res) => {
     recent: t.slice(0, 8).map(({ id, description, amount, client_name }) => ({ id, description, amount, client_name })) });
 });
 
+function parseSummary(raw) {
+  const m = String(raw).match(/\{[\s\S]*\}/); if (!m) return null;
+  try {
+    const d = JSON.parse(m[0]); const str = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+    const pontos = (Array.isArray(d.pontos) ? d.pontos : []).slice(0, 3).map((p) => ({ rotulo: str(p?.rotulo, 30), texto: str(p?.texto, 140) })).filter((p) => p.texto);
+    const out = { titulo: str(d.titulo, 80), destaque: str(d.destaque, 200), pontos, proximo_passo: str(d.proximo_passo, 180) };
+    return out.titulo && out.destaque && pontos.length && out.proximo_passo ? out : null;
+  } catch { return null; }
+}
+
 // Resumo do período escrito por IA a partir dos números reais (exige RIVER_API_KEY)
 r.post('/summary', async (req, res) => {
   if (!ai.configured()) throw new (require('../lib/http').HttpError)(503, ai.NOT_CONFIGURED, 'ai_not_configured');
@@ -106,10 +116,14 @@ r.post('/summary', async (req, res) => {
   const m = await metrics(req.body?.period, req.user.ws);
   const top = await all(`SELECT s.description, s.amount, s.amount-s.cost AS profit FROM sales s WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY profit DESC LIMIT 5`, req.user.ws, m.range.start, m.range.end);
   const open = await get("SELECT COUNT(*) n, COALESCE(SUM(value),0) v FROM leads WHERE archived=0 AND ws=? AND status IN (SELECT key FROM pipeline_stages WHERE kind='open' AND ws=?)", req.user.ws, req.user.ws);
-  const text = await ai.complete({ maxTokens: 700,
-    system: 'Você é analista comercial. Escreva em português do Brasil, em no máximo 6 linhas, um resumo objetivo do período com base SOMENTE nos números fornecidos. Não invente dados; se algo for zero ou ausente, diga isso. Termine com 1 sugestão prática.',
+  const raw = await ai.complete({ model: 'neva-1-0', effort: 'low', kind: 'summary', userId: req.user.id, maxTokens: 650,
+    system: `Você é analista comercial de um pequeno negócio brasileiro. Leia os números do período e responda SOMENTE com JSON válido, sem markdown e sem texto fora do JSON:
+{"titulo":"até 7 palavras, com o número principal (ex.: Lucro de R$ 11.250, 23% acima do período anterior)","destaque":"UMA frase de até 22 palavras com o que mais importa neste período","pontos":[{"rotulo":"2 a 3 palavras","texto":"uma frase curta com um número"},{"rotulo":"...","texto":"..."},{"rotulo":"...","texto":"..."}],"proximo_passo":"UMA ação concreta de até 20 palavras, ligada aos números (cobrar oportunidade aberta, repetir o que vendeu mais, etc.)"}
+Regras: use SOMENTE os números fornecidos, no formato brasileiro (R$ 1.234, 23%); se algo for zero ou ausente, diga isso com franqueza (sem inventar); exatamente 3 pontos; nada de "Claro", elogios vazios ou jargão.`,
     messages: [{ role: 'user', content: JSON.stringify({ periodo: m.range, receita: m.revenue, lucro: m.profit, vendas_pagas: m.sales, ticket_medio: m.ticket, variacao_lucro_pct: m.profitVariation, periodo_anterior: m.previous, maiores_vendas: top, oportunidades_abertas: open }) }] });
+  const data = parseSummary(raw);
+  const text = data ? `${data.titulo}\n${data.destaque}\n${data.pontos.map((p) => `- ${p.rotulo}: ${p.texto}`).join('\n')}\nPróximo passo: ${data.proximo_passo}` : String(raw).trim();
   await S.recordAiUse(req.user, 'summary');
-  res.json({ summary: text, usage: (await S.usageOf(req.user)).ai });
+  res.json({ summary: text, data, usage: (await S.usageOf(req.user)).ai });
 });
 module.exports = r;

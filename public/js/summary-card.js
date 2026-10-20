@@ -26,43 +26,48 @@ function rr(ctx, x, y, w, hgt, r) { ctx.beginPath(); ctx.moveTo(x + r, y); ctx.a
 export function drawArt(canvas, { name, m, period }) {
   canvas.width = W; canvas.height = H; const c = canvas.getContext('2d');
   const F = 'Inter, "Segoe UI", system-ui, sans-serif';
-  // fundo: azul-noite com brilho gelo (identidade Neva)
-  const bg = c.createLinearGradient(0, 0, W, H); bg.addColorStop(0, '#0a1d33'); bg.addColorStop(0.55, '#0f2f55'); bg.addColorStop(1, '#14497f'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
-  const glow = c.createRadialGradient(W * 0.85, H * 0.05, 10, W * 0.85, H * 0.05, 620); glow.addColorStop(0, 'rgba(127,180,224,.45)'); glow.addColorStop(1, 'rgba(127,180,224,0)'); c.fillStyle = glow; c.fillRect(0, 0, W, H);
-  c.strokeStyle = 'rgba(170,207,238,.22)'; c.lineWidth = 2; rr(c, 40, 40, W - 80, H - 80, 44); c.stroke();
+  const INK = '#0e2a47', MUT = '#4a7aa8', BLUE = '#2f7bbd', px = 96;
+  const card = (x, y, w, hh, r, a = 0.78) => { c.save(); c.shadowColor = 'rgba(30,90,160,.18)'; c.shadowBlur = 36; c.shadowOffsetY = 12; c.fillStyle = `rgba(255,255,255,${a})`; rr(c, x, y, w, hh, r); c.fill(); c.restore(); c.strokeStyle = 'rgba(255,255,255,.95)'; c.lineWidth = 2; rr(c, x, y, w, hh, r); c.stroke(); };
+  // fundo: céu azul-gelo com grade de pontos e uma esfera (a mesma do Builder)
+  const bg = c.createLinearGradient(0, 0, W * 0.6, H); bg.addColorStop(0, '#f4faff'); bg.addColorStop(0.42, '#cfe7fb'); bg.addColorStop(1, '#7fb9e8'); c.fillStyle = bg; c.fillRect(0, 0, W, H);
+  c.fillStyle = 'rgba(47,123,189,.16)'; for (let y = 30; y < H; y += 30) for (let x = 30; x < W; x += 30) { const d = Math.hypot(x - W * 0.78, y - 250) / 640; const r = Math.max(0, 4.2 - d * 4.6); if (r > 0.4) { c.beginPath(); c.arc(x, y, r, 0, 7); c.fill(); } }
+  const ox = W - 210, oy = 232, or = 128; const orb = c.createRadialGradient(ox - 40, oy - 46, 8, ox, oy, or); orb.addColorStop(0, '#ffffff'); orb.addColorStop(0.26, '#cfe9ff'); orb.addColorStop(0.7, '#4a95d2'); orb.addColorStop(1, '#1d5fa8');
+  c.save(); c.shadowColor = 'rgba(30,90,160,.45)'; c.shadowBlur = 50; c.shadowOffsetY = 18; c.fillStyle = orb; c.beginPath(); c.arc(ox, oy, or, 0, 7); c.fill(); c.restore();
+  c.fillStyle = 'rgba(255,255,255,.9)'; for (let k = 0; k < 46; k++) { const a = k * 2.399963, y = 1 - (2 * (k + 0.5)) / 46, rr0 = Math.sqrt(1 - y * y), z = Math.sin(a) * rr0; if (z < -0.1) continue; c.globalAlpha = 0.35 + z * 0.6; c.beginPath(); c.arc(ox + Math.cos(a) * rr0 * or * 0.9, oy + y * or * 0.9, 3 + z * 5, 0, 7); c.fill(); } c.globalAlpha = 1;
+  c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; rr(c, 40, 40, W - 80, H - 80, 44); c.stroke();
   // marca
-  const px = 96; c.fillStyle = '#7fb4e0'; rr(c, px, 100, 72, 72, 22); c.fill(); c.fillStyle = '#0a1d33'; c.font = `800 44px ${F}`; c.textBaseline = 'middle'; c.textAlign = 'center'; c.fillText('N', px + 36, 138); c.textAlign = 'left';
-  c.fillStyle = '#fff'; c.font = `800 34px ${F}`; c.fillText('NEVA GROWTH', px + 94, 124); c.fillStyle = '#aacfee'; c.font = `600 20px ${F}`; c.fillText('REGISTRO DE RESULTADO', px + 94, 156);
-  const tag = LABEL[period] || period; c.font = `700 22px ${F}`; const tw = c.measureText(tag).width + 44; c.fillStyle = 'rgba(170,207,238,.16)'; rr(c, W - 96 - tw, 112, tw, 52, 26); c.fill(); c.fillStyle = '#d3e6f6'; c.textAlign = 'center'; c.fillText(tag, W - 96 - tw / 2, 139); c.textAlign = 'left';
+  c.fillStyle = BLUE; rr(c, px, 100, 72, 72, 22); c.fill(); c.fillStyle = '#fff'; c.font = `800 44px ${F}`; c.textBaseline = 'middle'; c.textAlign = 'center'; c.fillText('N', px + 36, 138); c.textAlign = 'left';
+  c.fillStyle = INK; c.font = `800 34px ${F}`; c.fillText('NEVA GROWTH', px + 94, 124); c.fillStyle = MUT; c.font = `600 20px ${F}`; c.fillText('REGISTRO DE RESULTADO', px + 94, 156);
+  const tag = LABEL[period] || period; c.font = `700 22px ${F}`; const tw = c.measureText(tag).width + 44; c.fillStyle = 'rgba(255,255,255,.75)'; rr(c, px, 300, tw, 52, 26); c.fill(); c.fillStyle = BLUE; c.fillText(tag.toUpperCase(), px + 22, 327);
   // título
-  c.fillStyle = '#7fb4e0'; c.font = `700 22px ${F}`; c.fillText('EXECUÇÃO VIROU RESULTADO', px, 250);
-  c.fillStyle = '#fff'; c.font = `800 74px ${F}`; wrap(c, `${firstName(name)}, resultado em movimento.`, W - 2 * px).slice(0, 2).forEach((l, i) => c.fillText(l, px, 330 + i * 84));
+  c.fillStyle = BLUE; c.font = `700 22px ${F}`; c.fillText('EXECUÇÃO VIROU RESULTADO', px, 408);
+  c.fillStyle = INK; c.font = `800 72px ${F}`; wrap(c, `${firstName(name)}, resultado em movimento.`, W - 2 * px).slice(0, 2).forEach((l, i) => c.fillText(l, px, 478 + i * 80));
   // lucro
-  c.fillStyle = '#aacfee'; c.font = `700 22px ${F}`; c.fillText('LUCRO CONSTRUÍDO', px, 548);
+  c.fillStyle = MUT; c.font = `700 22px ${F}`; c.fillText('LUCRO CONSTRUÍDO', px, 640);
   let size = 128; const value = brl(m.profit); do { c.font = `800 ${size}px ${F}`; size -= 4; } while (c.measureText(value).width > W - 2 * px - 190 && size > 56);
-  c.fillStyle = '#fff'; c.fillText(value, px, 628);
+  const vg = c.createLinearGradient(px, 0, px + 600, 0); vg.addColorStop(0, INK); vg.addColorStop(1, BLUE); c.fillStyle = vg; c.fillText(value, px, 772);
   const vw = c.measureText(value).width; const delta = m.profitVariation === null ? 'novo' : `${Math.abs(m.profitVariation).toLocaleString('pt-BR')}%`; const up = (m.profitVariation ?? 1) >= 0;
-  c.font = `700 24px ${F}`; const dw = c.measureText(delta).width + 64; const dx = Math.min(px + vw + 24, W - px - dw); c.fillStyle = up ? 'rgba(127,214,170,.18)' : 'rgba(240,138,144,.2)'; rr(c, dx, 590, dw, 54, 27); c.fill();
-  c.fillStyle = up ? '#8fe0b5' : '#f6a3a8'; c.fillText((up ? '↗ ' : '↘ ') + delta, dx + 24, 618);
+  c.font = `800 26px ${F}`; const dw = c.measureText((up ? '↗ ' : '↘ ') + delta).width + 48; const dx = Math.min(px + vw + 24, W - px - dw); c.fillStyle = up ? 'rgba(31,157,107,.16)' : 'rgba(209,67,75,.14)'; rr(c, dx, 706, dw, 56, 28); c.fill();
+  c.fillStyle = up ? '#17855a' : '#c23a42'; c.fillText((up ? '↗ ' : '↘ ') + delta, dx + 24, 735);
   // gráfico
-  const gx = px, gy = 700, gw = W - 2 * px, gh = 250; c.fillStyle = 'rgba(8,26,46,.45)'; rr(c, gx, gy, gw, gh, 30); c.fill(); c.strokeStyle = 'rgba(170,207,238,.18)'; c.lineWidth = 2; rr(c, gx, gy, gw, gh, 30); c.stroke();
-  c.fillStyle = '#aacfee'; c.font = `700 18px ${F}`; c.fillText('TRAÇO DE EXECUÇÃO', gx + 28, gy + 40); c.textAlign = 'right'; c.fillText(`${m.sales} ${m.sales === 1 ? 'FECHAMENTO' : 'FECHAMENTOS'}`, gx + gw - 28, gy + 40); c.textAlign = 'left';
-  const ser = m.series.length ? m.series : [{ revenue: 0, profit: 0 }]; const max = Math.max(1, ...ser.map((s) => s.revenue)); const ix = gx + 34, iw = gw - 68, iy = gy + 70, ih = gh - 110;
+  const gx = px, gy = 838, gw = W - 2 * px, gh = 236; card(gx, gy, gw, gh, 30);
+  c.fillStyle = MUT; c.font = `700 18px ${F}`; c.fillText('TRAÇO DE EXECUÇÃO', gx + 28, gy + 38); c.textAlign = 'right'; c.fillText(`${m.sales} ${m.sales === 1 ? 'FECHAMENTO' : 'FECHAMENTOS'}`, gx + gw - 28, gy + 38); c.textAlign = 'left';
+  const ser = m.series.length ? m.series : [{ revenue: 0, profit: 0 }]; const max = Math.max(1, ...ser.map((s) => s.revenue)); const ix = gx + 40, iw = gw - 80, iy = gy + 72, ih = gh - 104;
   const X = (i) => ix + (ser.length > 1 ? (iw * i) / (ser.length - 1) : iw / 2), Y = (v) => iy + ih * (1 - v / max);
-  const area = c.createLinearGradient(0, iy, 0, iy + ih); area.addColorStop(0, 'rgba(127,180,224,.5)'); area.addColorStop(1, 'rgba(127,180,224,0)');
+  const area = c.createLinearGradient(0, iy, 0, iy + ih); area.addColorStop(0, 'rgba(74,149,210,.45)'); area.addColorStop(1, 'rgba(74,149,210,0)');
   if (ser.length > 1) { c.beginPath(); ser.forEach((s, i) => (i ? c.lineTo(X(i), Y(s.revenue)) : c.moveTo(X(i), Y(s.revenue)))); c.lineTo(X(ser.length - 1), iy + ih); c.lineTo(X(0), iy + ih); c.closePath(); c.fillStyle = area; c.fill();
-    c.beginPath(); ser.forEach((s, i) => (i ? c.lineTo(X(i), Y(s.revenue)) : c.moveTo(X(i), Y(s.revenue)))); c.strokeStyle = '#d3e6f6'; c.lineWidth = 5; c.lineJoin = 'round'; c.stroke(); }
-  ser.forEach((s, i) => { if (ser.length <= 14 || i === ser.length - 1) { c.beginPath(); c.arc(X(i), Y(s.revenue), 7, 0, 7); c.fillStyle = '#fff'; c.fill(); } });
+    c.beginPath(); ser.forEach((s, i) => (i ? c.lineTo(X(i), Y(s.revenue)) : c.moveTo(X(i), Y(s.revenue)))); c.strokeStyle = BLUE; c.lineWidth = 6; c.lineJoin = 'round'; c.stroke(); }
+  ser.forEach((s, i) => { const last = i === ser.length - 1; if (ser.length <= 14 || last) { c.beginPath(); c.arc(X(i), Y(s.revenue), last ? 11 : 7, 0, 7); c.fillStyle = '#fff'; c.fill(); c.lineWidth = last ? 6 : 4; c.strokeStyle = BLUE; c.stroke(); } });
   // números
-  const bx = px, by = 990, bw = (W - 2 * px - 40) / 3; [['FATURAMENTO', compact(m.revenue)], ['TICKET MÉDIO', compact(m.ticket)], ['VENDAS', String(m.sales).padStart(2, '0')]].forEach(([l, v], i) => {
-    const x = bx + i * (bw + 20); c.fillStyle = 'rgba(8,26,46,.45)'; rr(c, x, by, bw, 130, 26); c.fill(); c.strokeStyle = 'rgba(170,207,238,.18)'; rr(c, x, by, bw, 130, 26); c.stroke();
-    c.fillStyle = '#aacfee'; c.font = `700 17px ${F}`; c.fillText(l, x + 24, by + 38); c.fillStyle = '#fff'; c.font = `800 40px ${F}`; c.fillText(v, x + 24, by + 92); });
+  const bx = px, by = 1092, bw = (W - 2 * px - 40) / 3; [['FATURAMENTO', compact(m.revenue)], ['TICKET MÉDIO', compact(m.ticket)], ['VENDAS', String(m.sales).padStart(2, '0')]].forEach(([l, v], i) => {
+    const x = bx + i * (bw + 20); card(x, by, bw, 120, 26); c.fillStyle = MUT; c.font = `700 17px ${F}`; c.fillText(l, x + 24, by + 36); c.fillStyle = INK; c.font = `800 40px ${F}`; c.fillText(v, x + 24, by + 86); });
   // projeto destaque
-  c.fillStyle = 'rgba(127,180,224,.2)'; rr(c, px, 1136, W - 2 * px, 92, 26); c.fill(); c.fillStyle = '#aacfee'; c.font = `700 17px ${F}`; c.fillText('PROJETO DESTAQUE', px + 26, 1166);
-  c.fillStyle = '#fff'; c.font = `700 30px ${F}`; let top = m.top ? m.top.description : 'Registre vendas pagas para destacar um projeto'; while (c.measureText(top).width > W - 2 * px - 60 && top.length > 4) top = top.slice(0, -2); if (top !== (m.top ? m.top.description : top)) top += '…'; c.fillText(top, px + 26, 1204);
+  const pg = c.createLinearGradient(px, 0, W - px, 0); pg.addColorStop(0, '#2f7bbd'); pg.addColorStop(1, '#4a95d2'); c.fillStyle = pg; rr(c, px, 1230, W - 2 * px, 76, 26); c.fill();
+  c.fillStyle = 'rgba(255,255,255,.8)'; c.font = `700 15px ${F}`; c.fillText('PROJETO DESTAQUE', px + 26, 1256); c.fillStyle = '#fff'; c.font = `700 28px ${F}`;
+  let top = m.top ? m.top.description : 'Registre vendas pagas para destacar um projeto'; while (c.measureText(top).width > W - 2 * px - 60 && top.length > 4) top = top.slice(0, -2); if (top !== (m.top ? m.top.description : 'Registre vendas pagas para destacar um projeto')) top += '…'; c.fillText(top, px + 26, 1288);
   // rodapé
-  c.fillStyle = '#7fb4e0'; c.font = `700 16px ${F}`; c.fillText('PERFORMANCE DE', px, 1258); c.fillStyle = '#fff'; c.font = `700 26px ${F}`; c.fillText(firstName(name), px, 1288);
-  c.textAlign = 'right'; c.fillStyle = '#7fb4e0'; c.font = `700 16px ${F}`; c.fillText('PERÍODO', W - px, 1258); c.fillStyle = '#fff'; c.font = `700 22px ${F}`; c.fillText(`${dmy(m.range.start)} — ${dmy(m.range.end)}`, W - px, 1288); c.textAlign = 'left';
+  c.fillStyle = MUT; c.font = `700 15px ${F}`; c.fillText(firstName(name).toUpperCase() + ' · NEVA GROWTH', px, 1342 - 6);
+  c.textAlign = 'right'; c.fillText(`${dmy(m.range.start)} — ${dmy(m.range.end)}`, W - px, 1342 - 6); c.textAlign = 'left';
 }
 
 export function openSummary({ name, metrics, period }) {
