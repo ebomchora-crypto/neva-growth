@@ -27,6 +27,7 @@ const config = require('../lib/config');
 const E = require('../lib/codemaker/engine');
 const ai = require('../lib/ai');
 const { DESIGN_MD } = require('../lib/codemaker/design-md');
+const refs = require('../lib/codemaker/references');
 
 // O DESIGN.md (compilado de docs/design/DESIGN.md) é o system prompt do Builder: vem primeiro em
 // todas as etapas. As regras do Code Maker abaixo dele são só a forma técnica de executá-lo.
@@ -682,9 +683,16 @@ r.post('/', async (req, res) => {
           signal.throwIfAborted();
           await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
         }
+        // Referências: escolhidas na biblioteca para este pedido e medidas nos sites reais (uma vez; a continuação reaproveita).
+        if (!planningBrief.designRefs) {
+          const built = await refs.buildReferences(planningBrief, { siteId: site.id }).catch((e) => ({ block: '', trace: { error: String(e.message).slice(0, 160) } }));
+          planningBrief = { ...planningBrief, designRefs: built.block, designTrace: built.trace };
+          await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
+        }
         const literal = E.buildPlanMessage(planningBrief, true, recipe);
         const system = systemFor('plan');
         let content = literal.length + system.length < inputBudget ? literal : E.buildPlanMessage(planningBrief, false, recipe);
+        if (planningBrief.designRefs && content.length + system.length + planningBrief.designRefs.length < inputBudget) content += `\n\n${planningBrief.designRefs}`;
         // Esforço alto/máximo: análise prévia (guardada no brief para a continuação não pensar de novo).
         if (ANALYSIS_TOKENS[sel.effort]) {
           let notes = planningBrief.analysis?.effort === sel.effort ? planningBrief.analysis.notes : '';

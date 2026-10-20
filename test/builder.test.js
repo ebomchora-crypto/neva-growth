@@ -10,6 +10,7 @@ const { spawn } = require('node:child_process');
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neva-builder-'));
 process.env.DATA_DIR = dir;
 process.env.NODE_ENV = 'test';
+process.env.CM_REF_INSPECT = '0';
 const MOCK_PORT = 3400 + Math.floor(Math.random() * 400);
 process.env.RIVER_BASE_URL = `http://127.0.0.1:${MOCK_PORT}/v1`;
 const { createApp } = require('../server/index.js');
@@ -271,4 +272,37 @@ test('<antes> fechado com </depois> é lido como o modelo quis dizer', () => {
   assert.equal(edit.invalid, 0); assert.equal(edit.operations.length, 1);
   const good = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nA\n</antes>\n<depois>\nB\n</depois>\n</editar>');
   assert.equal(good.invalid, 0); assert.equal(good.operations.length, 1);
+});
+
+// ---- Motor de referências: seleção contextual, medição de HTML real e rastro até o prompt do modelo ----
+const REF = require('../server/lib/codemaker/references');
+test('referências: a seleção muda com o ramo, descarta a identidade da plataforma e explica o porquê', async () => {
+  const items = await all("SELECT id,title,niche,style,site_type,url,content FROM library_items WHERE kind='design' AND published=1");
+  assert.ok(items.length >= 20, 'a biblioteca tem os itens de design');
+  const pick = (b) => REF.pickDesigns(b, items);
+  const law = pick({ businessName: 'Almeida & Prado Advogados', details: 'Escritório de advocacia premium, direito empresarial', style: 'elegant' });
+  const tech = pick({ businessName: 'Nexo IA', details: 'Plataforma de inteligência artificial e automação para startups', style: 'dark' });
+  const solar = pick({ businessName: 'Sol do Cerrado', details: 'Energia solar fotovoltaica residencial em Goiânia', style: 'auto' });
+  for (const r of [law, tech, solar]) { assert.ok(r.selected.length >= 1 && r.selected.length <= 3); assert.ok(r.selected.every((s) => s.why.length && s.role)); assert.ok(!r.selected.some((s) => /^Neva Growth/.test(s.it.title))); assert.ok(r.discarded.some((d) => /plataforma/.test(d.reason))); }
+  const ids = (r) => r.selected.map((s) => s.it.id).join(',');
+  assert.notEqual(ids(law), ids(tech)); assert.notEqual(ids(tech), ids(solar)); assert.notEqual(ids(law), ids(solar));
+  assert.ok(tech.selected.some((s) => /escuro|gradiente|anima/i.test(s.it.style)));
+  assert.ok(law.selected.some((s) => /editorial|luxo|premium|elegante/i.test(s.it.style)));
+});
+test('referências: parseFacts mede fontes, cores, estrutura e bibliotecas de animação do HTML real', () => {
+  const html = '<head><meta name="theme-color" content="#0a2540"><link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400&display=swap" rel="stylesheet"><script src="/js/gsap.min.js"></script></head><body><section><h1>Energia <b>limpa</b></h1></section><section><h2>A</h2><h2>B</h2></section><video></video>';
+  const f = REF.parseFacts(html, 'a{color:#635bff;background:#635BFF} b{color:#ccc} i{background:#ff6b35;font-family:"DM Serif Display",serif}');
+  assert.deepEqual(f.fonts.slice(0, 2), ['Playfair Display', 'Inter']); assert.ok(f.fonts.includes('DM Serif Display'));
+  assert.equal(f.colors[0], '#635bff'); assert.ok(f.colors.includes('#ff6b35')); assert.ok(!f.colors.includes('#ccc'));
+  assert.equal(f.themeColor, '#0a2540'); assert.deepEqual(f.libs, ['gsap']); assert.equal(f.h1, 'Energia limpa'); assert.equal(f.sections, 2); assert.equal(f.h2, 2); assert.equal(f.video, true);
+  assert.deepEqual(REF.urlsIn('veja https://stripe.com/br, e http://exemplo.com.br.'), ['https://stripe.com/br', 'http://exemplo.com.br']);
+});
+test('referências: o bloco escolhido chega ao prompt do plano e o rastro fica no site', async () => {
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site para o escritório de advocacia Almeida & Prado em Goiânia, visual elegante e editorial.', style: 'elegant' } });
+  const id = created.body.site.id;
+  assert.match((await call('POST', '/api/code-maker', { action: 'plan', site_id: id })).body, /<<<OK>>>\s*$/);
+  const planCall = (await seen()).filter((c) => c.stage === 'plan').slice(-2).find((c) => c.hasRefs) || {};
+  assert.equal(planCall.hasRefs, true); assert.ok(planCall.refTitles.length >= 1);
+  const t = (await call('GET', '/api/code-maker/' + id)).body.site.brief.designTrace;
+  assert.deepEqual(planCall.refTitles, t.selected.map((s) => s.title)); assert.ok(t.found >= 20 && t.discarded.length && t.chars > 300 && t.inspection === 'off');
 });
