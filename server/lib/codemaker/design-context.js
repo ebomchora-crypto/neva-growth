@@ -27,7 +27,7 @@ const block = (...keys) => keys.filter((k) => DESIGN[k]).map((k) => `## ${DESIGN
 const ident = (...titles) => titles.filter((t) => IDENTITY[t]).map((t) => `# ${t}\n${IDENTITY[t]}`).join('\n\n');
 
 const PLAN_KEYS = ['0', '2', '3', '4', '5', '16', '22', '23.2', '23.3', '23.4', '23.5', '25.2', '29', '31', '32'];
-const PART_KEYS = ['0', '9', '23.4', '16'];
+const PART_KEYS = ['0', '3', '4', '5', '9', '16', '23.2', '23.4', '23.5'];
 const EDIT_KEYS = ['0', '9', '15', '10'];
 
 /** Texto de system prompt da etapa (identidade + seções do DESIGN.md) e o rastro do que foi incluído. */
@@ -39,7 +39,7 @@ function contextFor(stage, brief) {
     keys = [...PLAN_KEYS, ...sector.dirs, ...[sector.recipe, sector.example].filter(Boolean)];
   } else if (stage === 'part') {
     identity = ident('INSTRUCTION HIERARCHY AND TRUST', 'ANTI-GENERIC VISUAL RULES', 'COMPOSITION / TYPOGRAPHY / CONTENT DIRECTION', 'FUNCTIONALITY, LEGAL CLAIMS AND INTEGRITY');
-    keys = [...PART_KEYS];
+    keys = [...PART_KEYS, ...sector.dirs];
   } else {
     identity = ident('INSTRUCTION HIERARCHY AND TRUST', 'ANTI-GENERIC VISUAL RULES', 'FUNCTIONALITY, LEGAL CLAIMS AND INTEGRITY');
     keys = [...EDIT_KEYS];

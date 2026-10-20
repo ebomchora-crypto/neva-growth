@@ -45,6 +45,7 @@ function stageOf(body) {
   if (/Você vai planejar este site\. ANTES/.test(user) || /Você vai alterar este site\. ANTES/.test(user)) return 'analise';
   if (/escolhe quais arquivos/.test(sys)) return 'select';
   if (/diretor de arte do Code Maker/.test(sys)) return 'plan';
+  if (/MODO LIVRE/.test(sys)) return 'part';
   if (/redator publicitário sênior/.test(sys)) return /RASCUNHO ESCRITO \(JSON\)/.test(user) ? 'review' : 'part';
   if (/está alterando um projeto de site/.test(sys)) return 'edit';
   if (/Resolva o problema/.test(sys)) return 'qa';
@@ -57,6 +58,10 @@ function textFor(stage, body) {
   if (stage === 'plan') return `<acoes>\n- É uma landing page institucional; a ação principal é pedir pelo WhatsApp.\n- Cores de farinha e crosta tostada.\n- Fontes Fraunces e Figtree.\n</acoes>\n<plano>\n${JSON.stringify(PLAN)}\n</plano>`;
   if (stage === 'part' || stage === 'review') {
     const user = body.messages.filter((m) => m.role === 'user').pop().content;
+    if (/MODO LIVRE/.test(body.messages?.find((m) => m.role === 'system')?.content || '')) {
+      const fid = user.match(/SEÇÃO QUE VOCÊ ESCREVE: id="([^"]+)"/)?.[1] || 'hero';
+      return '```html\n<section id="' + fid + '" class="bg-paper py-24"><div class="mx-auto max-w-7xl px-5"><' + (fid === 'hero' ? 'h1' : 'h2') + ' class="font-display text-4xl">Seção ' + fid + ' escrita à mão</' + (fid === 'hero' ? 'h1' : 'h2') + '><p class="text-muted">Conteúdo livre do modo Dyad.</p><a href="#contato" class="underline">Pedir agora</a></div></section>\n```';
+    }
     const label = user.match(/SEÇÃO QUE VOCÊ ESCREVE: "([^"]+)"/)?.[1];
     const id = PLAN.sections.find((x) => x.label === label)?.id || 'hero';
     return '```json\n' + JSON.stringify(PART(id)) + '\n```';

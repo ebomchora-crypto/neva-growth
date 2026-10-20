@@ -48,7 +48,7 @@ test('SYSTEM_PROMPT + DESIGN.md V2 compilados: 15 blocos de identidade, 60+ seç
   assert.deepEqual([law.used.sector, solar.used.sector, saas.used.sector], ['juridico', 'energia', 'saas']);
   assert.ok(law.used.sections.includes('33') && law.used.sections.includes('21.1') && !law.used.sections.includes('34'));
   assert.ok(solar.used.sections.includes('34') && solar.used.sections.includes('21.7')); assert.ok(saas.used.sections.includes('35') && saas.used.sections.includes('21.6'));
-  assert.ok(law.used.chars < 40000, 'o plano não recebe o arquivo inteiro'); assert.ok(DC.contextFor('part', {}).used.chars < 10000); assert.ok(DC.contextFor('edit', {}).used.chars < 8000);
+  assert.ok(law.used.chars < 40000, 'o plano não recebe o arquivo inteiro'); assert.ok(DC.contextFor('part', {}).used.chars < 20000); assert.ok(DC.contextFor('edit', {}).used.chars < 8000);
   assert.ok(!/```/.test(law.text), 'blocos de código de exemplo ficam de fora');
   assert.notEqual(law.text, solar.text);
   assert.ok(src.length < 60000 && DM.DESIGN['16'].text.includes('purple-to-blue gradient hero'));
@@ -73,8 +73,9 @@ test('criação com Neva 1.5 · Máximo: DESIGN.md vem primeiro, análise prévi
   const writes = calls.filter((c) => c.stage === 'part'), reviews = calls.filter((c) => c.stage === 'review');
   assert.ok(writes.every((c) => c.max_tokens === 10000 && c.system.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)')));
   // Revisão: cada seção escrita pela IA (cabeçalho e rodapé saem sem IA) passa por uma segunda leitura crítica.
-  assert.equal(reviews.length, writes.length); assert.ok(reviews.length >= 1);
-  assert.ok(reviews.every((c) => c.system.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)')));
+  // Modo livre: a IA escreve a seção inteira em HTML (regras do Dyad no prompt); a revisão JSON de blocos não se aplica.
+  assert.equal(reviews.length, 0); assert.ok(writes.length >= 3);
+  assert.ok(writes.every((c) => c.hasRefs === false));
   const logged = await all("SELECT kind, effort, model FROM ai_calls WHERE user_id IS NOT NULL");
   assert.ok(logged.some((c) => c.kind === 'cm_plan:analise' && c.effort === 'xhigh' && c.model === 'neva-1-5'));
   assert.equal((await call('POST', `/api/projects/${siteId}/publish`, { published: true })).body.published, 1);
@@ -401,4 +402,22 @@ test('referências: ramo sem cobertura declara a ausência em vez de forçar lay
   assert.ok(law.trace.discarded.some((d) => /cobertura de setor ausente/.test(d.reason)));
   const tech = await REF.buildReferences({ businessName: 'Nexo', details: 'Plataforma de inteligência artificial para startups', style: 'dark' });
   assert.ok(tech.trace.selected.length >= 1 && tech.trace.selected.length <= 3);
+});
+
+test('modo livre (estilo Dyad): seções escritas em HTML; blocos só onde precisa funcionar; regras do Dyad e HTML saneado', () => {
+  const brief = { businessName: 'Clínica Aurora', niche: 'clínica odontológica', city: 'São Paulo', phone: '5511991234567', details: 'Clínica odontológica em São Paulo.' };
+  const mk = (sections) => E.normalizePlan({ title: 't', description: 'd', direction: 'dir', theme: 'light', palette: { brand: '#1f4e4a', brandDark: '#143532', accent: '#c9a96e', ink: '#15201f', paper: '#f8f6f1', surface: '#e9eee9', muted: '#5a6764' }, fonts: { display: 'Fraunces', body: 'Figtree' }, sections }, brief);
+  const plan = mk([{ id: 'hero', label: 'Início', layout: 'hero-editorial', headline: 'Sorriso cuidado', brief: 'b', bg: 'paper', layoutFamily: 'split editorial' }, { id: 'tratamentos', label: 'Tratamentos', layout: 'bento', headline: 'Tratamentos', brief: 'b', bg: 'surface', layoutFamily: 'grade assimétrica de pesos diferentes' }, { id: 'agendar', label: 'Agendar', layout: 'formulario', headline: 'Agende', brief: 'b', bg: 'paper' }]);
+  assert.equal(E.isFreeSection(plan, 'hero', brief), true); assert.equal(E.isFreeSection(plan, 'tratamentos', brief), true);
+  assert.equal(E.isFreeSection(plan, 'agendar', brief), false, 'formulário continua sendo bloco funcional');
+  assert.equal(E.isFreeSection(plan, 'header', brief), false); assert.equal(E.isFreeSection(plan, 'tratamentos', { ...brief, generation: 'blocos' }), false);
+  const msg = E.buildFreePartMessage('tratamentos', plan, brief);
+  assert.match(msg, /FAMÍLIA DE COMPOSIÇÃO desta seção: grade assimétrica de pesos diferentes/); assert.match(msg, /Vizinhas \(não repita a estrutura\): anterior = hero → split editorial/);
+  assert.match(msg, /CATÁLOGO DE FOTOS[\s\S]*images\.unsplash\.com\/photo-/); assert.match(msg, /href="https:\/\/wa\.me\/5511991234567/); assert.match(E.buildFreePartMessage('hero', plan, brief), /É O TOPO: use <h1>/);
+  assert.match(E.FREE_PART_SYSTEM, /MODO LIVRE/); assert.match(E.FREE_PART_SYSTEM, /Proibido: grade de três cartões iguais/);
+  const dirty = E.normalizePart('faq', E.parsePart('```html\n<section id="faq"><script>alert(1)</script><h2 onclick="x()">Dúvidas</h2><style>*{}</style></section>\n```').html);
+  assert.doesNotMatch(dirty, /<script|onclick|<style/i); assert.match(dirty, /<h2>Dúvidas<\/h2>/);
+  const DY = require('../server/lib/codemaker/dyad-rules');
+  assert.equal(DY.SOURCE.license, 'Apache-2.0'); assert.match(DY.ADDITIONAL_GUIDELINES, /NEVER make partial changes/); assert.match(DY.ADDITIONAL_GUIDELINES, /ALWAYS generate responsive designs/);
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'docs', 'dyad', 'LICENSE')) && fs.existsSync(path.join(__dirname, '..', 'docs', 'dyad', 'system_prompt.ts')));
 });

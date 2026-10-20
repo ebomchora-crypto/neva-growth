@@ -26,6 +26,7 @@ __export(engine_exports, {
   EDIT_SYSTEM: () => EDIT_SYSTEM,
   FAVICON_FILE: () => FAVICON_FILE,
   FAVICON_PATH: () => FAVICON_PATH,
+  FREE_PART_SYSTEM: () => FREE_PART_SYSTEM,
   HEAD_FILE: () => HEAD_FILE,
   PAGE_PATH: () => PAGE_PATH,
   PART_SYSTEM: () => PART_SYSTEM,
@@ -47,6 +48,7 @@ __export(engine_exports, {
   blockTokens: () => blockTokens,
   briefPhone: () => briefPhone,
   buildEditMessage: () => buildEditMessage,
+  buildFreePartMessage: () => buildFreePartMessage,
   buildHead: () => buildHead,
   buildPartMessage: () => buildPartMessage,
   buildPlanMessage: () => buildPlanMessage,
@@ -79,6 +81,7 @@ __export(engine_exports, {
   informedPrices: () => informedPrices,
   informedRate: () => informedRate,
   isBlockedHost: () => isBlockedHost,
+  isFreeSection: () => isFreeSection,
   isProjectPath: () => isProjectPath,
   isReservedSlug: () => isReservedSlug,
   joinContinuation: () => joinContinuation,
@@ -2643,7 +2646,7 @@ Formato do JSON:
   "tagline": "frase curta do rodap\xE9 dizendo o que o neg\xF3cio faz de melhor (at\xE9 12 palavras)",
   "effects": ["de 0 a ${MAX_EFFECTS} ids da lista EFEITOS que este site realmente pede"],
   "globalRequirementIds": ["IDs dos requisitos transversais da especifica\xE7\xE3o"],
-  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "businessPurpose": "a d\xFAvida ou motiva\xE7\xE3o do cliente que esta se\xE7\xE3o resolve", "singleMessage": "UMA frase com a mensagem \xFAnica da se\xE7\xE3o", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "t\xEDtulo exato da se\xE7\xE3o (at\xE9 8 palavras, espec\xEDfico do neg\xF3cio)", "brief": "o conte\xFAdo REAL da se\xE7\xE3o: itens com nome, descri\xE7\xE3o curta e pre\xE7o/dura\xE7\xE3o/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta se\xE7\xE3o"], "bg": "paper" | "surface" | "ink" | "brand" } ],
+  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "layoutFamily": "fam\xEDlia de composi\xE7\xE3o desta se\xE7\xE3o (ex.: spread editorial, assim\xE9trica com legenda, estudo de caso, linha do tempo, compara\xE7\xE3o, grade assim\xE9trica de pesos diferentes, cita\xE7\xE3o grande, mosaico de fotos, contato utilit\xE1rio); se\xE7\xF5es vizinhas NUNCA repetem a fam\xEDlia", "businessPurpose": "a d\xFAvida ou motiva\xE7\xE3o do cliente que esta se\xE7\xE3o resolve", "singleMessage": "UMA frase com a mensagem \xFAnica da se\xE7\xE3o", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "t\xEDtulo exato da se\xE7\xE3o (at\xE9 8 palavras, espec\xEDfico do neg\xF3cio)", "brief": "o conte\xFAdo REAL da se\xE7\xE3o: itens com nome, descri\xE7\xE3o curta e pre\xE7o/dura\xE7\xE3o/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta se\xE7\xE3o"], "bg": "paper" | "surface" | "ink" | "brand" } ],
   "business": { "name": "nome do neg\xF3cio", "niche": "nicho em poucas palavras", "city": "cidade ou null", "phone": "WhatsApp s\xF3 com d\xEDgitos ou null" }
 }
 "business": copie do pedido. Se o pedido n\xE3o disser o nome, crie um nome curto e plaus\xEDvel; cidade e WhatsApp s\xF3 se estiverem escritos no pedido (sen\xE3o null).
@@ -3317,7 +3320,8 @@ function normalizePlan(raw, brief) {
       ...Number.isFinite(Number(item?.photos)) && item?.photos !== null && item?.photos !== "" ? { photos: Math.max(0, Math.min(4, Math.round(Number(item.photos)))) } : {},
       ...typeof item?.businessPurpose === "string" && item.businessPurpose.trim() ? { businessPurpose: item.businessPurpose.replace(/\s+/g, " ").trim().slice(0, 200) } : {},
       ...typeof item?.singleMessage === "string" && item.singleMessage.trim() ? { singleMessage: stripInventedClaims(item.singleMessage.replace(/\s+/g, " ").trim(), brief).slice(0, 200) } : {},
-      ...["supplied", "placeholder", "none"].includes(item?.proofStatus) ? { proofStatus: item.proofStatus } : {}
+      ...["supplied", "placeholder", "none"].includes(item?.proofStatus) ? { proofStatus: item.proofStatus } : {},
+      ...typeof item?.layoutFamily === "string" && item.layoutFamily.trim() ? { layoutFamily: item.layoutFamily.replace(/\s+/g, " ").trim().slice(0, 80) } : {}
     });
   }
   if (sections.length === 0) return null;
@@ -4014,6 +4018,71 @@ function joinContinuation(previous, next) {
   }
   return previous + addition;
 }
+var FUNCTIONAL_BLOCKS = ["formulario", "simulador"];
+function isFreeSection(plan, partId, brief) {
+  if (brief.generation === "blocos" || brief.mode === "lead_prototype") return false;
+  if (partId === "header" || partId === "footer") return false;
+  const section = plan.sections.find((item) => item.id === partId);
+  if (!section) return false;
+  return !FUNCTIONAL_BLOCKS.includes(sectionBlock(section));
+}
+var FREE_PART_SYSTEM = `Voc\xEA \xE9 o Code Maker no MODO LIVRE: designer e desenvolvedor front-end s\xEAnior. Voc\xEA escreve UMA se\xE7\xE3o COMPLETA de um site est\xE1tico, \xE0 m\xE3o, em HTML + Tailwind CSS (CDN j\xE1 carregado), sem blocos prontos. O plano do diretor de arte (dire\xE7\xE3o, tese, paleta, fontes, composi\xE7\xE3o, fam\xEDlia de composi\xE7\xE3o de cada se\xE7\xE3o) manda no visual; voc\xEA executa com acabamento de est\xFAdio.
+
+FORMATO DA RESPOSTA (obrigat\xF3rio): um \xDANICO bloco \`\`\`html contendo UMA <section id="ID"> ... </section> completa, com o id da se\xE7\xE3o pedida. Nada de texto antes ou depois do bloco, nada de <script>, <style>, <head>, <body>, imagens fora do cat\xE1logo ou iframes.
+
+AMBIENTE (j\xE1 configurado no site):
+- Cores do tema: bg-paper, bg-surface, bg-ink, bg-brand, bg-accent; text-ink, text-paper, text-brand, text-accent, text-muted; bordas border-ink/10 (claro) ou border-white/10 (escuro). Use S\xD3 essas cores (opacidades como /70 valem); nada de cores hexadecimais novas.
+- Fontes: font-display (t\xEDtulos) e font-body (texto). T\xEDtulos fluidos com clamp, ex.: text-[clamp(2rem,4.6vw,3.6rem)].
+- Cont\xEAiner: <div class="mx-auto max-w-7xl px-5 md:px-10">; respiro vertical da se\xE7\xE3o: py-24 md:py-32 (o sistema ajusta largura e respiro \xE0 composi\xE7\xE3o do site). Se\xE7\xF5es de destaque podem usar bg-ink ou bg-brand.
+- Entrada suave: acrescente a classe reveal nos blocos que devem aparecer ao rolar (conte\xFAdo j\xE1 \xE9 vis\xEDvel sem JavaScript).
+- \xCDcones: SVG inline simples e coerente (tra\xE7o 1.5) ou nenhum; nunca emoji.
+
+DESIGN (cumpra):
+- Esta se\xE7\xE3o tem composi\xE7\xE3o PR\xD3PRIA, a da fam\xEDlia indicada. N\xE3o copie a estrutura das se\xE7\xF5es vizinhas (informadas na mensagem). Alterne escala, alinhamento, densidade e uso de imagem.
+- Proibido: grade de tr\xEAs cart\xF5es iguais com \xEDcone, etiqueta em p\xEDlula + t\xEDtulo + par\xE1grafo + bot\xE3o repetidos em toda se\xE7\xE3o, palavra do t\xEDtulo em degrad\xEA, vidro fosco, orbes, brilhos, contadores e selos inventados, bot\xE3o repetindo o t\xEDtulo da pr\xF3pria se\xE7\xE3o, texto de enchimento.
+- Tipografia faz parte da imagem: contraste de escala, entrelinha e tracking pensados; n\xFAmeros com tabular-nums; legendas e fios finos para dar ritmo.
+- Mobile primeiro: tudo funciona a 375px sem rolagem horizontal; alvos de toque de pelo menos 44px; imagens com aspect-ratio e object-cover; texto sobre foto sempre com camada escura/clara que garanta contraste AA.
+- Acessibilidade: um h2 por se\xE7\xE3o (h1 s\xF3 no topo), hierarquia de t\xEDtulos sem pular n\xEDvel, alt descritivo, foco vis\xEDvel (focus-visible), links reais (\xE2ncoras #id que existem e o link de WhatsApp fornecido).
+- Verdade: use s\xF3 fatos do pedido. Depoimento, n\xFAmero, selo, cliente, pre\xE7o, pr\xEAmio ou resultado que o pedido n\xE3o trouxe N\xC3O existem: a se\xE7\xE3o prova valor com processo, explica\xE7\xE3o, detalhes do servi\xE7o e perguntas reais.
+- Imagens: use SOMENTE URLs do cat\xE1logo da mensagem (ou das fotos do cliente), com o alt dizendo o que se v\xEA; uma foto s\xF3 entra se combina com o ramo. Sem foto adequada, fa\xE7a composi\xE7\xE3o tipogr\xE1fica e de formas em vez de for\xE7ar uma foto errada.
+- Idioma: pt-BR (ou o idioma do plano), espec\xEDfico deste neg\xF3cio.
+`;
+function buildFreePartMessage(partId, plan, brief) {
+  const index = plan.sections.findIndex((item) => item.id === partId);
+  const section = plan.sections[index];
+  const prev = plan.sections[index - 1], next = plan.sections[index + 1];
+  const action = mainAction(plan, brief);
+  const photos = photosFor(brief.niche);
+  const userPhotos = (brief.assets ?? []).filter((asset) => asset.kind === "photo");
+  const bg = section?.bg ?? "paper";
+  const familyOf = (item) => item ? `${item.id} \u2192 ${item.layoutFamily || sectionBlock(item)}` : "nenhuma";
+  return [
+    `Neg\xF3cio: ${brief.businessName}${brief.niche ? ` \xB7 ${brief.niche}` : ""}${brief.city ? ` \xB7 ${brief.city}` : ""}`,
+    brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim().slice(0, 3500)}` : null,
+    realFacts(brief),
+    exactContacts(brief),
+    quotedTexts(brief),
+    `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? "pt-BR", tema: plan.theme, raio: plan.radius ?? "round", fontes: plan.fonts })}`,
+    plan.creative ? `Tese criativa: ${plan.creative.thesis} Dire\xE7\xE3o: ${plan.creative.primaryDirection}${plan.creative.modifier ? ` + ${plan.creative.modifier}` : ""}. Princ\xEDpios: ${plan.creative.principles.join("; ") || "\u2014"}. Evite: ${plan.creative.forbiddenPatterns.join("; ") || "clich\xEAs gen\xE9ricos"}.` : null,
+    plan.composition?.headings === "upper" ? "Composi\xE7\xE3o: t\xEDtulos de se\xE7\xE3o em CAIXA ALTA no design; no m\xE1ximo 5 palavras." : null,
+    plan.signature && (plan.signatureSection ?? "hero") === partId ? `MARCA REGISTRADA DO SITE (esta se\xE7\xE3o \xE9 dona dela e deve execut\xE1-la com for\xE7a): ${plan.signature}` : null,
+    `Se\xE7\xF5es do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(", ")}`,
+    `SE\xC7\xC3O QUE VOC\xCA ESCREVE: id="${partId}", r\xF3tulo "${section?.label ?? partId}"${partId === "hero" ? " \u2014 \xC9 O TOPO: use <h1>, diga o que a empresa oferece, para quem e a a\xE7\xE3o principal; uma imagem ou composi\xE7\xE3o forte" : ""}.`,
+    section?.headline ? `T\xEDtulo exato (headline): "${section.headline}".` : null,
+    `Conte\xFAdo planejado: ${section?.brief || "escreva o conte\xFAdo certo para esta se\xE7\xE3o neste neg\xF3cio."}`,
+    section?.businessPurpose ? `Prop\xF3sito para o neg\xF3cio: ${section.businessPurpose}` : null,
+    section?.singleMessage ? `Mensagem \xFAnica: "${section.singleMessage}". Todo o texto serve a ela.` : null,
+    section?.proofStatus && section.proofStatus !== "supplied" ? `Prova: ${section.proofStatus === "none" ? "nenhuma" : "placeholder"}. Nada de depoimento, n\xFAmero, selo, cliente ou resultado inventado.` : null,
+    `FAM\xCDLIA DE COMPOSI\xC7\xC3O desta se\xE7\xE3o: ${section?.layoutFamily || "escolha uma que se diferencie das vizinhas"}. Bloco-guia do sistema (refer\xEAncia de estrutura, n\xE3o de apar\xEAncia): ${sectionBlock(section)}.`,
+    `Vizinhas (n\xE3o repita a estrutura): anterior = ${familyOf(prev)}; pr\xF3xima = ${familyOf(next)}.`,
+    `Fundo desta se\xE7\xE3o: bg-${bg} (texto text-${textOn(plan, bg)}). Alterne com as vizinhas: anterior bg-${prev?.bg ?? "\u2014"}, pr\xF3xima bg-${next?.bg ?? "\u2014"}.`,
+    `A\xE7\xE3o principal: texto "${plan.cta || action.label}" com href="${action.href}" (use este link; as \xE2ncoras internas s\xE3o os ids das se\xE7\xF5es acima).`,
+    userPhotos.length ? `FOTOS DO CLIENTE (prioridade): ${userPhotos.map((photo2, i) => `${i + 1}) ${photo2.url}`).join("; ")}` : null,
+    `CAT\xC1LOGO DE FOTOS (\xFAnicas imagens permitidas al\xE9m das do cliente):
+${photos.map((photo2) => `- https://images.unsplash.com/photo-${photo2.id}?auto=format&fit=crop&w=1600&q=80 \u2014 ${photo2.about}`).join("\n")}`,
+    "Escreva agora a se\xE7\xE3o, completa, no formato pedido."
+  ].filter(Boolean).join("\n");
+}
 
 // server/lib/codemaker/src/project.ts
 var SITE_JSON = "site.json";
@@ -4620,6 +4689,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   EDIT_SYSTEM,
   FAVICON_FILE,
   FAVICON_PATH,
+  FREE_PART_SYSTEM,
   HEAD_FILE,
   PAGE_PATH,
   PART_SYSTEM,
@@ -4641,6 +4711,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   blockTokens,
   briefPhone,
   buildEditMessage,
+  buildFreePartMessage,
   buildHead,
   buildPartMessage,
   buildPlanMessage,
@@ -4673,6 +4744,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   informedPrices,
   informedRate,
   isBlockedHost,
+  isFreeSection,
   isProjectPath,
   isReservedSlug,
   joinContinuation,

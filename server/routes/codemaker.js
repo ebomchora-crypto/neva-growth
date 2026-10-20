@@ -28,11 +28,15 @@ const E = require('../lib/codemaker/engine');
 const ai = require('../lib/ai');
 const DC = require('../lib/codemaker/design-context');
 const refs = require('../lib/codemaker/references');
+const DYAD = require('../lib/codemaker/dyad-rules');
 
 // SYSTEM_PROMPT.md + DESIGN.md (V2) são o system prompt do Builder (compilados em design-md.js). Cada etapa recebe só as seções
 // que usa (design-context.js), e as regras técnicas do Code Maker abaixo delas são a forma de executar isso no Builder da Neva.
 const BRIDGE = `COMO ESTE PROMPT SE APLICA NO BUILDER DA NEVA (leia antes de responder): o código do Builder monta o site a partir de blocos prontos; você decide a direção de arte, a estrutura e escreve o conteúdo no formato pedido abaixo. Nesta chamada você NÃO tem navegador, terminal nem arquivos: build e revisão visual valem "not_verified" e você nunca diz que verificou. Escreva em pt-BR. Hierarquia em conflito: pedido explícito do usuário > segurança, acessibilidade e verdade > design-spec > DESIGN.md. Siga o formato da resposta à risca.`;
 const PLAN_BRIDGE = `${BRIDGE}\nNesta etapa você é o diretor de arte (estados BRIEFED → DIRECTED → SPECIFIED): decida a direção a partir do negócio, não de sorteio; o JSON do plano é o design-spec do site (campos "creative" e, em cada seção, "businessPurpose", "singleMessage" e "proofStatus"). No <acoes>, a primeira frase diz que tipo de site é e qual é a ação principal do visitante.`;
+// Modo livre (a IA escreve a seção em HTML + Tailwind): contexto de design da etapa + regras de código do Dyad (Apache 2.0) + formato.
+const FREE_BRIDGE = `COMO ESTE PROMPT SE APLICA: no modo livre, a "unidade de arquivo" é UMA seção HTML (no lugar dos <dyad-write> do Dyad, devolva um único bloco \`\`\`html com a seção completa). As regras abaixo, do projeto Dyad, valem para o código da seção: completo, funcional, sem placeholders, responsivo e sem exageros.`;
+const freeSystem = (brief) => `${DC.contextFor('part', brief).text}\n\n${BRIDGE}\n\n${FREE_BRIDGE}\n\n${E.FREE_PART_SYSTEM}\n\n=== REGRAS DE CÓDIGO DO DYAD (https://github.com/dyad-sh/dyad, Apache 2.0) ===\n${DYAD.ADDITIONAL_GUIDELINES}`;
 const systemFor = (stage, brief) => `${DC.contextFor(stage, brief).text}\n\n${stage === 'plan' ? PLAN_BRIDGE : BRIDGE}\n\n${stage === 'plan' ? E.PLAN_SYSTEM : stage === 'part' ? E.PART_SYSTEM : E.EDIT_SYSTEM}`;
 
 const r = express.Router();
@@ -774,17 +778,18 @@ r.post('/', async (req, res) => {
     if (!partial) await recordCall(user.id, 'part');
     const partCheck = { high: '\n\nAntes de responder, confira o conteúdo contra o CONTRATO DE ENTREGA do DESIGN.md (nada inventado, ação clara, texto escaneável).',
       xhigh: '\n\nAntes de responder, confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md (nada inventado, nada genérico, ação clara, texto escaneável e específico deste negócio) e reescreva o que falhar.' }[sel.effort] || '';
+    const free = E.isFreeSection(planForAi, partId, site.brief);
     return streamAi(req, res, {
-      apiKey, model, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: 'cm_part', userId: user.id,
+      apiKey, model, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: free ? 'cm_part_livre' : 'cm_part', userId: user.id,
       onFailure: markError,
       messages: [
-        { role: 'system', content: systemFor('part', site.brief) },
-        { role: 'user', content: E.buildPartMessage(partId, planForAi, site.brief) + partCheck }
+        { role: 'system', content: free ? freeSystem(site.brief) : systemFor('part', site.brief) },
+        { role: 'user', content: (free ? E.buildFreePartMessage(partId, planForAi, site.brief) : E.buildPartMessage(partId, planForAi, site.brief)) + partCheck }
       ],
       finish: async (full, signal, emit) => {
         // A IA escreve o conteúdo (JSON) e o código monta o bloco. Se ela
         // mandar HTML em vez disso, aproveita como antes.
-        let content = E.parseContent(full);
+        let content = free ? null : E.parseContent(full);
         // Revisão (todos os níveis menos o Baixo): segunda leitura crítica do que a IA escreveu, contra o pedido e o DESIGN.md.
         // Medido nos sites de teste: a revisão troca texto genérico, devolve a frase exata do pedido e tira o que foi inventado.
         if (content && sel.effort !== 'low') {

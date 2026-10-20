@@ -25,6 +25,8 @@ export type SiteStyle = 'auto' | 'dark' | 'minimal' | 'elegant' | 'vibrant'
 
 export interface SiteBrief {
   businessName: string
+  /** 'livre' (padrão): a IA escreve cada seção em HTML + Tailwind; 'blocos': só os blocos prontos. */
+  generation?: 'livre' | 'blocos'
   mode?: 'lead_prototype'
   contactRoutes?: {
     goal: 'whatsapp' | 'quote' | 'booking' | 'call' | 'institutional' | 'lead_capture'
@@ -69,6 +71,8 @@ export interface PlanSection {
   businessPurpose?: string
   singleMessage?: string
   proofStatus?: 'supplied' | 'placeholder' | 'none'
+  /** Família de composição da seção (DESIGN.md §23.3): serve para as vizinhas não repetirem a estrutura. */
+  layoutFamily?: string
 }
 
 /** design-spec V2 (DESIGN.md §29): tese e direção de arte decididas antes do código. */
@@ -857,7 +861,7 @@ Formato do JSON:
   "tagline": "frase curta do rodapé dizendo o que o negócio faz de melhor (até 12 palavras)",
   "effects": ["de 0 a ${MAX_EFFECTS} ids da lista EFEITOS que este site realmente pede"],
   "globalRequirementIds": ["IDs dos requisitos transversais da especificação"],
-  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "businessPurpose": "a dúvida ou motivação do cliente que esta seção resolve", "singleMessage": "UMA frase com a mensagem única da seção", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "título exato da seção (até 8 palavras, específico do negócio)", "brief": "o conteúdo REAL da seção: itens com nome, descrição curta e preço/duração/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta seção"], "bg": "paper" | "surface" | "ink" | "brand" } ],
+  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "layoutFamily": "família de composição desta seção (ex.: spread editorial, assimétrica com legenda, estudo de caso, linha do tempo, comparação, grade assimétrica de pesos diferentes, citação grande, mosaico de fotos, contato utilitário); seções vizinhas NUNCA repetem a família", "businessPurpose": "a dúvida ou motivação do cliente que esta seção resolve", "singleMessage": "UMA frase com a mensagem única da seção", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "título exato da seção (até 8 palavras, específico do negócio)", "brief": "o conteúdo REAL da seção: itens com nome, descrição curta e preço/duração/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta seção"], "bg": "paper" | "surface" | "ink" | "brand" } ],
   "business": { "name": "nome do negócio", "niche": "nicho em poucas palavras", "city": "cidade ou null", "phone": "WhatsApp só com dígitos ou null" }
 }
 "business": copie do pedido. Se o pedido não disser o nome, crie um nome curto e plausível; cidade e WhatsApp só se estiverem escritos no pedido (senão null).
@@ -1675,6 +1679,7 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
       ...(typeof item?.businessPurpose === 'string' && item.businessPurpose.trim() ? { businessPurpose: item.businessPurpose.replace(/\s+/g, ' ').trim().slice(0, 200) } : {}),
       ...(typeof item?.singleMessage === 'string' && item.singleMessage.trim() ? { singleMessage: stripInventedClaims(item.singleMessage.replace(/\s+/g, ' ').trim(), brief).slice(0, 200) } : {}),
       ...(['supplied', 'placeholder', 'none'].includes(item?.proofStatus) ? { proofStatus: item.proofStatus } : {}),
+      ...(typeof item?.layoutFamily === 'string' && item.layoutFamily.trim() ? { layoutFamily: item.layoutFamily.replace(/\s+/g, ' ').trim().slice(0, 80) } : {}),
     })
   }
   if (sections.length === 0) return null
@@ -2508,4 +2513,80 @@ export function joinContinuation(previous: string, next: string): string {
     }
   }
   return previous + addition
+}
+
+
+// ---------------------------------------------------------------------------
+// Modo livre (estilo Dyad): a IA escreve a seção inteira em HTML + Tailwind, em vez de preencher um bloco pronto.
+// Blocos continuam só onde a função precisa funcionar de verdade (formulário e simulador). Cabeçalho e rodapé saem do plano.
+// ---------------------------------------------------------------------------
+
+const FUNCTIONAL_BLOCKS = ['formulario', 'simulador']
+
+export function isFreeSection(plan: SitePlan, partId: string, brief: SiteBrief): boolean {
+  if (brief.generation === 'blocos' || brief.mode === 'lead_prototype') return false
+  if (partId === 'header' || partId === 'footer') return false
+  const section = plan.sections.find((item) => item.id === partId)
+  if (!section) return false
+  return !FUNCTIONAL_BLOCKS.includes(sectionBlock(section))
+}
+
+export const FREE_PART_SYSTEM = `Você é o Code Maker no MODO LIVRE: designer e desenvolvedor front-end sênior. Você escreve UMA seção COMPLETA de um site estático, à mão, em HTML + Tailwind CSS (CDN já carregado), sem blocos prontos. O plano do diretor de arte (direção, tese, paleta, fontes, composição, família de composição de cada seção) manda no visual; você executa com acabamento de estúdio.
+
+FORMATO DA RESPOSTA (obrigatório): um ÚNICO bloco \`\`\`html contendo UMA <section id="ID"> ... </section> completa, com o id da seção pedida. Nada de texto antes ou depois do bloco, nada de <script>, <style>, <head>, <body>, imagens fora do catálogo ou iframes.
+
+AMBIENTE (já configurado no site):
+- Cores do tema: bg-paper, bg-surface, bg-ink, bg-brand, bg-accent; text-ink, text-paper, text-brand, text-accent, text-muted; bordas border-ink/10 (claro) ou border-white/10 (escuro). Use SÓ essas cores (opacidades como /70 valem); nada de cores hexadecimais novas.
+- Fontes: font-display (títulos) e font-body (texto). Títulos fluidos com clamp, ex.: text-[clamp(2rem,4.6vw,3.6rem)].
+- Contêiner: <div class="mx-auto max-w-7xl px-5 md:px-10">; respiro vertical da seção: py-24 md:py-32 (o sistema ajusta largura e respiro à composição do site). Seções de destaque podem usar bg-ink ou bg-brand.
+- Entrada suave: acrescente a classe reveal nos blocos que devem aparecer ao rolar (conteúdo já é visível sem JavaScript).
+- Ícones: SVG inline simples e coerente (traço 1.5) ou nenhum; nunca emoji.
+
+DESIGN (cumpra):
+- Esta seção tem composição PRÓPRIA, a da família indicada. Não copie a estrutura das seções vizinhas (informadas na mensagem). Alterne escala, alinhamento, densidade e uso de imagem.
+- Proibido: grade de três cartões iguais com ícone, etiqueta em pílula + título + parágrafo + botão repetidos em toda seção, palavra do título em degradê, vidro fosco, orbes, brilhos, contadores e selos inventados, botão repetindo o título da própria seção, texto de enchimento.
+- Tipografia faz parte da imagem: contraste de escala, entrelinha e tracking pensados; números com tabular-nums; legendas e fios finos para dar ritmo.
+- Mobile primeiro: tudo funciona a 375px sem rolagem horizontal; alvos de toque de pelo menos 44px; imagens com aspect-ratio e object-cover; texto sobre foto sempre com camada escura/clara que garanta contraste AA.
+- Acessibilidade: um h2 por seção (h1 só no topo), hierarquia de títulos sem pular nível, alt descritivo, foco visível (focus-visible), links reais (âncoras #id que existem e o link de WhatsApp fornecido).
+- Verdade: use só fatos do pedido. Depoimento, número, selo, cliente, preço, prêmio ou resultado que o pedido não trouxe NÃO existem: a seção prova valor com processo, explicação, detalhes do serviço e perguntas reais.
+- Imagens: use SOMENTE URLs do catálogo da mensagem (ou das fotos do cliente), com o alt dizendo o que se vê; uma foto só entra se combina com o ramo. Sem foto adequada, faça composição tipográfica e de formas em vez de forçar uma foto errada.
+- Idioma: pt-BR (ou o idioma do plano), específico deste negócio.
+`
+
+export function buildFreePartMessage(partId: string, plan: SitePlan, brief: SiteBrief): string {
+  const index = plan.sections.findIndex((item) => item.id === partId)
+  const section = plan.sections[index]
+  const prev = plan.sections[index - 1], next = plan.sections[index + 1]
+  const action = mainAction(plan, brief)
+  const photos = photosFor(brief.niche)
+  const userPhotos = (brief.assets ?? []).filter((asset) => asset.kind === 'photo')
+  const bg = section?.bg ?? 'paper'
+  const familyOf = (item?: PlanSection) => (item ? `${item.id} → ${item.layoutFamily || sectionBlock(item)}` : 'nenhuma')
+  return [
+    `Negócio: ${brief.businessName}${brief.niche ? ` · ${brief.niche}` : ''}${brief.city ? ` · ${brief.city}` : ''}`,
+    brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim().slice(0, 3500)}` : null,
+    realFacts(brief),
+    exactContacts(brief),
+    quotedTexts(brief),
+    `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? 'pt-BR', tema: plan.theme, raio: plan.radius ?? 'round', fontes: plan.fonts })}`,
+    plan.creative ? `Tese criativa: ${plan.creative.thesis} Direção: ${plan.creative.primaryDirection}${plan.creative.modifier ? ` + ${plan.creative.modifier}` : ''}. Princípios: ${plan.creative.principles.join('; ') || '—'}. Evite: ${plan.creative.forbiddenPatterns.join('; ') || 'clichês genéricos'}.` : null,
+    plan.composition?.headings === 'upper' ? 'Composição: títulos de seção em CAIXA ALTA no design; no máximo 5 palavras.' : null,
+    plan.signature && (plan.signatureSection ?? 'hero') === partId ? `MARCA REGISTRADA DO SITE (esta seção é dona dela e deve executá-la com força): ${plan.signature}` : null,
+    `Seções do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(', ')}`,
+    `SEÇÃO QUE VOCÊ ESCREVE: id="${partId}", rótulo "${section?.label ?? partId}"${partId === 'hero' ? ' — É O TOPO: use <h1>, diga o que a empresa oferece, para quem e a ação principal; uma imagem ou composição forte' : ''}.`,
+    section?.headline ? `Título exato (headline): "${section.headline}".` : null,
+    `Conteúdo planejado: ${section?.brief || 'escreva o conteúdo certo para esta seção neste negócio.'}`,
+    section?.businessPurpose ? `Propósito para o negócio: ${section.businessPurpose}` : null,
+    section?.singleMessage ? `Mensagem única: "${section.singleMessage}". Todo o texto serve a ela.` : null,
+    section?.proofStatus && section.proofStatus !== 'supplied' ? `Prova: ${section.proofStatus === 'none' ? 'nenhuma' : 'placeholder'}. Nada de depoimento, número, selo, cliente ou resultado inventado.` : null,
+    `FAMÍLIA DE COMPOSIÇÃO desta seção: ${section?.layoutFamily || 'escolha uma que se diferencie das vizinhas'}. Bloco-guia do sistema (referência de estrutura, não de aparência): ${sectionBlock(section)}.`,
+    `Vizinhas (não repita a estrutura): anterior = ${familyOf(prev)}; próxima = ${familyOf(next)}.`,
+    `Fundo desta seção: bg-${bg} (texto text-${textOn(plan, bg)}). Alterne com as vizinhas: anterior bg-${prev?.bg ?? '—'}, próxima bg-${next?.bg ?? '—'}.`,
+    `Ação principal: texto "${plan.cta || action.label}" com href="${action.href}" (use este link; as âncoras internas são os ids das seções acima).`,
+    userPhotos.length
+      ? `FOTOS DO CLIENTE (prioridade): ${userPhotos.map((photo, i) => `${i + 1}) ${photo.url}`).join('; ')}`
+      : null,
+    `CATÁLOGO DE FOTOS (únicas imagens permitidas além das do cliente):\n${photos.map((photo) => `- https://images.unsplash.com/photo-${photo.id}?auto=format&fit=crop&w=1600&q=80 — ${photo.about}`).join('\n')}`,
+    'Escreva agora a seção, completa, no formato pedido.',
+  ].filter(Boolean).join('\n')
 }
