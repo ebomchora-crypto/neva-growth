@@ -15,7 +15,8 @@ const MOCK_PORT = 3400 + Math.floor(Math.random() * 400);
 process.env.RIVER_BASE_URL = `http://127.0.0.1:${MOCK_PORT}/v1`;
 const { createApp } = require('../server/index.js');
 const { run, all } = require('../server/lib/db');
-const { DESIGN_MD, STATS } = require('../server/lib/codemaker/design-md');
+const DM = require('../server/lib/codemaker/design-md');
+const DC = require('../server/lib/codemaker/design-context');
 const E = require('../server/lib/codemaker/engine');
 
 let server, base, cookie, mock;
@@ -37,16 +38,20 @@ before(async () => {
 });
 after(() => { server.close(); mock.kill(); fs.rmSync(dir, { recursive: true, force: true }); });
 
-test('DESIGN.md compilado sem perder conteúdo: 30 capítulos, 281 temas, 12 verificações, contrato inteiro', () => {
-  const source = fs.readFileSync(path.join(__dirname, '..', 'docs', 'design', 'DESIGN.md'), 'utf8');
-  assert.equal(STATS.chapters, 30); assert.equal(STATS.topics, 281); assert.equal(STATS.fields, 12); assert.equal(STATS.contract, 10);
-  assert.equal(STATS.templated, 13488);
-  for (const topic of source.match(/^### (.+)$/gm).map((l) => l.slice(4).trim()).filter((t) => t !== 'Portão de qualidade do capítulo')) assert.ok(DESIGN_MD.includes(topic), topic);
-  for (const line of source.match(/^- \[ \] .+$/gm)) assert.ok(DESIGN_MD.includes(line.slice(6)), line);
-  assert.ok(DESIGN_MD.includes('Em conflito: requisitos explícitos do produto > segurança e acessibilidade'));
-  assert.ok(DESIGN_MD.length < 12000 && source.length > 2_000_000);
-  // Conflito resolvido a favor do DESIGN.md: nada de preço "plausível" inventado.
-  assert.doesNotMatch(E.PLAN_SYSTEM + E.PART_SYSTEM, /a partir de" plausível/);
+test('SYSTEM_PROMPT + DESIGN.md V2 compilados: 15 blocos de identidade, 60+ seções, contrato §29 e seleção por etapa e ramo', () => {
+  const src = fs.readFileSync(path.join(__dirname, '..', 'docs', 'design', 'DESIGN.md'), 'utf8');
+  assert.equal(DM.STATS.identitySections, 15); assert.ok(DM.STATS.designSections >= 60);
+  for (const m of src.match(/^## \d+\./gm)) assert.ok(DM.DESIGN[m.match(/\d+/)[0]], m);
+  assert.match(DM.DESIGN['29'].text, /"schemaVersion": "2\.0"/); assert.ok(DM.IDENTITY['ANTI-GENERIC VISUAL RULES'].includes('Reject default site-builder output'));
+  const law = DC.contextFor('plan', { niche: 'advocacia empresarial', details: 'escritório de advocacia' }), solar = DC.contextFor('plan', { details: 'energia solar fotovoltaica' }), saas = DC.contextFor('plan', { details: 'plataforma de inteligência artificial' });
+  assert.ok(law.text.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)'));
+  assert.deepEqual([law.used.sector, solar.used.sector, saas.used.sector], ['juridico', 'energia', 'saas']);
+  assert.ok(law.used.sections.includes('33') && law.used.sections.includes('21.1') && !law.used.sections.includes('34'));
+  assert.ok(solar.used.sections.includes('34') && solar.used.sections.includes('21.7')); assert.ok(saas.used.sections.includes('35') && saas.used.sections.includes('21.6'));
+  assert.ok(law.used.chars < 40000, 'o plano não recebe o arquivo inteiro'); assert.ok(DC.contextFor('part', {}).used.chars < 10000); assert.ok(DC.contextFor('edit', {}).used.chars < 8000);
+  assert.ok(!/```/.test(law.text), 'blocos de código de exemplo ficam de fora');
+  assert.notEqual(law.text, solar.text);
+  assert.ok(src.length < 60000 && DM.DESIGN['16'].text.includes('purple-to-blue gradient hero'));
 });
 
 let siteId;
@@ -62,14 +67,14 @@ test('criação com Neva 1.5 · Máximo: DESIGN.md vem primeiro, análise prévi
   assert.equal(site.status, 'ready');
   const calls = await seen();
   const planCall = calls.find((c) => c.stage === 'plan');
-  assert.ok(planCall.system.startsWith('SISTEMA DE DESIGN — DESIGN.md'), 'o DESIGN.md é o começo do system prompt');
+  assert.ok(planCall.system.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)'), 'o DESIGN.md é o começo do system prompt');
   assert.equal(planCall.max_tokens, 16000); assert.equal(planCall.temperature, 0.7);
   assert.equal(calls.find((c) => c.stage === 'analise').max_tokens, 3000);
   const writes = calls.filter((c) => c.stage === 'part'), reviews = calls.filter((c) => c.stage === 'review');
-  assert.ok(writes.every((c) => c.max_tokens === 10000 && c.system.startsWith('SISTEMA DE DESIGN')));
+  assert.ok(writes.every((c) => c.max_tokens === 10000 && c.system.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)')));
   // Revisão: cada seção escrita pela IA (cabeçalho e rodapé saem sem IA) passa por uma segunda leitura crítica.
   assert.equal(reviews.length, writes.length); assert.ok(reviews.length >= 1);
-  assert.ok(reviews.every((c) => c.system.startsWith('SISTEMA DE DESIGN')));
+  assert.ok(reviews.every((c) => c.system.startsWith('SYSTEM PROMPT — NEVA BUILDER (V2)')));
   const logged = await all("SELECT kind, effort, model FROM ai_calls WHERE user_id IS NOT NULL");
   assert.ok(logged.some((c) => c.kind === 'cm_plan:analise' && c.effort === 'xhigh' && c.model === 'neva-1-5'));
   assert.equal((await call('POST', `/api/projects/${siteId}/publish`, { published: true })).body.published, 1);
@@ -314,7 +319,7 @@ test('composição: o ramo define contêiner, respiro e títulos; sem histórico
   const adv = r('escritório de advocacia empresarial', 'auto'), tech = r('plataforma de inteligência artificial para startups', 'auto'), solar = r('energia solar fotovoltaica residencial', 'auto');
   assert.deepEqual([adv.composition.container, adv.composition.density], ['narrow', 'airy']);
   assert.deepEqual([tech.composition.container, tech.composition.density], ['wide', 'compact']);
-  assert.equal(solar.composition.headings, 'heavy');
+  assert.notEqual(solar.composition.headings, 'upper'); assert.ok(['sentence', 'tight'].includes(solar.composition.headings));
   assert.equal(new Set([adv, tech, solar].map((x) => JSON.stringify(x.composition))).size, 3);
   assert.equal(adv.theme, 'light'); assert.equal(tech.theme, 'dark');
   const seeds = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((s) => E.siteRecipe({ businessName: 'Y', details: 'um negócio qualquer sem ramo definido' }, [], s).theme);
@@ -368,4 +373,32 @@ test('composição: a decisão chega às partes que a IA escreve', () => {
   const msg = (c) => E.buildPartMessage('faq', { ...plan, composition: c }, brief);
   assert.match(msg({ headings: 'upper', container: 'narrow' }), /CAIXA ALTA[\s\S]*coluna estreita/);
   assert.doesNotMatch(msg({ headings: 'sentence', container: 'wide' }), /CAIXA ALTA|coluna estreita/);
+});
+
+test('receita: guarda-corpos de diversidade respeitam a direção da IA e não injetam seções genéricas', () => {
+  const brief = { businessName: 'Sol', details: 'energia solar' };
+  const plan = E.normalizePlan({ title: 't', description: 'd', direction: 'x', theme: 'light', palette: { brand: '#0f3b57', brandDark: '#0a2a3f', accent: '#f2a900', ink: '#10202b', paper: '#fbf8f0', surface: '#f1ebdc', muted: '#566470' }, fonts: { display: 'Fraunces', body: 'Figtree' }, header: 'menu-pilula', effects: ['split-text'],
+    creative: { thesis: 'Engenharia precisa com caráter editorial ensolarado.', primaryDirection: 'arquitetural', principles: ['fotografia grande'], forbiddenPatterns: ['orbe brilhante'], signatureElement: 'grade de painéis' },
+    sections: [{ id: 'hero', label: 'Início', layout: 'hero-editorial', headline: 'Sol', brief: 'b', bg: 'paper', businessPurpose: 'mostrar o que a empresa instala', singleMessage: 'Instalação com projeto e homologação.', proofStatus: 'none' }, { id: 'faq', label: 'FAQ', layout: 'faq', headline: 'Dúvidas', brief: 'b', bg: 'surface' }] }, brief);
+  assert.equal(plan.creative.primaryDirection, 'arquitetural'); assert.equal(plan.sections[0].proofStatus, 'none');
+  const recipe = E.siteRecipe(brief, [], 'x');
+  const kept = E.applyRecipe(plan, { ...recipe, recentHeroes: [] }, brief);
+  assert.equal(kept.sections[0].layout, 'hero-editorial'); assert.equal(kept.header, 'menu-pilula'); assert.equal(kept.fonts.display, 'Fraunces'); assert.deepEqual(kept.effects, ['split-text']);
+  assert.equal(kept.sections.length, 2, 'nada de letreiro, faixa ou galeria injetados'); assert.ok(!kept.sections.some((s) => ['letreiro', 'faixa-destaque'].includes(s.layout)));
+  const swapped = E.applyRecipe(plan, { ...recipe, recentHeroes: ['hero-editorial'] }, brief);
+  assert.equal(swapped.sections[0].layout, recipe.hero, 'repetir o topo de um site recente troca só o topo');
+  assert.match(E.buildPartMessage('faq', { ...plan }, brief), /Tese criativa do site: Engenharia precisa/);
+  assert.match(E.buildPartMessage('hero', { ...plan }, brief), /Mensagem única da seção: "Instalação com projeto e homologação\."[\s\S]*Prova nesta seção: nenhuma/);
+  const spec = DC.designSpec({ ...kept, business: { phone: '5562991234567' } }, { ...brief, designUsed: { stage: 'plan' } });
+  assert.equal(spec.schemaVersion, '2.0'); assert.equal(spec.creative.signatureElement, 'grade de painéis'); assert.equal(spec.qa.visualReview, 'not_verified'); assert.equal(spec.qa.build, 'not_run');
+  assert.equal(spec.integrations[0].status, 'configured'); assert.equal(spec.referenceSelectionLog.retrievalStatus, 'unavailable');
+});
+test('referências: ramo sem cobertura declara a ausência em vez de forçar layout SaaS', async () => {
+  const none = await REF.buildReferences({ businessName: 'Flor & Cia', details: 'Floricultura de bairro com entregas e arranjos para casamentos' });
+  assert.equal(none.trace.coverage, 'missing'); assert.match(none.block, /cobertura ausente/); assert.equal(none.trace.selected.length, 0);
+  const law = await REF.buildReferences({ businessName: 'X', details: 'Escritório de advocacia empresarial', style: 'elegant' });
+  assert.deepEqual(law.trace.selected.map((s) => s.title), ['Mattos Filho']);
+  assert.ok(law.trace.discarded.some((d) => /cobertura de setor ausente/.test(d.reason)));
+  const tech = await REF.buildReferences({ businessName: 'Nexo', details: 'Plataforma de inteligência artificial para startups', style: 'dark' });
+  assert.ok(tech.trace.selected.length >= 1 && tech.trace.selected.length <= 3);
 });

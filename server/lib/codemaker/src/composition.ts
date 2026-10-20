@@ -30,14 +30,14 @@ const PRESETS: Record<string, Partial<Composition>> = {
   saude: { container: 'regular', density: 'airy', headings: 'sentence', rhythm: 'none' },
   estetica: { container: 'regular', density: 'airy', headings: 'sentence', rhythm: 'none' },
   tecnologia: { container: 'wide', density: 'compact', headings: 'tight', rhythm: 'none' },
-  energia: { container: 'regular', density: 'regular', headings: 'heavy', rhythm: 'none' },
+  energia: { container: 'regular', density: 'regular', headings: 'sentence', rhythm: 'none' },
   casa: { container: 'wide', density: 'regular', headings: 'sentence', rhythm: 'rule' },
-  barbearia: { container: 'wide', density: 'compact', headings: 'upper', rhythm: 'rule' },
-  fitness: { container: 'wide', density: 'compact', headings: 'upper', rhythm: 'none' },
-  auto: { container: 'wide', density: 'compact', headings: 'upper', rhythm: 'rule' },
-  restaurante: { container: 'regular', density: 'regular', headings: 'heavy', rhythm: 'none' },
-  pizzaria: { container: 'regular', density: 'compact', headings: 'heavy', rhythm: 'none' },
-  hamburgueria: { container: 'wide', density: 'compact', headings: 'upper', rhythm: 'none' },
+  barbearia: { container: 'wide', density: 'compact', headings: 'tight', rhythm: 'rule' },
+  fitness: { container: 'wide', density: 'compact', headings: 'tight', rhythm: 'none' },
+  auto: { container: 'wide', density: 'compact', headings: 'tight', rhythm: 'rule' },
+  restaurante: { container: 'regular', density: 'regular', headings: 'sentence', rhythm: 'none' },
+  pizzaria: { container: 'regular', density: 'compact', headings: 'sentence', rhythm: 'none' },
+  hamburgueria: { container: 'wide', density: 'compact', headings: 'tight', rhythm: 'none' },
   fotografia: { container: 'wide', density: 'airy', headings: 'sentence', rhythm: 'none' },
 }
 
@@ -69,7 +69,7 @@ export function compositionFor(nicheId: string | undefined, seed: string, recent
   const preset = (nicheId && PRESETS[nicheId]) || {}
   const last = recent.slice(0, 3)
   const pickKey = <K extends keyof Composition>(key: K): Composition[K] =>
-    (preset[key] as Composition[K] | undefined) ?? choose(COMPOSITION_OPTIONS[key] as readonly Composition[K][], last.map((c) => c?.[key]) as Composition[K][], `${seed}:${key}`)
+    (preset[key] as Composition[K] | undefined) ?? choose((key === 'headings' ? (['sentence', 'tight'] as const) : COMPOSITION_OPTIONS[key]) as readonly Composition[K][], last.map((c) => c?.[key]) as Composition[K][], `${seed}:${key}`)
   return { container: pickKey('container'), density: pickKey('density'), headings: pickKey('headings'), rhythm: pickKey('rhythm') }
 }
 

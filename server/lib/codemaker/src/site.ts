@@ -65,6 +65,22 @@ export interface PlanSection {
   headline?: string
   /** Quantas fotos a seção usa (0 a 4). */
   photos?: number
+  /** design-spec §23.3: o que a seção resolve para o negócio, a mensagem única e a situação da prova. */
+  businessPurpose?: string
+  singleMessage?: string
+  proofStatus?: 'supplied' | 'placeholder' | 'none'
+}
+
+/** design-spec V2 (DESIGN.md §29): tese e direção de arte decididas antes do código. */
+export interface CreativeSpec {
+  thesis: string
+  primaryDirection: string
+  modifier?: string
+  principles: string[]
+  forbiddenPatterns: string[]
+  signatureElement: string
+  heroChoiceReason?: string
+  conceptSelectionReason?: string
 }
 
 export interface SitePlan {
@@ -106,6 +122,7 @@ export interface SitePlan {
   look?: 'clean' | 'bold' | 'soft'
   /** Composição do site: contêiner, respiro, caixa dos títulos e divisórias (veja composition.ts). */
   composition?: Partial<Composition>
+  creative?: CreativeSpec
   sections: PlanSection[]
   globalRequirementIds?: string[]
   specification?: CodeMakerSpecification
@@ -562,6 +579,8 @@ export interface SiteRecipe {
   effects: string[]
   look: SiteLook
   composition: Composition
+  /** Topos usados nos últimos sites: o plano só é trocado se repetir um deles. */
+  recentHeroes: string[]
 }
 
 type FontMood = 'modern' | 'elegant' | 'strong' | 'friendly' | 'craft'
@@ -725,19 +744,19 @@ export function siteRecipe(brief: SiteBrief, recent: Partial<SitePlan>[], seed: 
 
   const look = pick<SiteLook>(['clean', 'bold', 'soft'], recent.slice(0, 1).map((plan) => plan.look ?? 'clean'), `${seed}:acabamento`)
   const composition = compositionFor(niche?.id, `${seed}:composicao`, recent.map((plan) => plan.composition))
-  return { hero, header, theme, fonts, blocks, effects, look, composition }
+  return { hero, header, theme, fonts, blocks, effects, look, composition, recentHeroes: recentHeroes.slice(0, 2) }
 }
 
 export function recipeMessage(recipe: SiteRecipe): string {
   const name = (id: string) => `${id} (${BLOCKS[id]?.name ?? id})`
   return [
-    'RECEITA OBRIGATÓRIA DESTE SITE (sorteada para este site não sair igual aos anteriores; siga à risca e monte o resto em volta dela — só o pedido explícito do usuário, como uma fonte ou um tema pedido, vence a receita):',
+    'PONTO DE PARTIDA DE DIVERSIDADE (sorteado só para este site não sair igual aos anteriores; é SUGESTÃO: a direção de arte do negócio manda — se outra escolha servir melhor, faça-a e registre o motivo em creative.conceptSelectionReason; o topo só será trocado se repetir o de um site recente — o pedido explícito do usuário vence tudo):',
     `- Topo (layout do hero): ${name(recipe.hero)}`,
     `- Cabeçalho: ${recipe.header}`,
-    `- Tema: ${recipe.theme === 'dark' ? 'ESCURO — "theme": "dark", paper e surface escuros (com a cor do negócio), ink claro' : 'CLARO — "theme": "light", paper e surface claros, ink quase preto'}`,
-    `- Fontes: use um destes pares: ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(', ')}`,
-    `- Blocos que o site precisa ter (em seções cujo conteúdo combine): ${recipe.blocks.map(name).join('; ')}`,
-    `- Efeitos já escolhidos: ${recipe.effects.join(', ')} (pode somar no máximo mais 1)`,
+    `- Tema sugerido: ${recipe.theme === 'dark' ? 'escuro' : 'claro'} (use o que a direção de arte do ramo pedir)`,
+    `- Pares de fontes sugeridos (ou outro par da lista PARES DE FONTES, se combinar mais): ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(', ')}`,
+    `- Blocos que costumam variar bem aqui (use só se o conteúdo real pedir; nunca encha seção só para usá-los): ${recipe.blocks.map(name).join('; ')}`,
+    `- Movimento: Tier 0/1 por padrão; no máximo 2 efeitos, só se servirem à marca registrada (sugestões: ${recipe.effects.join(', ')})`,
     compositionMessage(recipe.composition),
   ].join('\n')
 }
@@ -786,60 +805,25 @@ function freeId(plan: SitePlan, id: string): string {
 const GENERIC_BLOCKS = ['lista-icones', 'editorial', 'bento', 'split', 'cards-foto', 'carrossel']
 const PRICE_SECTIONS = /preco|cardapio|tabela|valor|plano|pacote/
 
-/** Aplica a receita ao plano (topo, cabeçalho, tema, fontes, blocos, efeitos, acabamento). */
+/**
+ * Guarda-corpos de diversidade (DESIGN.md §22: "não é sorteio de estilo"). A direção de arte é da IA: ela decide topo, menu,
+ * tema, fontes e efeitos a partir do negócio. A receita só entra para (1) trocar o topo quando ele repete um dos últimos sites
+ * ou não é um bloco de topo, (2) completar o que a IA deixou em branco ou inválido e (3) dar a composição inicial.
+ * Antes ela sobrescrevia tudo e injetava letreiro, faixa e galeria genéricos em todo site.
+ */
 export function applyRecipe(plan: SitePlan, recipe: SiteRecipe, brief: SiteBrief): SitePlan {
   const asked = normalize(brief.details ?? '')
   const next: SitePlan = { ...plan, palette: { ...plan.palette }, sections: plan.sections.map((section) => ({ ...section })) }
-  next.sections[0] = { ...next.sections[0], layout: recipe.hero }
-  next.header = recipe.header
-  next.look = recipe.look
+  const heroLayout = next.sections[0]?.layout
+  const heroOk = Boolean(heroLayout && BLOCKS[heroLayout]?.kind === 'hero' && !recipe.recentHeroes.includes(heroLayout))
+  next.sections[0] = { ...next.sections[0], layout: heroOk ? heroLayout : recipe.hero }
+  next.header = next.header && BLOCKS[next.header]?.kind === 'header' ? next.header : recipe.header
+  next.look = next.look ?? recipe.look
   next.composition = completeComposition(cleanComposition(plan.composition), recipe.composition)
-  if (next.theme !== recipe.theme && !/escur|preto|dark|claro|branco|light/.test(asked)) {
-    next.palette = paletteFor(next.palette, recipe.theme)
-    next.theme = recipe.theme
-  }
-  if (!recipe.fonts.some((pair) => pair.display === next.fonts.display) && !asked.includes(normalize(next.fonts.display))) {
-    next.fonts = recipe.fonts[0] ?? next.fonts
-  }
-  next.effects = [...new Set([...recipe.effects, ...(plan.effects ?? [])])].slice(0, MAX_EFFECTS)
-
-  const bgAround = (index: number): SectionBackground => {
-    const near = [next.sections[index - 1]?.bg, next.sections[index]?.bg]
-    return (['surface', 'paper', 'ink'] as SectionBackground[]).find((bg) => !near.includes(bg)) ?? 'surface'
-  }
-  const beforeEnd = () => {
-    const end = next.sections.findIndex((section) => /^(faq|duvidas|perguntas|contato)/.test(section.id))
-    return end > 0 ? end : next.sections.length
-  }
-  for (const block of recipe.blocks) {
-    if (next.sections.some((section) => section.layout === block)) continue
-    if (block === 'letreiro') {
-      next.sections.splice(1, 0, { id: freeId(next, 'destaques'), label: 'Destaques', brief: 'Palavras curtas com os serviços, produtos ou especialidades do negócio.', bg: 'brand', layout: block })
-      continue
-    }
-    if (block === 'faixa-destaque') {
-      const at = beforeEnd()
-      next.sections.splice(at, 0, { id: freeId(next, 'chamada'), label: 'Chamada', brief: 'Chamada forte para a ação principal do site.', bg: bgAround(at), layout: block })
-      continue
-    }
-    // A galeria só tem legendas: entra como seção nova, sem tomar o lugar de
-    // uma seção de serviços (perderia as descrições).
-    const target = block === 'galeria' ? -1 : next.sections.findIndex(
-      (section, i) =>
-        i > 0 &&
-        GENERIC_BLOCKS.includes(section.layout ?? '') &&
-        !recipe.blocks.includes(section.layout ?? '') &&
-        next.sections[i - 1]?.layout !== block &&
-        next.sections[i + 1]?.layout !== block &&
-        (!['lista-precos', 'planos'].includes(block) || PRICE_SECTIONS.test(section.id)),
-    )
-    if (target > 0) {
-      next.sections[target] = { ...next.sections[target], layout: block }
-    } else if (block === 'galeria') {
-      const at = beforeEnd()
-      next.sections.splice(at, 0, { id: freeId(next, 'galeria'), label: 'Galeria', brief: 'Fotos do ambiente, dos trabalhos e dos detalhes do negócio.', bg: bgAround(at), layout: block })
-    }
-  }
+  if (!FONT_WIDTH[next.fonts.display] && !asked.includes(normalize(next.fonts.display))) next.fonts = recipe.fonts[0] ?? next.fonts
+  if (!FONT_WIDTH[next.fonts.body]) next.fonts = { ...next.fonts, body: recipe.fonts[0]?.body ?? 'Inter' }
+  // Movimento conservador (Tier 0/1): no máximo dois efeitos, os que a IA escolheu.
+  next.effects = [...new Set(plan.effects ?? [])].slice(0, 2)
   return next
 }
 
@@ -863,6 +847,7 @@ Formato do JSON:
   "palette": { "brand": "#hex cor principal", "brandDark": "#hex mais escura da principal", "accent": "#hex acento", "ink": "#hex texto principal (no dark é claro, no light é quase preto)", "paper": "#hex fundo principal", "surface": "#hex fundo alternativo/cartões", "muted": "#hex texto secundário" },
   "fonts": { "display": "fonte dos títulos (veja PARES DE FONTES)", "body": "fonte do texto" },
   "radius": "round" | "soft" | "sharp" (cantos do site inteiro, escolhidos pela direção de arte),
+  "creative": { "thesis": "UMA frase específica: por que esta identidade visual comunica a oferta DESTE negócio", "primaryDirection": "uma direção do DESIGN.md §21 (ex.: editorial institucional, arquitetural/espacial, product-led) ou custom bem definida", "modifier": "opcional", "principles": ["3 a 5 escolhas visuais observáveis"], "forbiddenPatterns": ["3 a 5 clichês que prejudicariam ESTE projeto"], "signatureElement": "UM detalhe original, ancorado na marca/conteúdo, que o visitante lembra", "heroChoiceReason": "por que este topo (família do §23.2) combina com o conteúdo e as fotos disponíveis", "conceptSelectionReason": "por que esta direção venceu as outras duas que você considerou" },
   "composition": { "container": "narrow"|"regular"|"wide", "density": "compact"|"regular"|"airy", "headings": "sentence"|"upper"|"tight"|"heavy", "rhythm": "none"|"rule" } (como o site respira: largura do conteúdo, respiro entre seções, caixa dos títulos e divisórias; a composição da RECEITA vale, mude um campo só se a direção de arte pedir),
   "favicon": "ícone da aba do navegador como UM SVG de 64x64 (viewBox 0 0 64 64), simples e legível em 16px: forma geométrica do mundo do negócio (tesoura, dente, balança, pão, chave inglesa, folha…) ou monograma, com as cores da paleta; fundo arredondado com a cor principal; só tags svg, rect, circle, ellipse, path, polygon, line, g e text (no máximo 2 letras), sem script, imagem, filtro nem fonte externa; até 900 caracteres",
   "signature": "a marca registrada do site em 1 ou 2 frases concretas: o único elemento ousado de que o visitante vai lembrar, tirado do mundo do negócio (ex.: título do topo enorme em caixa alta condensada cortado pela foto da navalha; tabela de preços desenhada como a lousa de giz da padaria; faixa com a planta baixa do apartamento em linhas finas)",
@@ -872,7 +857,7 @@ Formato do JSON:
   "tagline": "frase curta do rodapé dizendo o que o negócio faz de melhor (até 12 palavras)",
   "effects": ["de 0 a ${MAX_EFFECTS} ids da lista EFEITOS que este site realmente pede"],
   "globalRequirementIds": ["IDs dos requisitos transversais da especificação"],
-  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "headline": "título exato da seção (até 8 palavras, específico do negócio)", "brief": "o conteúdo REAL da seção: itens com nome, descrição curta e preço/duração/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta seção"], "bg": "paper" | "surface" | "ink" | "brand" } ],
+  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "businessPurpose": "a dúvida ou motivação do cliente que esta seção resolve", "singleMessage": "UMA frase com a mensagem única da seção", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "título exato da seção (até 8 palavras, específico do negócio)", "brief": "o conteúdo REAL da seção: itens com nome, descrição curta e preço/duração/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta seção"], "bg": "paper" | "surface" | "ink" | "brand" } ],
   "business": { "name": "nome do negócio", "niche": "nicho em poucas palavras", "city": "cidade ou null", "phone": "WhatsApp só com dígitos ou null" }
 }
 "business": copie do pedido. Se o pedido não disser o nome, crie um nome curto e plausível; cidade e WhatsApp só se estiverem escritos no pedido (senão null).
@@ -896,6 +881,7 @@ DIREÇÃO DE ARTE (pense nisto antes de escrever o JSON)
 - O topo (hero) é a tese do site: abre com o que há de mais característico deste negócio — uma foto forte, um título marcante, um detalhe do ofício. "Número grande + rótulo pequeno + estatísticas + degradê" é a resposta de template: só use se for mesmo a melhor.
 - Uma ousadia só ("signature"), bem executada; o resto do site fica calmo e disciplinado.
 - Quando o pedido deixar o visual livre, NÃO caia nos 3 visuais que toda IA repete: (1) fundo creme com serifada de alto contraste e acento terracota; (2) fundo quase preto com um único acento neon (verde-ácido, vermelhão); (3) layout de jornal com linhas finas, cantos retos e colunas densas. Eles só valem se o pedido pedir ou se o negócio realmente for assim.
+- Antes do JSON, considere internamente TRÊS direções de arte realmente diferentes (DESIGN.md §22), escolha uma e registre o porquê em creative.conceptSelectionReason. Escolha o topo pela família do §23.2 que o conteúdo e as fotos disponíveis sustentam, nunca por sorteio. Cada seção tem businessPurpose, singleMessage e proofStatus; onde o pedido não trouxe a prova (depoimento, número, selo, cliente, prêmio), proofStatus é placeholder ou none e a seção não inventa nada.
 - Autocrítica antes de responder: se este plano serviria igual para outro negócio do mesmo nicho em outra cidade, troque a parte genérica (paleta, fontes, formato do topo ou marca registrada) por uma escolha feita para ESTE negócio.
 
 BLOCOS (desenhos prontos com acabamento premium; escolha os que servem ao conteúdo e ao clima)
@@ -1304,6 +1290,10 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
     plan.composition?.headings === 'upper' ? 'Composição: os títulos de seção aparecem em CAIXA ALTA no design. Escreva o title com no máximo 5 palavras.' : null,
     plan.composition?.container === 'narrow' ? 'Composição: coluna estreita e editorial. Textos curtos e densos, sem listas longas.' : null,
     `Seções do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(', ')}`,
+    plan.creative ? `Tese criativa do site: ${plan.creative.thesis} Direção: ${plan.creative.primaryDirection}${plan.creative.modifier ? ` + ${plan.creative.modifier}` : ''}. Evite: ${plan.creative.forbiddenPatterns.join('; ') || 'clichês genéricos'}.` : null,
+    section?.businessPurpose ? `Propósito da seção para o negócio: ${section.businessPurpose}` : null,
+    section?.singleMessage ? `Mensagem única da seção: "${section.singleMessage}". Todo o texto serve a ela; não misture outras alegações.` : null,
+    section?.proofStatus && section.proofStatus !== 'supplied' ? `Prova nesta seção: ${section.proofStatus === 'none' ? 'nenhuma' : 'ainda é placeholder'}. Não escreva depoimento, número, selo, nome de cliente, prêmio ou resultado que o pedido não trouxe.` : null,
     `SEÇÃO QUE VOCÊ ESCREVE: "${section?.label ?? partId}" — bloco "${block.name}": ${block.when}`,
     section?.headline ? `Título (title): use exatamente "${section.headline}".` : null,
     `Conteúdo planejado: ${section?.brief || 'escreva o conteúdo certo para esta seção neste negócio.'}`,
@@ -1682,6 +1672,9 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
       ...(Number.isFinite(Number(item?.photos)) && item?.photos !== null && item?.photos !== ''
         ? { photos: Math.max(0, Math.min(4, Math.round(Number(item.photos)))) }
         : {}),
+      ...(typeof item?.businessPurpose === 'string' && item.businessPurpose.trim() ? { businessPurpose: item.businessPurpose.replace(/\s+/g, ' ').trim().slice(0, 200) } : {}),
+      ...(typeof item?.singleMessage === 'string' && item.singleMessage.trim() ? { singleMessage: stripInventedClaims(item.singleMessage.replace(/\s+/g, ' ').trim(), brief).slice(0, 200) } : {}),
+      ...(['supplied', 'placeholder', 'none'].includes(item?.proofStatus) ? { proofStatus: item.proofStatus } : {}),
     })
   }
   if (sections.length === 0) return null
@@ -1708,6 +1701,7 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
     ...(blockFor(input.header, ['header']) ? { header: blockFor(input.header, ['header'])! } : {}),
     ...(['clean', 'bold', 'soft'].includes(input.look) ? { look: input.look } : {}),
     ...(Object.keys(cleanComposition(input.composition)).length ? { composition: cleanComposition(input.composition) } : {}),
+    ...(cleanCreative(input.creative, brief) ? { creative: cleanCreative(input.creative, brief)! } : {}),
     ...(typeof input.cta === 'string' && input.cta.trim() ? { cta: input.cta.replace(/\s+/g, ' ').trim().slice(0, 40) } : {}),
     ...(typeof input.tagline === 'string' && input.tagline.trim() ? { tagline: stripInventedClaims(input.tagline.replace(/\s+/g, ' ').trim(), brief).slice(0, 140) } : {}),
     ...(typeof input.signature === 'string' && input.signature.trim()
@@ -1735,6 +1729,21 @@ export function ensureInteractive(plan: SitePlan, brief: SiteBrief): SitePlan {
     if (target) target.layout = 'formulario'
   }
   return { ...plan, sections }
+}
+
+function cleanCreative(input: any, brief: SiteBrief): CreativeSpec | null {
+  if (!input || typeof input !== 'object') return null
+  const one = (value: unknown, max: number) => stripInventedClaims(String(value ?? '').replace(/\s+/g, ' ').trim(), brief).slice(0, max)
+  const list = (value: unknown) => (Array.isArray(value) ? value : []).map((item) => one(item, 90)).filter(Boolean).slice(0, 6)
+  const thesis = one(input.thesis, 260), primaryDirection = one(input.primaryDirection, 80), signatureElement = one(input.signatureElement, 220)
+  if (!thesis || !primaryDirection) return null
+  return {
+    thesis, primaryDirection, signatureElement,
+    ...(one(input.modifier, 80) ? { modifier: one(input.modifier, 80) } : {}),
+    principles: list(input.principles), forbiddenPatterns: list(input.forbiddenPatterns),
+    ...(one(input.heroChoiceReason, 220) ? { heroChoiceReason: one(input.heroChoiceReason, 220) } : {}),
+    ...(one(input.conceptSelectionReason, 220) ? { conceptSelectionReason: one(input.conceptSelectionReason, 220) } : {}),
+  }
 }
 
 export interface BusinessInfo {

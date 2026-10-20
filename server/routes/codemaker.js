@@ -26,14 +26,14 @@ const { HttpError, bad } = require('../lib/http');
 const config = require('../lib/config');
 const E = require('../lib/codemaker/engine');
 const ai = require('../lib/ai');
-const { DESIGN_MD } = require('../lib/codemaker/design-md');
+const DC = require('../lib/codemaker/design-context');
 const refs = require('../lib/codemaker/references');
 
-// O DESIGN.md (compilado de docs/design/DESIGN.md) é o system prompt do Builder: vem primeiro em
-// todas as etapas. As regras do Code Maker abaixo dele são só a forma técnica de executá-lo.
-const BRIDGE = `COMO APLICAR O DESIGN.md NESTA ETAPA: as instruções técnicas a seguir (formato da resposta, blocos, efeitos, campos) são a forma de executar o DESIGN.md no Builder da Neva Growth. Siga o formato à risca. Em qualquer conflito de conteúdo ou visual, vale a hierarquia do DESIGN.md (pedido explícito do usuário > segurança e acessibilidade > consistência do sistema > exemplos).`;
-const PLAN_BRIDGE = `${BRIDGE}\nNo <acoes>, a primeira frase diz em palavras simples que tipo de site é (o contexto do DESIGN.md) e qual é a ação principal que o visitante deve fazer.`;
-const systemFor = (stage) => `${DESIGN_MD}\n\n${stage === 'plan' ? PLAN_BRIDGE : BRIDGE}\n\n${stage === 'plan' ? E.PLAN_SYSTEM : stage === 'part' ? E.PART_SYSTEM : E.EDIT_SYSTEM}`;
+// SYSTEM_PROMPT.md + DESIGN.md (V2) são o system prompt do Builder (compilados em design-md.js). Cada etapa recebe só as seções
+// que usa (design-context.js), e as regras técnicas do Code Maker abaixo delas são a forma de executar isso no Builder da Neva.
+const BRIDGE = `COMO ESTE PROMPT SE APLICA NO BUILDER DA NEVA (leia antes de responder): o código do Builder monta o site a partir de blocos prontos; você decide a direção de arte, a estrutura e escreve o conteúdo no formato pedido abaixo. Nesta chamada você NÃO tem navegador, terminal nem arquivos: build e revisão visual valem "not_verified" e você nunca diz que verificou. Escreva em pt-BR. Hierarquia em conflito: pedido explícito do usuário > segurança, acessibilidade e verdade > design-spec > DESIGN.md. Siga o formato da resposta à risca.`;
+const PLAN_BRIDGE = `${BRIDGE}\nNesta etapa você é o diretor de arte (estados BRIEFED → DIRECTED → SPECIFIED): decida a direção a partir do negócio, não de sorteio; o JSON do plano é o design-spec do site (campos "creative" e, em cada seção, "businessPurpose", "singleMessage" e "proofStatus"). No <acoes>, a primeira frase diz que tipo de site é e qual é a ação principal do visitante.`;
+const systemFor = (stage, brief) => `${DC.contextFor(stage, brief).text}\n\n${stage === 'plan' ? PLAN_BRIDGE : BRIDGE}\n\n${stage === 'plan' ? E.PLAN_SYSTEM : stage === 'part' ? E.PART_SYSTEM : E.EDIT_SYSTEM}`;
 
 const r = express.Router();
 
@@ -195,7 +195,7 @@ async function reviewContent(apiKey, model, partId, plan, brief, draft, sel, use
       `RASCUNHO ESCRITO (JSON):\n${JSON.stringify(draft)}`,
       `${REVIEW[sel.effort] || REVIEW.medium}\n\nResponda SÓ com o JSON corrigido, no mesmo formato do rascunho (mantenha os campos; só mude o que precisa mudar).`
     ].join('\n\n');
-    const fixed = await completeJson(apiKey, model, systemFor('part'), message, signal, { sel, kind: 'cm_review', userId, maxTokens: 4000 });
+    const fixed = await completeJson(apiKey, model, systemFor('part', brief), message, signal, { sel, kind: 'cm_review', userId, maxTokens: 4000 });
     const parsed = E.parseContent(JSON.stringify(fixed));
     return parsed || draft;
   } catch (error) {
@@ -219,7 +219,7 @@ async function reviewPlan(apiKey, model, full, brief, recipe, sel, userId, signa
       `PLANO ESCRITO (JSON):\n${draft.trim().slice(0, 24000)}`,
       `${PLAN_REVIEW[sel.effort] || PLAN_REVIEW.medium}\n\nResponda SÓ com o JSON do plano corrigido, no mesmo formato do plano escrito (inclusive "business"). Mantenha o que está certo.`
     ].join('\n\n');
-    const fixed = await completeJson(apiKey, model, systemFor('plan'), message, signal, { sel, kind: 'cm_plan:revisao', userId, maxTokens: 7000 });
+    const fixed = await completeJson(apiKey, model, systemFor('plan', brief), message, signal, { sel, kind: 'cm_plan:revisao', userId, maxTokens: 7000 });
     const next = `<plano>\n${JSON.stringify(fixed)}\n</plano>`;
     // Só vale se o plano revisado continua sendo um plano válido.
     return E.parsePlan(next, brief, recipe).plan ? String(full).replace(/<plano>[\s\S]*?<\/plano>/i, () => next) : full;
@@ -658,7 +658,7 @@ r.post('/', async (req, res) => {
   const model = ai.providerModelFor(sel.model);
   const metaOf = (kind) => ({ sel, kind, userId: user.id });
   const configuredBudget = Number(config.get('CODE_MAKER_MAX_INPUT_CHARS'));
-  const inputBudget = Number.isFinite(configuredBudget) && configuredBudget >= 16000 ? configuredBudget : 60000;
+  const inputBudget = Number.isFinite(configuredBudget) && configuredBudget >= 16000 ? configuredBudget : 90000;
   if (!apiKey) throw new HttpError(503, 'O Code Maker ainda não foi configurado (preencha RIVER_API_KEY na tabela app_settings).');
 
   if (action === 'plan') {
@@ -689,8 +689,9 @@ r.post('/', async (req, res) => {
           planningBrief = { ...planningBrief, designRefs: built.block, designTrace: built.trace };
           await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
         }
+        planningBrief = { ...planningBrief, designUsed: DC.contextFor('plan', planningBrief).used };
         const literal = E.buildPlanMessage(planningBrief, true, recipe);
-        const system = systemFor('plan');
+        const system = systemFor('plan', planningBrief);
         let content = literal.length + system.length < inputBudget ? literal : E.buildPlanMessage(planningBrief, false, recipe);
         if (planningBrief.designRefs && content.length + system.length + planningBrief.designRefs.length < inputBudget) content += `\n\n${planningBrief.designRefs}`;
         // Esforço alto/máximo: análise prévia (guardada no brief para a continuação não pensar de novo).
@@ -733,7 +734,7 @@ r.post('/', async (req, res) => {
         const bizInfo = brief.businessName ? { name: brief.businessName, city: brief.city || null, phone: E.briefPhone(brief) || null, niche: brief.niche || null,
           address: contacts.address, email: contacts.email, instagram: contacts.instagram, landline: E.phoneDigits(contacts.phone) } : undefined;
         await run("UPDATE code_sites SET plan=?, parts='{}', status='building', html=NULL, brief=?, rev=rev+1, updated_at=datetime('now') WHERE project_id=?",
-          S({ ...plan, actions, ...(bizInfo ? { business: bizInfo } : {}) }), S(brief), site.id);
+          S({ ...plan, actions, ...(bizInfo ? { business: bizInfo } : {}), designSpec: DC.designSpec({ ...plan, ...(bizInfo ? { business: bizInfo } : {}) }, brief) }), S(brief), site.id);
         if (renamed) await run("UPDATE projects SET name=?, slug=?, updated_at=datetime('now') WHERE id=?", brief.businessName.slice(0, 80), await uniqueSlug(brief.businessName, site.id), site.id);
         return null;
       }
@@ -777,7 +778,7 @@ r.post('/', async (req, res) => {
       apiKey, model, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: 'cm_part', userId: user.id,
       onFailure: markError,
       messages: [
-        { role: 'system', content: systemFor('part') },
+        { role: 'system', content: systemFor('part', site.brief) },
         { role: 'user', content: E.buildPartMessage(partId, planForAi, site.brief) + partCheck }
       ],
       finish: async (full, signal, emit) => {
@@ -849,7 +850,7 @@ r.post('/', async (req, res) => {
       ai_selected: chosen.length, budget: filesBudget, limitations: editSpecification.limitations.length
     });
     let content = E.buildEditMessage(planForAi, site.parts, compacted, brief, fresh, recent, { index: E.fileIndex(tree), contents }) + limits;
-    const system = systemFor('edit');
+    const system = systemFor('edit', brief);
     if (ANALYSIS_TOKENS[sel.effort]) {
       const key = crypto.createHash('sha1').update(`${sel.effort}:${instruction}`).digest('hex').slice(0, 16);
       let notes = brief.edit_analysis?.key === key ? brief.edit_analysis.notes : '';

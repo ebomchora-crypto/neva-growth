@@ -143,14 +143,14 @@ var PRESETS = {
   saude: { container: "regular", density: "airy", headings: "sentence", rhythm: "none" },
   estetica: { container: "regular", density: "airy", headings: "sentence", rhythm: "none" },
   tecnologia: { container: "wide", density: "compact", headings: "tight", rhythm: "none" },
-  energia: { container: "regular", density: "regular", headings: "heavy", rhythm: "none" },
+  energia: { container: "regular", density: "regular", headings: "sentence", rhythm: "none" },
   casa: { container: "wide", density: "regular", headings: "sentence", rhythm: "rule" },
-  barbearia: { container: "wide", density: "compact", headings: "upper", rhythm: "rule" },
-  fitness: { container: "wide", density: "compact", headings: "upper", rhythm: "none" },
-  auto: { container: "wide", density: "compact", headings: "upper", rhythm: "rule" },
-  restaurante: { container: "regular", density: "regular", headings: "heavy", rhythm: "none" },
-  pizzaria: { container: "regular", density: "compact", headings: "heavy", rhythm: "none" },
-  hamburgueria: { container: "wide", density: "compact", headings: "upper", rhythm: "none" },
+  barbearia: { container: "wide", density: "compact", headings: "tight", rhythm: "rule" },
+  fitness: { container: "wide", density: "compact", headings: "tight", rhythm: "none" },
+  auto: { container: "wide", density: "compact", headings: "tight", rhythm: "rule" },
+  restaurante: { container: "regular", density: "regular", headings: "sentence", rhythm: "none" },
+  pizzaria: { container: "regular", density: "compact", headings: "sentence", rhythm: "none" },
+  hamburgueria: { container: "wide", density: "compact", headings: "tight", rhythm: "none" },
   fotografia: { container: "wide", density: "airy", headings: "sentence", rhythm: "none" }
 };
 function hash(text2) {
@@ -175,7 +175,7 @@ function cleanComposition(input) {
 function compositionFor(nicheId, seed, recent) {
   const preset = nicheId && PRESETS[nicheId] || {};
   const last = recent.slice(0, 3);
-  const pickKey = (key) => preset[key] ?? choose(COMPOSITION_OPTIONS[key], last.map((c) => c?.[key]), `${seed}:${key}`);
+  const pickKey = (key) => preset[key] ?? choose(key === "headings" ? ["sentence", "tight"] : COMPOSITION_OPTIONS[key], last.map((c) => c?.[key]), `${seed}:${key}`);
   return { container: pickKey("container"), density: pickKey("density"), headings: pickKey("headings"), rhythm: pickKey("rhythm") };
 }
 function completeComposition(partial, base) {
@@ -2570,18 +2570,18 @@ function siteRecipe(brief, recent, seed) {
   ];
   const look = pick(["clean", "bold", "soft"], recent.slice(0, 1).map((plan) => plan.look ?? "clean"), `${seed}:acabamento`);
   const composition = compositionFor(niche?.id, `${seed}:composicao`, recent.map((plan) => plan.composition));
-  return { hero, header, theme, fonts, blocks, effects, look, composition };
+  return { hero, header, theme, fonts, blocks, effects, look, composition, recentHeroes: recentHeroes.slice(0, 2) };
 }
 function recipeMessage(recipe) {
   const name = (id) => `${id} (${BLOCKS[id]?.name ?? id})`;
   return [
-    "RECEITA OBRIGAT\xD3RIA DESTE SITE (sorteada para este site n\xE3o sair igual aos anteriores; siga \xE0 risca e monte o resto em volta dela \u2014 s\xF3 o pedido expl\xEDcito do usu\xE1rio, como uma fonte ou um tema pedido, vence a receita):",
+    "PONTO DE PARTIDA DE DIVERSIDADE (sorteado s\xF3 para este site n\xE3o sair igual aos anteriores; \xE9 SUGEST\xC3O: a dire\xE7\xE3o de arte do neg\xF3cio manda \u2014 se outra escolha servir melhor, fa\xE7a-a e registre o motivo em creative.conceptSelectionReason; o topo s\xF3 ser\xE1 trocado se repetir o de um site recente \u2014 o pedido expl\xEDcito do usu\xE1rio vence tudo):",
     `- Topo (layout do hero): ${name(recipe.hero)}`,
     `- Cabe\xE7alho: ${recipe.header}`,
-    `- Tema: ${recipe.theme === "dark" ? 'ESCURO \u2014 "theme": "dark", paper e surface escuros (com a cor do neg\xF3cio), ink claro' : 'CLARO \u2014 "theme": "light", paper e surface claros, ink quase preto'}`,
-    `- Fontes: use um destes pares: ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(", ")}`,
-    `- Blocos que o site precisa ter (em se\xE7\xF5es cujo conte\xFAdo combine): ${recipe.blocks.map(name).join("; ")}`,
-    `- Efeitos j\xE1 escolhidos: ${recipe.effects.join(", ")} (pode somar no m\xE1ximo mais 1)`,
+    `- Tema sugerido: ${recipe.theme === "dark" ? "escuro" : "claro"} (use o que a dire\xE7\xE3o de arte do ramo pedir)`,
+    `- Pares de fontes sugeridos (ou outro par da lista PARES DE FONTES, se combinar mais): ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(", ")}`,
+    `- Blocos que costumam variar bem aqui (use s\xF3 se o conte\xFAdo real pedir; nunca encha se\xE7\xE3o s\xF3 para us\xE1-los): ${recipe.blocks.map(name).join("; ")}`,
+    `- Movimento: Tier 0/1 por padr\xE3o; no m\xE1ximo 2 efeitos, s\xF3 se servirem \xE0 marca registrada (sugest\xF5es: ${recipe.effects.join(", ")})`,
     compositionMessage(recipe.composition)
   ].join("\n");
 }
@@ -2599,65 +2599,18 @@ function readableBrand(palette, theme) {
   }
   return palette;
 }
-function paletteFor(palette, theme) {
-  const next = theme === "dark" ? { ...palette, paper: mixHex(palette.brand, "#0a0a0c", 0.9), surface: mixHex(palette.brand, "#0a0a0c", 0.82), ink: "#f4f2ee", muted: "#a8a6a1" } : { ...palette, paper: mixHex(palette.brand, "#ffffff", 0.95), surface: mixHex(palette.brand, "#ffffff", 0.88), ink: "#15171c", muted: "#5d6168" };
-  if (contrastRatio(next.brand, next.paper) < 3) {
-    next.brand = mixHex(palette.brand, theme === "dark" ? "#ffffff" : "#000000", 0.35);
-    next.brandDark = mixHex(next.brand, "#000000", 0.25);
-  }
-  return readableBrand(next, theme);
-}
-function freeId(plan, id) {
-  let candidate = id;
-  for (let i = 2; plan.sections.some((section) => section.id === candidate); i++) candidate = `${id}-${i}`;
-  return candidate;
-}
-var GENERIC_BLOCKS = ["lista-icones", "editorial", "bento", "split", "cards-foto", "carrossel"];
-var PRICE_SECTIONS = /preco|cardapio|tabela|valor|plano|pacote/;
 function applyRecipe(plan, recipe, brief) {
   const asked = normalize(brief.details ?? "");
   const next = { ...plan, palette: { ...plan.palette }, sections: plan.sections.map((section) => ({ ...section })) };
-  next.sections[0] = { ...next.sections[0], layout: recipe.hero };
-  next.header = recipe.header;
-  next.look = recipe.look;
+  const heroLayout = next.sections[0]?.layout;
+  const heroOk = Boolean(heroLayout && BLOCKS[heroLayout]?.kind === "hero" && !recipe.recentHeroes.includes(heroLayout));
+  next.sections[0] = { ...next.sections[0], layout: heroOk ? heroLayout : recipe.hero };
+  next.header = next.header && BLOCKS[next.header]?.kind === "header" ? next.header : recipe.header;
+  next.look = next.look ?? recipe.look;
   next.composition = completeComposition(cleanComposition(plan.composition), recipe.composition);
-  if (next.theme !== recipe.theme && !/escur|preto|dark|claro|branco|light/.test(asked)) {
-    next.palette = paletteFor(next.palette, recipe.theme);
-    next.theme = recipe.theme;
-  }
-  if (!recipe.fonts.some((pair) => pair.display === next.fonts.display) && !asked.includes(normalize(next.fonts.display))) {
-    next.fonts = recipe.fonts[0] ?? next.fonts;
-  }
-  next.effects = [.../* @__PURE__ */ new Set([...recipe.effects, ...plan.effects ?? []])].slice(0, MAX_EFFECTS);
-  const bgAround = (index) => {
-    const near = [next.sections[index - 1]?.bg, next.sections[index]?.bg];
-    return ["surface", "paper", "ink"].find((bg) => !near.includes(bg)) ?? "surface";
-  };
-  const beforeEnd = () => {
-    const end = next.sections.findIndex((section) => /^(faq|duvidas|perguntas|contato)/.test(section.id));
-    return end > 0 ? end : next.sections.length;
-  };
-  for (const block of recipe.blocks) {
-    if (next.sections.some((section) => section.layout === block)) continue;
-    if (block === "letreiro") {
-      next.sections.splice(1, 0, { id: freeId(next, "destaques"), label: "Destaques", brief: "Palavras curtas com os servi\xE7os, produtos ou especialidades do neg\xF3cio.", bg: "brand", layout: block });
-      continue;
-    }
-    if (block === "faixa-destaque") {
-      const at = beforeEnd();
-      next.sections.splice(at, 0, { id: freeId(next, "chamada"), label: "Chamada", brief: "Chamada forte para a a\xE7\xE3o principal do site.", bg: bgAround(at), layout: block });
-      continue;
-    }
-    const target = block === "galeria" ? -1 : next.sections.findIndex(
-      (section, i) => i > 0 && GENERIC_BLOCKS.includes(section.layout ?? "") && !recipe.blocks.includes(section.layout ?? "") && next.sections[i - 1]?.layout !== block && next.sections[i + 1]?.layout !== block && (!["lista-precos", "planos"].includes(block) || PRICE_SECTIONS.test(section.id))
-    );
-    if (target > 0) {
-      next.sections[target] = { ...next.sections[target], layout: block };
-    } else if (block === "galeria") {
-      const at = beforeEnd();
-      next.sections.splice(at, 0, { id: freeId(next, "galeria"), label: "Galeria", brief: "Fotos do ambiente, dos trabalhos e dos detalhes do neg\xF3cio.", bg: bgAround(at), layout: block });
-    }
-  }
+  if (!FONT_WIDTH[next.fonts.display] && !asked.includes(normalize(next.fonts.display))) next.fonts = recipe.fonts[0] ?? next.fonts;
+  if (!FONT_WIDTH[next.fonts.body]) next.fonts = { ...next.fonts, body: recipe.fonts[0]?.body ?? "Inter" };
+  next.effects = [...new Set(plan.effects ?? [])].slice(0, 2);
   return next;
 }
 var PLAN_SYSTEM = `Voc\xEA \xE9 o diretor de arte do Code Maker. Voc\xEA planeja sites de alto n\xEDvel para pequenos neg\xF3cios brasileiros. Nesta etapa voc\xEA N\xC3O escreve HTML: define a dire\xE7\xE3o de arte e a estrutura.
@@ -2680,6 +2633,7 @@ Formato do JSON:
   "palette": { "brand": "#hex cor principal", "brandDark": "#hex mais escura da principal", "accent": "#hex acento", "ink": "#hex texto principal (no dark \xE9 claro, no light \xE9 quase preto)", "paper": "#hex fundo principal", "surface": "#hex fundo alternativo/cart\xF5es", "muted": "#hex texto secund\xE1rio" },
   "fonts": { "display": "fonte dos t\xEDtulos (veja PARES DE FONTES)", "body": "fonte do texto" },
   "radius": "round" | "soft" | "sharp" (cantos do site inteiro, escolhidos pela dire\xE7\xE3o de arte),
+  "creative": { "thesis": "UMA frase espec\xEDfica: por que esta identidade visual comunica a oferta DESTE neg\xF3cio", "primaryDirection": "uma dire\xE7\xE3o do DESIGN.md \xA721 (ex.: editorial institucional, arquitetural/espacial, product-led) ou custom bem definida", "modifier": "opcional", "principles": ["3 a 5 escolhas visuais observ\xE1veis"], "forbiddenPatterns": ["3 a 5 clich\xEAs que prejudicariam ESTE projeto"], "signatureElement": "UM detalhe original, ancorado na marca/conte\xFAdo, que o visitante lembra", "heroChoiceReason": "por que este topo (fam\xEDlia do \xA723.2) combina com o conte\xFAdo e as fotos dispon\xEDveis", "conceptSelectionReason": "por que esta dire\xE7\xE3o venceu as outras duas que voc\xEA considerou" },
   "composition": { "container": "narrow"|"regular"|"wide", "density": "compact"|"regular"|"airy", "headings": "sentence"|"upper"|"tight"|"heavy", "rhythm": "none"|"rule" } (como o site respira: largura do conte\xFAdo, respiro entre se\xE7\xF5es, caixa dos t\xEDtulos e divis\xF3rias; a composi\xE7\xE3o da RECEITA vale, mude um campo s\xF3 se a dire\xE7\xE3o de arte pedir),
   "favicon": "\xEDcone da aba do navegador como UM SVG de 64x64 (viewBox 0 0 64 64), simples e leg\xEDvel em 16px: forma geom\xE9trica do mundo do neg\xF3cio (tesoura, dente, balan\xE7a, p\xE3o, chave inglesa, folha\u2026) ou monograma, com as cores da paleta; fundo arredondado com a cor principal; s\xF3 tags svg, rect, circle, ellipse, path, polygon, line, g e text (no m\xE1ximo 2 letras), sem script, imagem, filtro nem fonte externa; at\xE9 900 caracteres",
   "signature": "a marca registrada do site em 1 ou 2 frases concretas: o \xFAnico elemento ousado de que o visitante vai lembrar, tirado do mundo do neg\xF3cio (ex.: t\xEDtulo do topo enorme em caixa alta condensada cortado pela foto da navalha; tabela de pre\xE7os desenhada como a lousa de giz da padaria; faixa com a planta baixa do apartamento em linhas finas)",
@@ -2689,7 +2643,7 @@ Formato do JSON:
   "tagline": "frase curta do rodap\xE9 dizendo o que o neg\xF3cio faz de melhor (at\xE9 12 palavras)",
   "effects": ["de 0 a ${MAX_EFFECTS} ids da lista EFEITOS que este site realmente pede"],
   "globalRequirementIds": ["IDs dos requisitos transversais da especifica\xE7\xE3o"],
-  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "headline": "t\xEDtulo exato da se\xE7\xE3o (at\xE9 8 palavras, espec\xEDfico do neg\xF3cio)", "brief": "o conte\xFAdo REAL da se\xE7\xE3o: itens com nome, descri\xE7\xE3o curta e pre\xE7o/dura\xE7\xE3o/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta se\xE7\xE3o"], "bg": "paper" | "surface" | "ink" | "brand" } ],
+  "sections": [ { "id": "kebab-case", "label": "nome curto no menu", "layout": "id de um BLOCO (o hero usa um bloco de TOPO)", "businessPurpose": "a d\xFAvida ou motiva\xE7\xE3o do cliente que esta se\xE7\xE3o resolve", "singleMessage": "UMA frase com a mensagem \xFAnica da se\xE7\xE3o", "proofStatus": "supplied (o pedido trouxe o fato) | placeholder (prova que o cliente ainda precisa fornecer) | none", "headline": "t\xEDtulo exato da se\xE7\xE3o (at\xE9 8 palavras, espec\xEDfico do neg\xF3cio)", "brief": "o conte\xFAdo REAL da se\xE7\xE3o: itens com nome, descri\xE7\xE3o curta e pre\xE7o/dura\xE7\xE3o/tamanho quando fizer sentido; etapas; perguntas; o que a foto mostra", "requirementIds": ["IDs dos requisitos desta se\xE7\xE3o"], "bg": "paper" | "surface" | "ink" | "brand" } ],
   "business": { "name": "nome do neg\xF3cio", "niche": "nicho em poucas palavras", "city": "cidade ou null", "phone": "WhatsApp s\xF3 com d\xEDgitos ou null" }
 }
 "business": copie do pedido. Se o pedido n\xE3o disser o nome, crie um nome curto e plaus\xEDvel; cidade e WhatsApp s\xF3 se estiverem escritos no pedido (sen\xE3o null).
@@ -2713,6 +2667,7 @@ DIRE\xC7\xC3O DE ARTE (pense nisto antes de escrever o JSON)
 - O topo (hero) \xE9 a tese do site: abre com o que h\xE1 de mais caracter\xEDstico deste neg\xF3cio \u2014 uma foto forte, um t\xEDtulo marcante, um detalhe do of\xEDcio. "N\xFAmero grande + r\xF3tulo pequeno + estat\xEDsticas + degrad\xEA" \xE9 a resposta de template: s\xF3 use se for mesmo a melhor.
 - Uma ousadia s\xF3 ("signature"), bem executada; o resto do site fica calmo e disciplinado.
 - Quando o pedido deixar o visual livre, N\xC3O caia nos 3 visuais que toda IA repete: (1) fundo creme com serifada de alto contraste e acento terracota; (2) fundo quase preto com um \xFAnico acento neon (verde-\xE1cido, vermelh\xE3o); (3) layout de jornal com linhas finas, cantos retos e colunas densas. Eles s\xF3 valem se o pedido pedir ou se o neg\xF3cio realmente for assim.
+- Antes do JSON, considere internamente TR\xCAS dire\xE7\xF5es de arte realmente diferentes (DESIGN.md \xA722), escolha uma e registre o porqu\xEA em creative.conceptSelectionReason. Escolha o topo pela fam\xEDlia do \xA723.2 que o conte\xFAdo e as fotos dispon\xEDveis sustentam, nunca por sorteio. Cada se\xE7\xE3o tem businessPurpose, singleMessage e proofStatus; onde o pedido n\xE3o trouxe a prova (depoimento, n\xFAmero, selo, cliente, pr\xEAmio), proofStatus \xE9 placeholder ou none e a se\xE7\xE3o n\xE3o inventa nada.
 - Autocr\xEDtica antes de responder: se este plano serviria igual para outro neg\xF3cio do mesmo nicho em outra cidade, troque a parte gen\xE9rica (paleta, fontes, formato do topo ou marca registrada) por uma escolha feita para ESTE neg\xF3cio.
 
 BLOCOS (desenhos prontos com acabamento premium; escolha os que servem ao conte\xFAdo e ao clima)
@@ -3033,6 +2988,10 @@ ${brief.details.trim()}` : null,
     plan.composition?.headings === "upper" ? "Composi\xE7\xE3o: os t\xEDtulos de se\xE7\xE3o aparecem em CAIXA ALTA no design. Escreva o title com no m\xE1ximo 5 palavras." : null,
     plan.composition?.container === "narrow" ? "Composi\xE7\xE3o: coluna estreita e editorial. Textos curtos e densos, sem listas longas." : null,
     `Se\xE7\xF5es do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(", ")}`,
+    plan.creative ? `Tese criativa do site: ${plan.creative.thesis} Dire\xE7\xE3o: ${plan.creative.primaryDirection}${plan.creative.modifier ? ` + ${plan.creative.modifier}` : ""}. Evite: ${plan.creative.forbiddenPatterns.join("; ") || "clich\xEAs gen\xE9ricos"}.` : null,
+    section?.businessPurpose ? `Prop\xF3sito da se\xE7\xE3o para o neg\xF3cio: ${section.businessPurpose}` : null,
+    section?.singleMessage ? `Mensagem \xFAnica da se\xE7\xE3o: "${section.singleMessage}". Todo o texto serve a ela; n\xE3o misture outras alega\xE7\xF5es.` : null,
+    section?.proofStatus && section.proofStatus !== "supplied" ? `Prova nesta se\xE7\xE3o: ${section.proofStatus === "none" ? "nenhuma" : "ainda \xE9 placeholder"}. N\xE3o escreva depoimento, n\xFAmero, selo, nome de cliente, pr\xEAmio ou resultado que o pedido n\xE3o trouxe.` : null,
     `SE\xC7\xC3O QUE VOC\xCA ESCREVE: "${section?.label ?? partId}" \u2014 bloco "${block.name}": ${block.when}`,
     section?.headline ? `T\xEDtulo (title): use exatamente "${section.headline}".` : null,
     `Conte\xFAdo planejado: ${section?.brief || "escreva o conte\xFAdo certo para esta se\xE7\xE3o neste neg\xF3cio."}`,
@@ -3355,7 +3314,10 @@ function normalizePlan(raw, brief) {
       requirementIds: requirementIds(item.requirementIds),
       layout,
       ...typeof item?.headline === "string" && item.headline.trim() ? { headline: stripInventedClaims(item.headline.trim(), brief).slice(0, 120) } : {},
-      ...Number.isFinite(Number(item?.photos)) && item?.photos !== null && item?.photos !== "" ? { photos: Math.max(0, Math.min(4, Math.round(Number(item.photos)))) } : {}
+      ...Number.isFinite(Number(item?.photos)) && item?.photos !== null && item?.photos !== "" ? { photos: Math.max(0, Math.min(4, Math.round(Number(item.photos)))) } : {},
+      ...typeof item?.businessPurpose === "string" && item.businessPurpose.trim() ? { businessPurpose: item.businessPurpose.replace(/\s+/g, " ").trim().slice(0, 200) } : {},
+      ...typeof item?.singleMessage === "string" && item.singleMessage.trim() ? { singleMessage: stripInventedClaims(item.singleMessage.replace(/\s+/g, " ").trim(), brief).slice(0, 200) } : {},
+      ...["supplied", "placeholder", "none"].includes(item?.proofStatus) ? { proofStatus: item.proofStatus } : {}
     });
   }
   if (sections.length === 0) return null;
@@ -3382,6 +3344,7 @@ function normalizePlan(raw, brief) {
     ...blockFor(input.header, ["header"]) ? { header: blockFor(input.header, ["header"]) } : {},
     ...["clean", "bold", "soft"].includes(input.look) ? { look: input.look } : {},
     ...Object.keys(cleanComposition(input.composition)).length ? { composition: cleanComposition(input.composition) } : {},
+    ...cleanCreative(input.creative, brief) ? { creative: cleanCreative(input.creative, brief) } : {},
     ...typeof input.cta === "string" && input.cta.trim() ? { cta: input.cta.replace(/\s+/g, " ").trim().slice(0, 40) } : {},
     ...typeof input.tagline === "string" && input.tagline.trim() ? { tagline: stripInventedClaims(input.tagline.replace(/\s+/g, " ").trim(), brief).slice(0, 140) } : {},
     ...typeof input.signature === "string" && input.signature.trim() ? {
@@ -3405,6 +3368,23 @@ function ensureInteractive(plan, brief) {
     if (target) target.layout = "formulario";
   }
   return { ...plan, sections };
+}
+function cleanCreative(input, brief) {
+  if (!input || typeof input !== "object") return null;
+  const one = (value, max) => stripInventedClaims(String(value ?? "").replace(/\s+/g, " ").trim(), brief).slice(0, max);
+  const list = (value) => (Array.isArray(value) ? value : []).map((item) => one(item, 90)).filter(Boolean).slice(0, 6);
+  const thesis = one(input.thesis, 260), primaryDirection = one(input.primaryDirection, 80), signatureElement = one(input.signatureElement, 220);
+  if (!thesis || !primaryDirection) return null;
+  return {
+    thesis,
+    primaryDirection,
+    signatureElement,
+    ...one(input.modifier, 80) ? { modifier: one(input.modifier, 80) } : {},
+    principles: list(input.principles),
+    forbiddenPatterns: list(input.forbiddenPatterns),
+    ...one(input.heroChoiceReason, 220) ? { heroChoiceReason: one(input.heroChoiceReason, 220) } : {},
+    ...one(input.conceptSelectionReason, 220) ? { conceptSelectionReason: one(input.conceptSelectionReason, 220) } : {}
+  };
 }
 function cleanText(value, max) {
   const text2 = typeof value === "string" ? value.trim().slice(0, max) : "";

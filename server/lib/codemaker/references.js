@@ -20,7 +20,7 @@ const ROLES = [
   { id: 'movimento', label: 'ritmo, movimento e organização dos componentes', section: /movimento|anima|intera|componente/i },
 ];
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-const words = (s) => new Set(norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 3).map((w) => w.slice(0, 5)));
+const words = (s) => new Set(norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 3).map((w) => w.slice(0, 6)));
 
 function pickDesigns(brief, items, limit = 3) {
   const text = `${brief.businessName || ''} ${brief.niche || ''} ${(brief.details || '').slice(0, 800)}`;
@@ -33,8 +33,8 @@ function pickDesigns(brief, items, limit = 3) {
     const st = norm(it.style);
     aff.forEach((h, i) => { if (st.includes(norm(h))) { score += Math.max(1, 5 - i * 0.6); why.push(`estilo "${it.style}" combina com o ramo`); } });
     if (STYLE_HINT[brief.style]?.test(it.style || '')) { score += 3; why.push(`estilo pedido (${brief.style})`); }
-    const overlap = [...words(`${it.niche} ${it.site_type}`)].filter((w) => wanted.has(w));
-    if (overlap.length) { score += overlap.length * 4; why.push(`mesmo nicho/tipo: ${overlap.join(', ')}`); }
+    const overlap = [...words(it.niche)].filter((w) => wanted.has(w));
+    if (overlap.length) { score += overlap.length * 4 + 8; why.push(`mesmo nicho/tipo: ${overlap.join(', ')}`); }
     return { it, score, why };
   }).sort((a, b) => b.score - a.score);
   const selected = []; const seen = new Set();
@@ -109,12 +109,23 @@ function describe(sel, facts) {
 async function buildReferences(brief, { siteId } = {}) {
   const t0 = Date.now();
   const items = await all("SELECT id,title,niche,style,site_type,url,content FROM library_items WHERE kind='design' AND published=1");
-  const { selected, discarded } = pickDesigns(brief, items);
+  const picked = pickDesigns(brief, items);
+  // SYSTEM_PROMPT "REFERENCE SELECTION ENGINE": só referência de tecnologia/SaaS e negócio de outro ramo = não forçar layout SaaS.
+  // Fora do ramo tecnologia, só entra referência do mesmo segmento; senão a cobertura é declarada ausente.
+  const sector = require('./design-context').sectorOf(brief).id;
+  const sameSector = (x) => x.why.some((w) => /mesmo nicho/.test(w));
+  const selected = sector === 'saas' ? picked.selected : picked.selected.filter(sameSector);
+  const discarded = [...picked.discarded, ...picked.selected.filter((x) => !selected.includes(x)).map((x) => ({ id: x.it.id, title: x.it.title, score: Math.round(x.score * 10) / 10, reason: 'cobertura de setor ausente: referência de outro ramo não é forçada' }))];
   const targets = [...selected.map((s) => s.it.url).filter(Boolean), ...urlsIn(brief.details)].filter((u, i, a) => a.indexOf(u) === i);
   const inspectOn = process.env.CM_REF_INSPECT !== '0';
   const facts = inspectOn ? await Promise.all(targets.map(inspect)) : [];
   const byUrl = new Map(facts.map((f) => [f.url, f]));
   const own = facts.filter((f) => f.ok && !selected.some((s) => s.it.url === f.url));
+  if (!selected.length && !urlsIn(brief.details).length) {
+    const trace = { at: new Date().toISOString(), site: siteId ?? null, found: items.length, ms: Date.now() - t0, chars: 0, truncated: false, selected: [], discarded, inspected: [], failures: [], inspection: 'off', coverage: 'missing', sector };
+    console.log(JSON.stringify({ evt: 'cm_design_trace', site: trace.site, found: trace.found, selected: [], coverage: 'missing', sector }));
+    return { block: `REFERÊNCIAS DE DESIGN: cobertura ausente para este ramo (${sector}): a biblioteca não tem referência verificada dele. Não force layout de SaaS nem de outro segmento. Aplique o DESIGN.md (direção, composição e receita do ramo) e diga isso com franqueza no <acoes>.`, trace };
+  }
   let block = [
     'REFERÊNCIAS DE DESIGN (escolhidas para ESTE pedido e medidas nos sites reais). Regras: cada referência vale só no papel indicado; NÃO copie layout, textos nem marca de nenhuma; combine os papéis numa direção de arte própria para o negócio.',
     'Quando o usuário não deu cores nem fontes, a paleta e as fontes do plano devem nascer destas referências (adaptadas ao ramo, com contraste AA). No <acoes>, diga em uma frase quais referências usou e para quê.',
