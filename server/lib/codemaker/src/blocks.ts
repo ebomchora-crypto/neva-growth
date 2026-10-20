@@ -210,13 +210,17 @@ function badge(c: BlockContent, t: BlockTokens, onPhoto = false): string {
 
 function heading(c: BlockContent, t: BlockTokens, center = false): string {
   const look = t.look ?? 'clean'
+  // Fundo ink/brand: a cor da marca some (no tema escuro o ink é claro); aí o rótulo usa a cor do texto da seção.
+  const flat = t.bg === 'ink' || t.bg === 'brand'
+  const kc = flat ? `text-${t.tx}/85` : 'text-brand'
+  const kb = flat ? 'bg-current' : 'bg-brand'
   const kicker = !c.kicker
     ? ''
     : look === 'bold'
-      ? `<p class="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.22em] text-brand ${center ? 'justify-center' : ''}"><span class="h-px w-10 bg-brand"></span>${esc(c.kicker)}</p>`
+      ? `<p class="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.22em] ${kc} ${center ? 'justify-center' : ''}"><span class="h-px w-10 ${kb}"></span>${esc(c.kicker)}</p>`
       : look === 'soft'
-        ? `<p class="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3.5 py-1 text-xs font-semibold text-brand"><span class="size-1.5 rounded-full bg-brand"></span>${esc(c.kicker)}</p>`
-        : `<p class="text-sm font-semibold uppercase tracking-[0.18em] text-brand">${esc(c.kicker)}</p>`
+        ? `<p class="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3.5 py-1 text-xs font-semibold ${kc}"><span class="size-1.5 rounded-full ${kb}"></span>${esc(c.kicker)}</p>`
+        : `<p class="text-sm font-semibold uppercase tracking-[0.18em] ${kc}">${esc(c.kicker)}</p>`
   const title =
     look === 'bold'
       ? 'font-bold uppercase leading-[0.98] tracking-tight'

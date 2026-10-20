@@ -1,3 +1,4 @@
+import { cleanComposition, compositionCss, compositionFor, compositionMessage, compositionTheme, completeComposition, type Composition } from './composition.ts'
 // Code Maker — o "motor" dos sites, sem Deno nem banco (testado em
 // src/utils/codeMaker.test.mjs). A IA planeja o site e escreve cada parte;
 // a base (cores, fontes, menu, animações) é montada aqui, sempre igual e
@@ -103,6 +104,8 @@ export interface SitePlan {
   tagline?: string
   /** Acabamento dos títulos (da receita do site). */
   look?: 'clean' | 'bold' | 'soft'
+  /** Composição do site: contêiner, respiro, caixa dos títulos e divisórias (veja composition.ts). */
+  composition?: Partial<Composition>
   sections: PlanSection[]
   globalRequirementIds?: string[]
   specification?: CodeMakerSpecification
@@ -228,13 +231,13 @@ const PHOTOS: Record<string, Photo[]> = {
     { id: '1518611012118-696072aa579a', about: 'aula em grupo no colchonete (pilates/funcional)' },
   ],
   juridico: [
-    { id: '1589829545856-d10d557cf95f', about: 'estátua da justiça (hero)' },
+    { id: '1497215728101-856f4ea42174', about: 'escritório claro com vista da cidade (hero)' },
     { id: '1505664194779-8beaceb93744', about: 'biblioteca com livros antigos' },
     { id: '1450101499163-c8848c66ca85', about: 'assinatura de documento' },
     { id: '1554224155-6726b3ff858f', about: 'documentos e calculadora (contabilidade)' },
     { id: '1521791055366-0d553872125f', about: 'mão assinando contrato com caneta' },
-    { id: '1497215728101-856f4ea42174', about: 'escritório claro com vista da cidade' },
     { id: '1573497019940-1c28c88b4f3e', about: 'retrato de profissional sorridente' },
+    { id: '1589829545856-d10d557cf95f', about: 'estátua da justiça (clichê: use só se o pedido pedir)' },
   ],
   pet: [
     { id: '1548199973-03cce0bbc87b', about: 'dois cachorros correndo felizes (hero)' },
@@ -333,7 +336,7 @@ const PHOTO_GROUPS: { group: string; match: string[] }[] = [
   { group: 'juridico', match: ['advoca', 'advogad', 'juridic', 'contab', 'contador'] },
   { group: 'fitness', match: ['academia', 'crossfit', 'pilates', 'personal', 'fitness', 'luta', 'danca', 'yoga'] },
   { group: 'pet', match: ['pet', 'veterin', 'tosa', 'canil'] },
-  { group: 'casa', match: ['imobil', 'imove', 'corretor', 'constru', 'reforma', 'arquitet', 'engenh', 'marcenar'] },
+  { group: 'casa', match: ['imobil', 'imove', 'corretor', 'constru', 'reforma', 'arquitet', 'engenh', 'marcenar', 'solar', 'fotovolt', 'energia'] },
   { group: 'escola', match: ['escola', 'curso', 'idioma', 'educa', 'colegio', 'creche'] },
   { group: 'loja', match: ['loja', 'roupa', 'moda', 'calcad', 'boutique', 'otica', 'joalher'] },
   { group: 'hospedagem', match: ['pousada', 'hotel', 'hostel', 'resort', 'chale', 'hosped', 'turism', 'viage'] },
@@ -546,6 +549,8 @@ export const AUTO_EFFECTS = [
 
 export type SiteLook = 'clean' | 'bold' | 'soft'
 
+const DEFAULT_COMPOSITION: Composition = { container: 'regular', density: 'regular', headings: 'sentence', rhythm: 'none' }
+
 export interface SiteRecipe {
   hero: string
   header: string
@@ -556,6 +561,7 @@ export interface SiteRecipe {
   blocks: string[]
   effects: string[]
   look: SiteLook
+  composition: Composition
 }
 
 type FontMood = 'modern' | 'elegant' | 'strong' | 'friendly' | 'craft'
@@ -692,7 +698,7 @@ export function siteRecipe(brief: SiteBrief, recent: Partial<SitePlan>[], seed: 
   const style = brief.style ?? 'auto'
   const niche = nicheFor(brief)
   const theme: 'dark' | 'light' =
-    style === 'dark' ? 'dark' : style === 'minimal' || style === 'vibrant' ? 'light' : niche?.theme ? niche.theme : darkShare < 1 / 3 ? 'dark' : hashOf(`${seed}:tema`) % 2 ? 'dark' : 'light'
+    style === 'dark' ? 'dark' : style === 'minimal' || style === 'vibrant' ? 'light' : niche?.theme ? niche.theme : recent.length ? (darkShare >= 0.5 ? 'light' : 'dark') : hashOf(`${seed}:tema`) % 2 ? 'dark' : 'light'
 
   let heroes = hasPhotos ? (GROUP_HEROES[group ?? ''] ?? ['hero-cinema', 'hero-mundo', 'hero-dividido', 'hero-editorial']) : ['hero-brilho', 'hero-neon', 'hero-dividido']
   if (theme === 'light') heroes = heroes.filter((hero) => hero !== 'hero-neon')
@@ -718,7 +724,8 @@ export function siteRecipe(brief: SiteBrief, recent: Partial<SitePlan>[], seed: 
   ]
 
   const look = pick<SiteLook>(['clean', 'bold', 'soft'], recent.slice(0, 1).map((plan) => plan.look ?? 'clean'), `${seed}:acabamento`)
-  return { hero, header, theme, fonts, blocks, effects, look }
+  const composition = compositionFor(niche?.id, `${seed}:composicao`, recent.map((plan) => plan.composition))
+  return { hero, header, theme, fonts, blocks, effects, look, composition }
 }
 
 export function recipeMessage(recipe: SiteRecipe): string {
@@ -731,6 +738,7 @@ export function recipeMessage(recipe: SiteRecipe): string {
     `- Fontes: use um destes pares: ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(', ')}`,
     `- Blocos que o site precisa ter (em seções cujo conteúdo combine): ${recipe.blocks.map(name).join('; ')}`,
     `- Efeitos já escolhidos: ${recipe.effects.join(', ')} (pode somar no máximo mais 1)`,
+    compositionMessage(recipe.composition),
   ].join('\n')
 }
 
@@ -785,6 +793,7 @@ export function applyRecipe(plan: SitePlan, recipe: SiteRecipe, brief: SiteBrief
   next.sections[0] = { ...next.sections[0], layout: recipe.hero }
   next.header = recipe.header
   next.look = recipe.look
+  next.composition = completeComposition(cleanComposition(plan.composition), recipe.composition)
   if (next.theme !== recipe.theme && !/escur|preto|dark|claro|branco|light/.test(asked)) {
     next.palette = paletteFor(next.palette, recipe.theme)
     next.theme = recipe.theme
@@ -854,6 +863,7 @@ Formato do JSON:
   "palette": { "brand": "#hex cor principal", "brandDark": "#hex mais escura da principal", "accent": "#hex acento", "ink": "#hex texto principal (no dark é claro, no light é quase preto)", "paper": "#hex fundo principal", "surface": "#hex fundo alternativo/cartões", "muted": "#hex texto secundário" },
   "fonts": { "display": "fonte dos títulos (veja PARES DE FONTES)", "body": "fonte do texto" },
   "radius": "round" | "soft" | "sharp" (cantos do site inteiro, escolhidos pela direção de arte),
+  "composition": { "container": "narrow"|"regular"|"wide", "density": "compact"|"regular"|"airy", "headings": "sentence"|"upper"|"tight"|"heavy", "rhythm": "none"|"rule" } (como o site respira: largura do conteúdo, respiro entre seções, caixa dos títulos e divisórias; a composição da RECEITA vale, mude um campo só se a direção de arte pedir),
   "favicon": "ícone da aba do navegador como UM SVG de 64x64 (viewBox 0 0 64 64), simples e legível em 16px: forma geométrica do mundo do negócio (tesoura, dente, balança, pão, chave inglesa, folha…) ou monograma, com as cores da paleta; fundo arredondado com a cor principal; só tags svg, rect, circle, ellipse, path, polygon, line, g e text (no máximo 2 letras), sem script, imagem, filtro nem fonte externa; até 900 caracteres",
   "signature": "a marca registrada do site em 1 ou 2 frases concretas: o único elemento ousado de que o visitante vai lembrar, tirado do mundo do negócio (ex.: título do topo enorme em caixa alta condensada cortado pela foto da navalha; tabela de preços desenhada como a lousa de giz da padaria; faixa com a planta baixa do apartamento em linhas finas)",
   "signatureSection": "id da seção onde a marca registrada aparece (normalmente hero)",
@@ -1695,6 +1705,7 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
     ...(planEffects(input.effects).length ? { effects: planEffects(input.effects) } : {}),
     ...(blockFor(input.header, ['header']) ? { header: blockFor(input.header, ['header'])! } : {}),
     ...(['clean', 'bold', 'soft'].includes(input.look) ? { look: input.look } : {}),
+    ...(Object.keys(cleanComposition(input.composition)).length ? { composition: cleanComposition(input.composition) } : {}),
     ...(typeof input.cta === 'string' && input.cta.trim() ? { cta: input.cta.replace(/\s+/g, ' ').trim().slice(0, 40) } : {}),
     ...(typeof input.tagline === 'string' && input.tagline.trim() ? { tagline: stripInventedClaims(input.tagline.replace(/\s+/g, ' ').trim(), brief).slice(0, 140) } : {}),
     ...(typeof input.signature === 'string' && input.signature.trim()
@@ -2292,6 +2303,7 @@ export function buildHead(plan: SitePlan): string {
           surface: plan.palette.surface,
           muted: plan.palette.muted,
         },
+        ...compositionTheme(completeComposition(plan.composition, DEFAULT_COMPOSITION)),
         fontFamily: {
           display: [plan.fonts.display, ...(FONT_WIDTH[plan.fonts.display] ? [fallbackName(plan.fonts.display)] : []), 'ui-sans-serif', 'system-ui', 'sans-serif'],
           body: [plan.fonts.body, ...(FONT_WIDTH[plan.fonts.body] ? [fallbackName(plan.fonts.body)] : []), 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -2318,7 +2330,7 @@ export function buildHead(plan: SitePlan): string {
     `<link href="https://fonts.googleapis.com/css2?${fonts}&display=swap" rel="stylesheet">`,
     '<script src="https://cdn.tailwindcss.com"></script>',
     `<script>tailwind.config=${JSON.stringify(config)}</script>`,
-    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ''}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
+    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}${compositionCss(completeComposition(plan.composition, DEFAULT_COMPOSITION))}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ''}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
   ].join('\n')
 }
 

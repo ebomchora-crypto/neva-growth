@@ -306,3 +306,42 @@ test('referências: o bloco escolhido chega ao prompt do plano e o rastro fica n
   const t = (await call('GET', '/api/code-maker/' + id)).body.site.brief.designTrace;
   assert.deepEqual(planCall.refTitles, t.selected.map((s) => s.title)); assert.ok(t.found >= 20 && t.discarded.length && t.chars > 300 && t.inspection === 'off');
 });
+
+// ---- Composição, banco de fotos e revisão visual (navegador real; pula se não houver navegador) ----
+const QA = require('../server/lib/codemaker/visual-qa');
+test('composição: o ramo define contêiner, respiro e títulos; sem histórico o tema não cai sempre no escuro', () => {
+  const r = (details, style) => E.siteRecipe({ businessName: 'X', details, style }, [], 'a');
+  const adv = r('escritório de advocacia empresarial', 'auto'), tech = r('plataforma de inteligência artificial para startups', 'auto'), solar = r('energia solar fotovoltaica residencial', 'auto');
+  assert.deepEqual([adv.composition.container, adv.composition.density], ['narrow', 'airy']);
+  assert.deepEqual([tech.composition.container, tech.composition.density], ['wide', 'compact']);
+  assert.equal(solar.composition.headings, 'heavy');
+  assert.equal(new Set([adv, tech, solar].map((x) => JSON.stringify(x.composition))).size, 3);
+  assert.equal(adv.theme, 'light'); assert.equal(tech.theme, 'dark');
+  const seeds = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map((s) => E.siteRecipe({ businessName: 'Y', details: 'um negócio qualquer sem ramo definido' }, [], s).theme);
+  assert.ok(seeds.includes('light') && seeds.includes('dark'), 'sem ramo, o tema varia com a semente');
+  assert.equal(E.cleanComposition({ container: 'gigante', density: 'airy', headings: 'upper', rhythm: 'x' }).density, 'airy');
+  assert.deepEqual(Object.keys(E.cleanComposition({ container: 'gigante', rhythm: 'x' })), []);
+});
+test('composição: chega ao HTML final (tema do Tailwind e CSS) e o padrão não muda sites antigos', () => {
+  const brief = { businessName: 'Sol', details: 'energia solar' };
+  const base = E.normalizePlan({ title: 't', description: 'd', direction: 'x', theme: 'light', palette: { brand: '#0f3b57', brandDark: '#0a2a3f', accent: '#f2a900', ink: '#10202b', paper: '#fbf8f0', surface: '#f1ebdc', muted: '#566470' }, fonts: { display: 'Inter', body: 'Inter' }, sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'Sol', brief: 'b', bg: 'paper' }] }, brief);
+  const old = E.assembleSite(base, { header: '', footer: '', hero: '<section id="hero"></section>' });
+  assert.match(old, /"maxWidth":\{"7xl":"80rem"\}/); assert.doesNotMatch(old, /text-transform:uppercase!important/);
+  const art = E.assembleSite({ ...base, composition: { container: 'wide', density: 'compact', headings: 'upper', rhythm: 'rule' } }, { header: '', footer: '', hero: '<section id="hero"></section>' });
+  assert.match(art, /"maxWidth":\{"7xl":"96rem"\}/); assert.match(art, /"spacing":\{"24":"4\.25rem","32":"5\.5rem"\}/);
+  assert.match(art, /text-transform:uppercase!important/); assert.match(art, /main>section\+section\{border-top/);
+});
+test('fotos: solar não cai em fotos de escritório e o jurídico não abre com a estátua da Justiça', () => {
+  assert.doesNotMatch(E.photoCatalog('energia solar'), /escritório moderno/);
+  assert.match(E.photoCatalog('energia solar'), /casa/);
+  assert.doesNotMatch(E.photoCatalog('advocacia').split('\n')[0], /estátua/);
+});
+test('revisão visual: mede um site real renderizado e acusa overflow e contraste de verdade', { skip: !QA.available() && 'sem navegador' }, async () => {
+  const ok = '<!doctype html><meta name=viewport content="width=device-width"><main><section id=a style="background:#fff;color:#111;padding:24px"><h1>Título</h1><p style="font-size:16px">Texto legível</p></section></main>';
+  const good = await QA.inspectHtml(ok);
+  assert.equal(good.available, true); assert.equal(good.critical, 0); assert.equal(good.results.length, 3);
+  const bad = await QA.inspectHtml('<!doctype html><meta name=viewport content="width=device-width"><main><section style="background:#fff;color:#ccc;padding:24px"><h1>A</h1><h1>B</h1><p style="font-size:10px;color:#ddd">pequeno</p><div style="width:900px;height:20px;background:red"></div></section></main>');
+  const kinds = new Set(bad.findings.map((f) => f.kind));
+  for (const k of ['overflow-horizontal', 'contraste-baixo', 'texto-pequeno', 'h1']) assert.ok(kinds.has(k), k);
+  assert.ok(bad.critical >= 1);
+});

@@ -21,6 +21,7 @@ var engine_exports = {};
 __export(engine_exports, {
   ASSET_PATH: () => ASSET_PATH,
   AUTO_EFFECTS: () => AUTO_EFFECTS,
+  COMPOSITION_OPTIONS: () => COMPOSITION_OPTIONS,
   CONTINUE_PROMPT: () => CONTINUE_PROMPT,
   EDIT_SYSTEM: () => EDIT_SYSTEM,
   FAVICON_FILE: () => FAVICON_FILE,
@@ -51,8 +52,14 @@ __export(engine_exports, {
   buildPlanMessage: () => buildPlanMessage,
   changeReport: () => changeReport,
   cleanAssets: () => cleanAssets,
+  cleanComposition: () => cleanComposition,
   cleanFragment: () => cleanFragment,
   cleanUserText: () => cleanUserText,
+  completeComposition: () => completeComposition,
+  compositionCss: () => compositionCss,
+  compositionFor: () => compositionFor,
+  compositionMessage: () => compositionMessage,
+  compositionTheme: () => compositionTheme,
   contactsOf: () => contactsOf,
   contrastGuide: () => contrastGuide,
   contrastRatio: () => contrastRatio,
@@ -120,6 +127,81 @@ __export(engine_exports, {
   validateRequirementCoverage: () => validateRequirementCoverage
 });
 module.exports = __toCommonJS(engine_exports);
+
+// server/lib/codemaker/src/composition.ts
+var COMPOSITION_OPTIONS = {
+  container: ["narrow", "regular", "wide"],
+  density: ["compact", "regular", "airy"],
+  headings: ["sentence", "upper", "tight", "heavy"],
+  rhythm: ["none", "rule"]
+};
+var MAX_W = { narrow: "68rem", regular: "80rem", wide: "96rem" };
+var SPACE = { compact: ["4.25rem", "5.5rem"], regular: ["6rem", "8rem"], airy: ["7.5rem", "10rem"] };
+var PRESETS = {
+  juridico: { container: "narrow", density: "airy", headings: "tight", rhythm: "rule" },
+  contabilidade: { container: "narrow", density: "airy", headings: "sentence", rhythm: "rule" },
+  saude: { container: "regular", density: "airy", headings: "sentence", rhythm: "none" },
+  estetica: { container: "regular", density: "airy", headings: "sentence", rhythm: "none" },
+  tecnologia: { container: "wide", density: "compact", headings: "tight", rhythm: "none" },
+  energia: { container: "regular", density: "regular", headings: "heavy", rhythm: "none" },
+  casa: { container: "wide", density: "regular", headings: "sentence", rhythm: "rule" },
+  barbearia: { container: "wide", density: "compact", headings: "upper", rhythm: "rule" },
+  fitness: { container: "wide", density: "compact", headings: "upper", rhythm: "none" },
+  auto: { container: "wide", density: "compact", headings: "upper", rhythm: "rule" },
+  restaurante: { container: "regular", density: "regular", headings: "heavy", rhythm: "none" },
+  pizzaria: { container: "regular", density: "compact", headings: "heavy", rhythm: "none" },
+  hamburgueria: { container: "wide", density: "compact", headings: "upper", rhythm: "none" },
+  fotografia: { container: "wide", density: "airy", headings: "sentence", rhythm: "none" }
+};
+function hash(text2) {
+  let h = 2166136261;
+  for (let i = 0; i < text2.length; i++) h = Math.imul(h ^ text2.charCodeAt(i), 16777619);
+  return h >>> 0;
+}
+function choose(options, avoid, seed) {
+  const free = options.filter((option) => !avoid.includes(option));
+  const pool = free.length ? free : options;
+  return pool[hash(seed) % pool.length];
+}
+function cleanComposition(input) {
+  const raw = input && typeof input === "object" ? input : {};
+  const out = {};
+  for (const key of Object.keys(COMPOSITION_OPTIONS)) {
+    const value = raw[key];
+    if (typeof value === "string" && COMPOSITION_OPTIONS[key].includes(value)) out[key] = value;
+  }
+  return out;
+}
+function compositionFor(nicheId, seed, recent) {
+  const preset = nicheId && PRESETS[nicheId] || {};
+  const last = recent.slice(0, 3);
+  const pickKey = (key) => preset[key] ?? choose(COMPOSITION_OPTIONS[key], last.map((c) => c?.[key]), `${seed}:${key}`);
+  return { container: pickKey("container"), density: pickKey("density"), headings: pickKey("headings"), rhythm: pickKey("rhythm") };
+}
+function completeComposition(partial, base) {
+  return { ...base, ...partial ?? {} };
+}
+function compositionTheme(c) {
+  const [s24, s32] = SPACE[c.density];
+  return { maxWidth: { "7xl": MAX_W[c.container] }, spacing: { "24": s24, "32": s32 } };
+}
+function compositionCss(c) {
+  const rules = [];
+  if (c.headings === "upper") rules.push("main section h2{text-transform:uppercase!important;letter-spacing:.015em!important;line-height:1.02!important;overflow-wrap:anywhere}");
+  if (c.headings === "tight") rules.push("main section h2{letter-spacing:-.035em!important;line-height:.98!important}");
+  if (c.headings === "heavy") rules.push("main section h2{font-weight:800!important;letter-spacing:-.015em!important}");
+  if (c.rhythm === "rule") rules.push("main>section+section{border-top:1px solid color-mix(in srgb,currentColor 14%,transparent)}");
+  return rules.join("");
+}
+function compositionMessage(c) {
+  const label = {
+    container: { narrow: "estreito (editorial, leitura focada)", regular: "padr\xE3o", wide: "largo (produto/vitrine)" },
+    density: { compact: "compacta (muita coisa na tela)", regular: "padr\xE3o", airy: "arejada (muito respiro, ar de luxo/calma)" },
+    headings: { sentence: "frase normal", upper: "CAIXA ALTA", tight: "apertados e densos", heavy: "pesados (peso 800)" },
+    rhythm: { none: "sem divis\xF3rias", rule: "fio fino entre as se\xE7\xF5es" }
+  };
+  return `- Composi\xE7\xE3o (aplicada pelo sistema a todos os blocos; escreva t\xEDtulos e textos que funcionem nela \u2014 t\xEDtulos de se\xE7\xE3o em CAIXA ALTA pedem frases curtas): cont\xEAiner ${label.container[c.container]}; respiro ${label.density[c.density]}; t\xEDtulos ${label.headings[c.headings]}; ${label.rhythm[c.rhythm]}. Pode trocar qualquer campo no JSON em "composition" se a dire\xE7\xE3o de arte pedir outra coisa.`;
+}
 
 // server/lib/codemaker/src/spec.ts
 var strings = (value) => Array.isArray(value) ? value.filter((item) => typeof item === "string" && Boolean(item.trim())).map((item) => item.trim()) : [];
@@ -311,6 +393,7 @@ var NICHES = [
     id: "juridico",
     label: "Advocacia e contabilidade",
     match: ["advoca", "advogad", "juridic", "contab", "contador"],
+    theme: "light",
     moods: ["elegant", "modern"],
     feel: "Autoridade e sobriedade: s\xE9rio, sofisticado, de confian\xE7a. Quem est\xE1 em apuros sente que encontrou o lugar certo.",
     color: "Azul-marinho #0b1f3a ou verde-garrafa #0f2e2a, dourado fosco #b08d57, off-white. Contraste elegante.",
@@ -352,6 +435,18 @@ var NICHES = [
     visual: "Foto do carro em close, tipografia forte condensada, servi\xE7os numerados, antes e depois, selo de garantia, or\xE7amento pelo WhatsApp em destaque.",
     copy: "T\xE9cnica e transparente: o que faz, quanto tempo leva, garantia, como pedir or\xE7amento.",
     avoid: "tons suaves, clima de sal\xE3o, excesso de gradiente roxo."
+  },
+  {
+    id: "energia",
+    label: "Energia solar e instala\xE7\xF5es el\xE9tricas",
+    match: ["solar", "fotovolt", "energia limpa", "energia renov", "painel solar", "instalacao eletrica"],
+    theme: "light",
+    moods: ["modern", "strong"],
+    feel: "Economia concreta e engenharia confi\xE1vel: o visitante enxerga a conta de luz caindo e o telhado j\xE1 instalado. T\xE9cnico sem ser frio, solar sem clich\xEA de sol sorridente.",
+    color: "Fundo claro quente (areia-clara ou branco-gelo), azul-petr\xF3leo profundo #0f3b57 como cor de engenharia e um amarelo-sol queimado #f2a900 s\xF3 nos pontos de a\xE7\xE3o. Texto quase preto azulado.",
+    visual: "Foto real de telhado com placas e da equipe instalando, n\xFAmeros do sistema (kWp, placas, retorno estimado) em destaque tabular, simulador de economia, passo a passo da instala\xE7\xE3o, garantias e marcas dos equipamentos em faixa.",
+    copy: "Direta e t\xE9cnica na medida: como funciona a economia, o que est\xE1 incluso (projeto, homologa\xE7\xE3o, instala\xE7\xE3o), prazo e garantia. Sem prometer conta zero; fale de estimativa e de taxa m\xEDnima.",
+    avoid: 'sol sorridente e \xEDcones de clipart, verde-folha gen\xE9rico de "sustentabilidade", promessas de "conta zero", fundo preto neon.'
   },
   {
     id: "casa",
@@ -424,7 +519,8 @@ var NICHES = [
     id: "tecnologia",
     label: "Tecnologia, ag\xEAncia e marketing",
     match: ["tecnolog", "software", "marketing", "startup", "desenvolv", "programa", "informatic", "agencia", "design", "sites"],
-    moods: ["modern", "strong"],
+    theme: "dark",
+    moods: ["modern"],
     feel: "Moderno e confiante: precis\xE3o, velocidade, resultado. Premium e atual.",
     color: "Escuro profundo com gradiente de uma cor viva (violeta, ciano ou lima) e branco. Brilhos sutis.",
     visual: "Tipografia geom\xE9trica grande, cart\xF5es em vidro, n\xFAmeros de resultado reais, casos e servi\xE7os em grade, bot\xE3o de falar com especialista.",
@@ -839,7 +935,10 @@ function badge(c, t, onPhoto = false) {
 }
 function heading(c, t, center = false) {
   const look = t.look ?? "clean";
-  const kicker = !c.kicker ? "" : look === "bold" ? `<p class="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.22em] text-brand ${center ? "justify-center" : ""}"><span class="h-px w-10 bg-brand"></span>${esc(c.kicker)}</p>` : look === "soft" ? `<p class="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3.5 py-1 text-xs font-semibold text-brand"><span class="size-1.5 rounded-full bg-brand"></span>${esc(c.kicker)}</p>` : `<p class="text-sm font-semibold uppercase tracking-[0.18em] text-brand">${esc(c.kicker)}</p>`;
+  const flat = t.bg === "ink" || t.bg === "brand";
+  const kc = flat ? `text-${t.tx}/85` : "text-brand";
+  const kb = flat ? "bg-current" : "bg-brand";
+  const kicker = !c.kicker ? "" : look === "bold" ? `<p class="flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.22em] ${kc} ${center ? "justify-center" : ""}"><span class="h-px w-10 ${kb}"></span>${esc(c.kicker)}</p>` : look === "soft" ? `<p class="inline-flex items-center gap-2 rounded-full border border-brand/25 bg-brand/10 px-3.5 py-1 text-xs font-semibold ${kc}"><span class="size-1.5 rounded-full ${kb}"></span>${esc(c.kicker)}</p>` : `<p class="text-sm font-semibold uppercase tracking-[0.18em] ${kc}">${esc(c.kicker)}</p>`;
   const title = look === "bold" ? "font-bold uppercase leading-[0.98] tracking-tight" : look === "soft" ? "font-semibold leading-[1.08] tracking-tight" : "font-bold leading-[1.04] tracking-tight";
   return `<div class="reveal ${center ? "mx-auto max-w-2xl text-center" : "max-w-2xl"}">
       ${kicker}
@@ -2064,13 +2163,13 @@ var PHOTOS = {
     { id: "1518611012118-696072aa579a", about: "aula em grupo no colchonete (pilates/funcional)" }
   ],
   juridico: [
-    { id: "1589829545856-d10d557cf95f", about: "est\xE1tua da justi\xE7a (hero)" },
+    { id: "1497215728101-856f4ea42174", about: "escrit\xF3rio claro com vista da cidade (hero)" },
     { id: "1505664194779-8beaceb93744", about: "biblioteca com livros antigos" },
     { id: "1450101499163-c8848c66ca85", about: "assinatura de documento" },
     { id: "1554224155-6726b3ff858f", about: "documentos e calculadora (contabilidade)" },
     { id: "1521791055366-0d553872125f", about: "m\xE3o assinando contrato com caneta" },
-    { id: "1497215728101-856f4ea42174", about: "escrit\xF3rio claro com vista da cidade" },
-    { id: "1573497019940-1c28c88b4f3e", about: "retrato de profissional sorridente" }
+    { id: "1573497019940-1c28c88b4f3e", about: "retrato de profissional sorridente" },
+    { id: "1589829545856-d10d557cf95f", about: "est\xE1tua da justi\xE7a (clich\xEA: use s\xF3 se o pedido pedir)" }
   ],
   pet: [
     { id: "1548199973-03cce0bbc87b", about: "dois cachorros correndo felizes (hero)" },
@@ -2168,7 +2267,7 @@ var PHOTO_GROUPS = [
   { group: "juridico", match: ["advoca", "advogad", "juridic", "contab", "contador"] },
   { group: "fitness", match: ["academia", "crossfit", "pilates", "personal", "fitness", "luta", "danca", "yoga"] },
   { group: "pet", match: ["pet", "veterin", "tosa", "canil"] },
-  { group: "casa", match: ["imobil", "imove", "corretor", "constru", "reforma", "arquitet", "engenh", "marcenar"] },
+  { group: "casa", match: ["imobil", "imove", "corretor", "constru", "reforma", "arquitet", "engenh", "marcenar", "solar", "fotovolt", "energia"] },
   { group: "escola", match: ["escola", "curso", "idioma", "educa", "colegio", "creche"] },
   { group: "loja", match: ["loja", "roupa", "moda", "calcad", "boutique", "otica", "joalher"] },
   { group: "hospedagem", match: ["pousada", "hotel", "hostel", "resort", "chale", "hosped", "turism", "viage"] },
@@ -2329,6 +2428,7 @@ var AUTO_EFFECTS = [
   "scroll-progress",
   "smooth-scroll"
 ];
+var DEFAULT_COMPOSITION = { container: "regular", density: "regular", headings: "sentence", rhythm: "none" };
 var FONT_PAIRS = {
   modern: [
     ["Space Grotesk", "IBM Plex Sans"],
@@ -2420,9 +2520,9 @@ var ACCENT_BLOCKS = ["letreiro", "faixa-destaque", "lista-precos", "planos"];
 var ENTRANCE_FX = ["split-text", "blur-in"];
 var INTERACTION_FX = ["magnetic", "tilt", "image-reveal", "gradient-text", "annotate", "shimmer"];
 function hashOf(text2) {
-  let hash = 2166136261;
-  for (let i = 0; i < text2.length; i++) hash = Math.imul(hash ^ text2.charCodeAt(i), 16777619);
-  return hash >>> 0;
+  let hash2 = 2166136261;
+  for (let i = 0; i < text2.length; i++) hash2 = Math.imul(hash2 ^ text2.charCodeAt(i), 16777619);
+  return hash2 >>> 0;
 }
 function pick(options, avoid, seed) {
   const fresh = options.filter((option) => !avoid.includes(option));
@@ -2448,7 +2548,7 @@ function siteRecipe(brief, recent, seed) {
   const darkShare = recent.length ? recent.filter((plan) => plan.theme === "dark").length / recent.length : 0;
   const style = brief.style ?? "auto";
   const niche = nicheFor(brief);
-  const theme = style === "dark" ? "dark" : style === "minimal" || style === "vibrant" ? "light" : niche?.theme ? niche.theme : darkShare < 1 / 3 ? "dark" : hashOf(`${seed}:tema`) % 2 ? "dark" : "light";
+  const theme = style === "dark" ? "dark" : style === "minimal" || style === "vibrant" ? "light" : niche?.theme ? niche.theme : recent.length ? darkShare >= 0.5 ? "light" : "dark" : hashOf(`${seed}:tema`) % 2 ? "dark" : "light";
   let heroes = hasPhotos ? GROUP_HEROES[group ?? ""] ?? ["hero-cinema", "hero-mundo", "hero-dividido", "hero-editorial"] : ["hero-brilho", "hero-neon", "hero-dividido"];
   if (theme === "light") heroes = heroes.filter((hero2) => hero2 !== "hero-neon");
   if (!heroes.length) heroes = ["hero-dividido"];
@@ -2469,7 +2569,8 @@ function siteRecipe(brief, recent, seed) {
     pick(interactions, recentEffects, `${seed}:interacao`)
   ];
   const look = pick(["clean", "bold", "soft"], recent.slice(0, 1).map((plan) => plan.look ?? "clean"), `${seed}:acabamento`);
-  return { hero, header, theme, fonts, blocks, effects, look };
+  const composition = compositionFor(niche?.id, `${seed}:composicao`, recent.map((plan) => plan.composition));
+  return { hero, header, theme, fonts, blocks, effects, look, composition };
 }
 function recipeMessage(recipe) {
   const name = (id) => `${id} (${BLOCKS[id]?.name ?? id})`;
@@ -2480,7 +2581,8 @@ function recipeMessage(recipe) {
     `- Tema: ${recipe.theme === "dark" ? 'ESCURO \u2014 "theme": "dark", paper e surface escuros (com a cor do neg\xF3cio), ink claro' : 'CLARO \u2014 "theme": "light", paper e surface claros, ink quase preto'}`,
     `- Fontes: use um destes pares: ${recipe.fonts.map((pair) => `"${pair.display}"+"${pair.body}"`).join(", ")}`,
     `- Blocos que o site precisa ter (em se\xE7\xF5es cujo conte\xFAdo combine): ${recipe.blocks.map(name).join("; ")}`,
-    `- Efeitos j\xE1 escolhidos: ${recipe.effects.join(", ")} (pode somar no m\xE1ximo mais 1)`
+    `- Efeitos j\xE1 escolhidos: ${recipe.effects.join(", ")} (pode somar no m\xE1ximo mais 1)`,
+    compositionMessage(recipe.composition)
   ].join("\n");
 }
 function mixHex(a, b, weight) {
@@ -2518,6 +2620,7 @@ function applyRecipe(plan, recipe, brief) {
   next.sections[0] = { ...next.sections[0], layout: recipe.hero };
   next.header = recipe.header;
   next.look = recipe.look;
+  next.composition = completeComposition(cleanComposition(plan.composition), recipe.composition);
   if (next.theme !== recipe.theme && !/escur|preto|dark|claro|branco|light/.test(asked)) {
     next.palette = paletteFor(next.palette, recipe.theme);
     next.theme = recipe.theme;
@@ -2577,6 +2680,7 @@ Formato do JSON:
   "palette": { "brand": "#hex cor principal", "brandDark": "#hex mais escura da principal", "accent": "#hex acento", "ink": "#hex texto principal (no dark \xE9 claro, no light \xE9 quase preto)", "paper": "#hex fundo principal", "surface": "#hex fundo alternativo/cart\xF5es", "muted": "#hex texto secund\xE1rio" },
   "fonts": { "display": "fonte dos t\xEDtulos (veja PARES DE FONTES)", "body": "fonte do texto" },
   "radius": "round" | "soft" | "sharp" (cantos do site inteiro, escolhidos pela dire\xE7\xE3o de arte),
+  "composition": { "container": "narrow"|"regular"|"wide", "density": "compact"|"regular"|"airy", "headings": "sentence"|"upper"|"tight"|"heavy", "rhythm": "none"|"rule" } (como o site respira: largura do conte\xFAdo, respiro entre se\xE7\xF5es, caixa dos t\xEDtulos e divis\xF3rias; a composi\xE7\xE3o da RECEITA vale, mude um campo s\xF3 se a dire\xE7\xE3o de arte pedir),
   "favicon": "\xEDcone da aba do navegador como UM SVG de 64x64 (viewBox 0 0 64 64), simples e leg\xEDvel em 16px: forma geom\xE9trica do mundo do neg\xF3cio (tesoura, dente, balan\xE7a, p\xE3o, chave inglesa, folha\u2026) ou monograma, com as cores da paleta; fundo arredondado com a cor principal; s\xF3 tags svg, rect, circle, ellipse, path, polygon, line, g e text (no m\xE1ximo 2 letras), sem script, imagem, filtro nem fonte externa; at\xE9 900 caracteres",
   "signature": "a marca registrada do site em 1 ou 2 frases concretas: o \xFAnico elemento ousado de que o visitante vai lembrar, tirado do mundo do neg\xF3cio (ex.: t\xEDtulo do topo enorme em caixa alta condensada cortado pela foto da navalha; tabela de pre\xE7os desenhada como a lousa de giz da padaria; faixa com a planta baixa do apartamento em linhas finas)",
   "signatureSection": "id da se\xE7\xE3o onde a marca registrada aparece (normalmente hero)",
@@ -3275,6 +3379,7 @@ function normalizePlan(raw, brief) {
     ...planEffects(input.effects).length ? { effects: planEffects(input.effects) } : {},
     ...blockFor(input.header, ["header"]) ? { header: blockFor(input.header, ["header"]) } : {},
     ...["clean", "bold", "soft"].includes(input.look) ? { look: input.look } : {},
+    ...Object.keys(cleanComposition(input.composition)).length ? { composition: cleanComposition(input.composition) } : {},
     ...typeof input.cta === "string" && input.cta.trim() ? { cta: input.cta.replace(/\s+/g, " ").trim().slice(0, 40) } : {},
     ...typeof input.tagline === "string" && input.tagline.trim() ? { tagline: stripInventedClaims(input.tagline.replace(/\s+/g, " ").trim(), brief).slice(0, 140) } : {},
     ...typeof input.signature === "string" && input.signature.trim() ? {
@@ -3744,6 +3849,7 @@ function buildHead(plan) {
           surface: plan.palette.surface,
           muted: plan.palette.muted
         },
+        ...compositionTheme(completeComposition(plan.composition, DEFAULT_COMPOSITION)),
         fontFamily: {
           display: [plan.fonts.display, ...FONT_WIDTH[plan.fonts.display] ? [fallbackName(plan.fonts.display)] : [], "ui-sans-serif", "system-ui", "sans-serif"],
           body: [plan.fonts.body, ...FONT_WIDTH[plan.fonts.body] ? [fallbackName(plan.fonts.body)] : [], "ui-sans-serif", "system-ui", "sans-serif"]
@@ -3770,7 +3876,7 @@ function buildHead(plan) {
     `<link href="https://fonts.googleapis.com/css2?${fonts}&display=swap" rel="stylesheet">`,
     '<script src="https://cdn.tailwindcss.com"></script>',
     `<script>tailwind.config=${JSON.stringify(config)}</script>`,
-    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ""}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`
+    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}${compositionCss(completeComposition(plan.composition, DEFAULT_COMPOSITION))}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ""}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`
   ].join("\n");
 }
 var SKIP_LINK = {
@@ -4527,6 +4633,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
 0 && (module.exports = {
   ASSET_PATH,
   AUTO_EFFECTS,
+  COMPOSITION_OPTIONS,
   CONTINUE_PROMPT,
   EDIT_SYSTEM,
   FAVICON_FILE,
@@ -4557,8 +4664,14 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   buildPlanMessage,
   changeReport,
   cleanAssets,
+  cleanComposition,
   cleanFragment,
   cleanUserText,
+  completeComposition,
+  compositionCss,
+  compositionFor,
+  compositionMessage,
+  compositionTheme,
   contactsOf,
   contrastGuide,
   contrastRatio,

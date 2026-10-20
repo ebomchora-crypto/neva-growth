@@ -1,0 +1,97 @@
+// Revisão visual: renderiza o site num navegador de verdade e mede o que é mensurável (overflow, texto pequeno,
+// contraste, alvos de toque, imagens quebradas, hierarquia de títulos, composição efetiva). Estética (se está
+// bonito) NÃO é medida aqui: isso exige olhar as capturas (shots). Sem navegador, devolve available:false.
+const fs = require('node:fs');
+
+const CANDIDATES = [process.env.CM_BROWSER, '/opt/pw-browsers/chromium', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome'].filter(Boolean);
+function browserPath() { return CANDIDATES.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null; }
+function playwright() { try { return require('playwright-core'); } catch { return null; } }
+function available() { return Boolean(browserPath() && playwright()); }
+
+const VIEWPORTS = [{ name: 'celular', width: 360, height: 780 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }];
+
+// Roda dentro da página.
+function measure() {
+  const vw = document.documentElement.clientWidth;
+  const lum = (r, g, b) => { const c = [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const parse = (s) => { const m = s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r, g, b, a }; };
+  const bgOf = (el) => { for (let n = el; n; n = n.parentElement) { const cs = getComputedStyle(n); if (cs.backgroundImage !== 'none') return null; const c = parse(cs.backgroundColor); if (c && c.a > 0.5) return c; } return { r: 255, g: 255, b: 255, a: 1 }; };
+  const visible = (el) => { const r = el.getBoundingClientRect(); const cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && cs.display !== 'none' && Number(cs.opacity) > 0.05; };
+  const label = (el) => `${el.tagName.toLowerCase()}${el.id ? '#' + el.id : ''}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`;
+  const out = { overflowX: document.documentElement.scrollWidth - vw, overflowers: [], small: [], contrast: [], taps: [], brokenImages: [], headingClips: [], emptySections: [] };
+  document.querySelectorAll('body *').forEach((el) => {
+    if (!visible(el)) return;
+    const r = el.getBoundingClientRect();
+    if (r.right > vw + 2 && out.overflowers.length < 6 && !el.closest('[class*="overflow-x"],[class*="snap-x"],.overflow-hidden')) out.overflowers.push({ el: label(el), right: Math.round(r.right) });
+  });
+  const seen = new Set();
+  document.querySelectorAll('p,li,a,button,span,h1,h2,h3,h4,summary,label,small,td,dd,dt').forEach((el) => {
+    const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+    if (!own.length || !visible(el)) return;
+    const cs = getComputedStyle(el); const size = parseFloat(cs.fontSize);
+    if (size < 12 && out.small.length < 8) out.small.push({ el: label(el), px: size, text: own[0].textContent.trim().slice(0, 30) });
+    const fg = parse(cs.color); const bg = bgOf(el);
+    if (!fg || !bg || fg.a < 0.5) return;
+    const er = el.getBoundingClientRect(); const overImage = [...document.querySelectorAll('img,video,canvas,svg[class*="absolute"]')].some((m) => { if (m.contains(el)) return false; const r = m.getBoundingClientRect(); return r.width > 80 && r.height > 60 && er.left < r.right && er.right > r.left && er.top < r.bottom && er.bottom > r.top; });
+    if (overImage) return;
+    const l1 = lum(fg.r, fg.g, fg.b), l2 = lum(bg.r, bg.g, bg.b);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    const large = size >= 24 || (size >= 18.66 && Number(cs.fontWeight) >= 700);
+    const key = `${cs.color}|${bg.r},${bg.g},${bg.b}|${Math.round(size)}`;
+    if (ratio < (large ? 3 : 4.5) && !seen.has(key) && out.contrast.length < 10) { seen.add(key); out.contrast.push({ el: label(el), ratio: Math.round(ratio * 100) / 100, text: own[0].textContent.trim().slice(0, 30) }); }
+  });
+  if (vw <= 480) document.querySelectorAll('a[href],button,summary,input,select').forEach((el) => {
+    if (!visible(el) || el.closest('nav details')) return; const r = el.getBoundingClientRect();
+    if ((r.height < 24 || r.width < 24) && out.taps.length < 8 && getComputedStyle(el).display !== 'inline') out.taps.push({ el: label(el), w: Math.round(r.width), h: Math.round(r.height) });
+  });
+  document.querySelectorAll('img').forEach((img) => { if (visible(img) && img.complete && img.naturalWidth === 0 && out.brokenImages.length < 6) out.brokenImages.push(img.getAttribute('src')?.slice(0, 60)); });
+  document.querySelectorAll('h1,h2').forEach((h) => { if (visible(h) && h.scrollWidth > h.clientWidth + 2 && out.headingClips.length < 6) out.headingClips.push({ el: label(h), text: h.textContent.trim().slice(0, 40) }); });
+  document.querySelectorAll('main>section').forEach((s) => { if (s.getBoundingClientRect().height < 48) out.emptySections.push(s.id || label(s)); });
+  const sections = [...document.querySelectorAll('main>section')];
+  const inner = document.querySelector('main>section:nth-of-type(2) [class*="max-w"]');
+  out.h1 = document.querySelectorAll('h1').length;
+  out.metrics = {
+    pageHeight: document.documentElement.scrollHeight, sections: sections.length,
+    contentWidth: inner ? Math.round(inner.getBoundingClientRect().width) : null,
+    sectionPadY: sections[1] ? Math.round(parseFloat(getComputedStyle(sections[1]).paddingTop)) : null,
+    h2Transform: document.querySelector('main section h2') ? getComputedStyle(document.querySelector('main section h2')).textTransform : null,
+    h2Weight: document.querySelector('main section h2') ? getComputedStyle(document.querySelector('main section h2')).fontWeight : null,
+    fontDisplay: getComputedStyle(document.querySelector('h1,h2') || document.body).fontFamily.split(',')[0].replace(/["']/g, ''),
+    bodyBg: getComputedStyle(document.body).backgroundColor,
+  };
+  return out;
+}
+
+/** Renderiza e mede. `shotsDir` (opcional) salva capturas por largura para a inspeção estética. */
+async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = {}) {
+  if (!available()) return { available: false, reason: browserPath() ? 'playwright-core ausente' : 'nenhum navegador encontrado (defina CM_BROWSER)' };
+  const { chromium } = playwright();
+  const browser = await chromium.launch({ executablePath: browserPath(), args: ['--no-sandbox'] });
+  const results = []; const findings = [];
+  try {
+    for (const vp of VIEWPORTS) {
+      const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, reducedMotion: 'reduce' });
+      const page = await ctx.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle', timeout }).catch(() => {});
+      await page.waitForTimeout(600);
+      await page.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('is-visible')));
+      const m = await page.evaluate(measure);
+      if (shotsDir) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}-${vp.name}.png`, fullPage: vp.name !== 'desktop' || true }); }
+      results.push({ viewport: vp.name, width: vp.width, ...m });
+      const add = (severity, kind, detail) => findings.push({ severity, viewport: vp.name, kind, detail });
+      if (m.overflowX > 2) add('critico', 'overflow-horizontal', `${m.overflowX}px além da tela; ex.: ${m.overflowers.map((o) => o.el).slice(0, 3).join(', ')}`);
+      if (m.headingClips.length) add('critico', 'titulo-cortado', m.headingClips.map((h) => h.text).join(' | '));
+      if (m.brokenImages.length) add('critico', 'imagem-quebrada', m.brokenImages.join(', '));
+      if (m.h1 !== 1) add('alto', 'h1', `${m.h1} títulos h1 (esperado 1)`);
+      if (m.contrast.length) add('alto', 'contraste-baixo', m.contrast.slice(0, 4).map((c) => `${c.el} ${c.ratio}:1 "${c.text}"`).join(' | '));
+      if (m.small.length) add('medio', 'texto-pequeno', m.small.slice(0, 4).map((s) => `${s.px}px "${s.text}"`).join(' | '));
+      if (m.taps.length) add('medio', 'alvo-de-toque', m.taps.slice(0, 4).map((t) => `${t.el} ${t.w}x${t.h}`).join(' | '));
+      if (m.emptySections.length) add('medio', 'secao-vazia', m.emptySections.join(', '));
+      await ctx.close();
+    }
+  } finally { await browser.close(); }
+  const rank = { critico: 3, alto: 2, medio: 1 };
+  return { available: true, findings, critical: findings.filter((f) => f.severity === 'critico').length, results, summary: findings.reduce((a, f) => ({ ...a, [f.severity]: (a[f.severity] || 0) + 1 }), {}), worst: findings.sort((a, b) => rank[b.severity] - rank[a.severity])[0] || null };
+}
+
+module.exports = { inspectHtml, available, browserPath, VIEWPORTS };
