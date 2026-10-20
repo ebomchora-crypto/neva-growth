@@ -172,6 +172,20 @@ function cleanBrief(input) {
 }
 
 // Chamada sem streaming (requisitos, escolha de arquivos, análise prévia). `meta` = { sel, kind, userId, maxTokens, raw }.
+// JSON da IA: aceita cercas de código e texto antes/depois (sem raciocínio, o Nemotron às vezes abre com uma frase).
+function parseJsonLoose(text) {
+  const clean = String(text).trim().replace(/^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$/g, '');
+  try { return JSON.parse(clean); } catch { /* tenta achar o objeto dentro do texto */ }
+  const start = clean.indexOf('{');
+  const end = clean.lastIndexOf('}');
+  if (start < 0 || end <= start) return undefined;
+  try { return JSON.parse(clean.slice(start, end + 1)); } catch { return undefined; }
+}
+// Leitura dos requisitos: um deslize de formato tenta mais uma vez antes de parar o site inteiro.
+async function specOnce(apiKey, model, chunk, signal, meta) {
+  try { return await completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, meta); }
+  catch (error) { if (signal.aborted) throw error; return completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, meta); }
+}
 async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
   const started = Date.now();
@@ -208,12 +222,11 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('A leitura dos requisitos não terminou. Tente novamente.');
   const text = data.choices?.[0]?.message?.content;
   if (typeof text !== 'string') throw new Error('A IA não retornou uma especificação válida.');
-  try {
-    return JSON.parse(text.trim().replace(/^\x60\x60\x60(?:json)?\s*|\s*\x60\x60\x60$/g, ''));
-  } catch {
-    // A mensagem do JSON.parse é técnica (e em inglês): a tela recebe esta.
-    throw new Error('A IA respondeu fora do formato esperado. Tente de novo.');
-  }
+  const parsed = parseJsonLoose(text);
+  if (parsed !== undefined) return parsed;
+  ai.logCall({ kind: `${meta.kind || 'cm_json'}:formato`, userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ok: false, note: text.slice(0, 280) });
+  // A mensagem do JSON.parse é técnica (e em inglês): a tela recebe esta.
+  throw new Error('A IA respondeu fora do formato esperado. Tente de novo.');
 }
 async function compactContext(content, budget, apiKey, model, signal) {
   if (content.length <= budget) return content;
@@ -616,7 +629,7 @@ r.post('/', async (req, res) => {
         if (!planningBrief.specification) {
           const prompt = planningBrief.details || JSON.stringify(planningBrief);
           const specification = await E.prepareSpecificationContext(
-            prompt, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2))
+            prompt, (chunk) => specOnce(apiKey, model, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2))
           );
           planningBrief = { ...planningBrief, specification };
           signal.throwIfAborted();
@@ -746,7 +759,7 @@ r.post('/', async (req, res) => {
   const treeChars = Object.values(tree).reduce((sum, content) => sum + content.length, 0);
 
   const buildMessages = async (signal, emit = () => {}) => {
-    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2)));
+    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => specOnce(apiKey, model, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2)));
     // Só o que precisa de servidor fica de fora (spec.ts filtra o resto).
     const limits = editSpecification.limitations.length
       ? `\n\nEstes itens normalmente pedem servidor: ${editSpecification.limitations.join('; ')}. Não recuse nem deixe de fora: entregue a versão funcional que roda no navegador (telas e fluxo completos, dados no localStorage, links de pagamento/WhatsApp/e-mail) e conte numa ação o que foi feito. Faça também todo o resto do pedido.`
@@ -854,4 +867,5 @@ r.post('/', async (req, res) => {
 });
 
 module.exports = r;
+module.exports.parseJsonLoose = parseJsonLoose;
 module.exports.repairDsml = repairDsml;

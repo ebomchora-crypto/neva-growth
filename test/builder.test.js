@@ -184,3 +184,10 @@ test('DESIGN.md contraste AA: texto apagado da IA sobe para o secundário legív
   const footer = E.normalizePart('footer', '<footer>f</footer>\n<a class="fixed bottom-5" href="#">w</a>');
   assert.match(footer, /<aside aria-label="Atalho do WhatsApp"><a class="fixed/);
 });
+
+test('JSON da IA com texto em volta ainda é lido (sem raciocínio, o Nemotron abre com uma frase)', () => {
+  const { parseJsonLoose } = require('../server/routes/codemaker');
+  assert.deepEqual(parseJsonLoose('```json\n{"a":1}\n```'), { a: 1 });
+  assert.deepEqual(parseJsonLoose('Aqui está a especificação:\n{"a":{"b":[1,2]}}\nPronto.'), { a: { b: [1, 2] } });
+  assert.equal(parseJsonLoose('sem json aqui'), undefined);
+});
