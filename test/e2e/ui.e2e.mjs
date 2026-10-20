@@ -38,7 +38,13 @@ await step(REDUCED ? 'animações: desligadas com reduzir movimento' : 'animaç�
 await step('dashboard: períodos e estado vazio honesto', async () => {
   await page.click('.pill:has-text("7 dias")'); await page.waitForSelector('.periodbar .pill.on:has-text("7 dias")'); await page.waitForSelector('.lm span:has-text("/")');
   await page.click('.pill:has-text("1 ano")'); await page.waitForSelector('svg.chart');
-  await page.waitForSelector('button.aibtn[disabled]');
+  // O resumo do período abre a arte compartilhável (não depende de IA): modal no meio da tela, números reais e botões que funcionam.
+  await page.click('button.aibtn:has-text("Gerar resumo do período")'); await page.waitForSelector('.sm-card h2:has-text("Seu resultado.")'); await page.waitForTimeout(450);
+  const c = await page.$eval('.sm-card', (e) => { const r = e.getBoundingClientRect(); return [r.x + r.width / 2 - innerWidth / 2, r.y + r.height / 2 - innerHeight / 2]; });
+  if (Math.abs(c[0]) > 4 || Math.abs(c[1]) > 4) throw new Error('resumo fora do centro: ' + c);
+  for (const b of ['Compartilhar resultado', 'WhatsApp', 'Baixar PNG', 'Copiar texto', 'Voltar para o painel']) await page.waitForSelector(`.sm-card button:has-text("${b}")`);
+  const dl = page.waitForEvent('download'); await page.click('.sm-row button:has-text("Baixar PNG")'); if (!(await dl).suggestedFilename().endsWith('.png')) throw new Error('PNG não baixou');
+  await page.click('.sm-back-btn'); await page.waitForFunction(() => !document.querySelector('.sm-card'));
 });
 await step('menu lateral na ordem de referência', async () => {
   const order = await page.$$eval('.side a[data-path]', (as) => as.filter((a) => a.offsetParent !== null).map((a) => a.dataset.path));
@@ -70,8 +76,23 @@ await step('CRM: quick-add na coluna + arrastar + abas', async () => {
   await page.click('.ktabs button:has-text("Todas")');
 });
 await step('CRM: arquivar e ver arquivados', async () => {
-  await page.click('.lcard:has-text("Padaria Sol")'); await page.click('.modal button:has-text("Arquivar")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
+  await page.click('.lcard:has-text("Padaria Sol")'); await page.waitForSelector('.dw .dw-kicker:has-text("Dossiê da oportunidade")'); await page.click('.dw-act:has-text("Arquivar oportunidade")'); await page.waitForFunction(() => !document.body.innerText.includes('Padaria Sol'));
   await page.click('button:has-text("Arquivados")'); await page.waitForSelector('.lcard:has-text("Padaria Sol")'); await page.click('button:has-text("Voltar ao quadro")');
+});
+await step('CRM: dossiê da oportunidade (editar, etapa, histórico) e quadro rola ao arrastar até a borda', async () => {
+  await page.click('.lcard:has-text("Clínica Aurora")'); await page.waitForSelector('.dw .dw-kicker:has-text("Dossiê da oportunidade")'); await page.waitForSelector('.dw h2:has-text("Clínica Aurora")');
+  await page.waitForSelector('.dw-note:has-text("Dados salvos na sua conta")');
+  await page.fill('.dw input[name=contact]', 'Dra. Marina'); await page.waitForSelector('.dw-note:has-text("Há alterações para salvar")');
+  await page.click('.dw-tabs button:has-text("Histórico")'); await page.fill('.dw-actform input', 'Ligação de retorno feita'); await page.click('.dw-actform button'); await page.waitForSelector('.dw-acts li:has-text("Ligação de retorno feita")');
+  await page.click('.dw-tabs button:has-text("Detalhes")'); await page.click('.dw-go'); await page.waitForFunction(() => !document.querySelector('.dw'));
+  await page.click('.lcard:has-text("Clínica Aurora")'); await page.waitForSelector('.dw h2:has-text("Clínica Aurora")');
+  if ((await page.inputValue('.dw input[name=contact]')) !== 'Dra. Marina') throw new Error('contato não salvou'); await page.click('.dw-x'); await page.waitForFunction(() => !document.querySelector('.dw-back'));
+  // arrastar perto da borda direita rola o quadro sozinho
+  await page.setViewportSize({ width: 900, height: 800 }); await page.waitForTimeout(300);
+  const moved = await page.evaluate(async () => { const k = document.querySelector('.kanban'); const card = document.querySelector('.lcard'); k.scrollLeft = 0; const dt = new DataTransfer(); card.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+    const r = k.getBoundingClientRect(); for (let i = 0; i < 6; i++) k.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, clientX: r.right - 10, clientY: r.top + 100, dataTransfer: dt }));
+    card.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt })); return k.scrollLeft; });
+  if (moved < 60) throw new Error('quadro não rolou ao arrastar até a borda: ' + moved); await page.setViewportSize({ width: 1360, height: 900 });
 });
 await step('CRM: editar funil na gaveta (renomear + nova etapa)', async () => {
   await page.click('button:has-text("Editar funil")'); await page.waitForSelector('.dw h2:has-text("Seu funil. Suas regras.")'); await page.waitForSelector('.dw-flow:has-text("Novos contatos")'); await page.waitForSelector('.dw-stage:has-text("ETAPA 01")');
@@ -87,7 +108,7 @@ await step('CRM: importar carteira (clientes e leads da prospecção)', async ()
 await step('CRM: minimizar header + lista + converter em cliente', async () => {
   await page.click('button:has-text("Minimizar header")'); await page.waitForSelector('button:has-text("Expandir header")'); await page.click('button:has-text("Expandir header")');
   await page.click('.kseg button[aria-label="Lista"]'); await page.waitForSelector('tbody tr:has-text("Clínica Aurora")'); await page.click('.kseg button[aria-label="Quadro"]');
-  await page.click('.lcard:has-text("Clínica Aurora")'); await page.click('.modal button:has-text("Converter em cliente")'); await page.waitForSelector('.col[data-stage=ganho] .lcard:has-text("Clínica Aurora")');
+  await page.click('.lcard:has-text("Clínica Aurora")'); await page.click('.dw-act:has-text("Converter em cliente")'); await page.waitForSelector('.col[data-stage=ganho] .lcard:has-text("Clínica Aurora")');
 });
 await step('Clientes: indicadores, abas por estágio, entrega digital', async () => {
   await nav('clientes'); await page.waitForSelector('.stat:has-text("Clientes cadastrados")'); await page.waitForSelector('.stat:has-text("Clientes cadastrados") b:text-is("1")');

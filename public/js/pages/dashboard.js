@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { h, mount, brl, dt, dtt, money, toast, fail, pills, icon, heroArt } from '../ui.js';
 import { riseMoney, still } from '../motion.js';
+import { openSummary } from '../summary-card.js';
 
 const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3 meses'], ['6m', '6 meses'], ['1a', '1 ano']];
 const SVG = 'http://www.w3.org/2000/svg';
@@ -54,7 +55,7 @@ export default {
     async function genSummary(btn) {
       btn.disabled = true; btn.textContent = 'Gerando…';
       try { const r = await api.post('/dashboard/summary', { period }); mount(summaryBox, h('div', { class: 'notice info', style: 'white-space:pre-wrap;margin-top:12px' }, r.summary, h('div', { class: 'sm mut' }, `Gerado por IA a partir dos números do período `))); }
-      catch (e) { fail(e); } finally { btn.disabled = false; btn.textContent = 'Gerar resumo do período'; }
+      catch (e) { fail(e); } finally { btn.disabled = false; btn.textContent = 'Texto com IA'; }
     }
     function draw(d) {
       const m = d.metrics; const k = d.kpis;
@@ -68,7 +69,8 @@ export default {
               h('div', { class: 'top' },
                 h('div', h('div', { class: 'ptitle' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, h('span', { class: 'big' }, money(m.profit)), delta(m.profitVariation))),
                 h('div', { class: 'row' },
-                  h('button', { class: 'aibtn', disabled: !aiOn, title: aiOn ? 'Resumo escrito por IA com base nos números do período' : 'IA não configurada: defina RIVER_API_KEY no servidor', onclick: (e) => genSummary(e.currentTarget) }, h('i', icon('trend')), aiOn ? 'Gerar resumo do período' : 'Resumo por IA indisponível'),
+                  h('button', { class: 'aibtn', title: 'Abre a arte do seu resultado, pronta para compartilhar', onclick: () => openSummary({ name: ctx.user.name, metrics: m, period }) }, h('i', icon('trend')), 'Gerar resumo do período'),
+                  aiOn && h('button', { class: 'aibtn ghost', title: 'Resumo escrito por IA com base nos números do período', onclick: (e) => genSummary(e.currentTarget) }, 'Texto com IA'),
                   h('div', { id: 'periodbar' }))),
               summaryBox,
               lineChart(m.series, W * 0.66 - 60),

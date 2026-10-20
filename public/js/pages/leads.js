@@ -62,12 +62,20 @@ export default {
         h('div', h('span', { class: 'pri ' + l.priority, title: `Prioridade ${l.priority}` }), h('b', l.name)), l.company && h('div', { class: 'sm mut' }, l.company),
         h('div', { class: 'row', style: 'justify-content:space-between;margin-top:6px' }, h('span', { class: 'sm' }, money(l.value)), l.due_date && h('span', { class: 'sm ' + (late(l) ? 'late' : 'mut') }, (late(l) ? '⚠ ' : '') + dt(l.due_date))),
         l.owner_name && h('span', { class: 'badge', style: 'margin-top:6px' }, l.owner_name.split(' ')[0]));
-      el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', String(l.id)); el.classList.add('drag'); });
-      el.addEventListener('dragend', () => el.classList.remove('drag'));
+      el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', String(l.id)); e.dataTransfer.effectAllowed = 'move'; el.classList.add('drag'); dragging = true; });
+      el.addEventListener('dragend', () => { el.classList.remove('drag'); dragging = false; });
       return el;
     }
+    // O quadro é mais largo que a tela: durante o arrasto, perto das bordas ele rola sozinho (sem isso as colunas do lado de fora não dá para alcançar).
+    let dragging = false;
+    function autoScroll(board) {
+      board.addEventListener('dragover', (e) => {
+        if (!dragging) return; const r = board.getBoundingClientRect(); const edge = 90;
+        if (e.clientX > r.right - edge) board.scrollLeft += 22; else if (e.clientX < r.left + edge) board.scrollLeft -= 22;
+      });
+    }
     function kanban() {
-      return h('div', null, h('div', { class: 'kanban' }, stages.map((s) => {
+      const board = h('div', { class: 'kanban' }, stages.map((s) => {
         const items = leads.filter((l) => l.status === s.key);
         const foot = h('div');
         const openQuick = () => {
@@ -95,7 +103,9 @@ export default {
           });
         }
         return col;
-      })), h('div', { class: 'kfoot' }, h('span', `● Sincronizado com sua conta · ${archivedCount} arquivada(s)`), h('span', canWrite && !st.archived ? 'Arraste os cards entre etapas' : '')));
+      }));
+      autoScroll(board);
+      return h('div', null, board, h('div', { class: 'kfoot' }, h('span', `● Sincronizado com sua conta · ${archivedCount} arquivada(s)`), h('span', canWrite && !st.archived ? 'Arraste os cards entre etapas' : '')));
     }
     function list() {
       if (!leads.length) return h('div', { class: 'card empty' }, h('b', st.archived ? 'Nenhuma oportunidade arquivada' : 'Nenhuma oportunidade'), st.q || st.tab !== 'todas' ? 'Nada neste recorte.' : 'Cadastre, importe um CSV ou use a Prospecção.');
@@ -123,6 +133,7 @@ export default {
         due_date: field({ k: 'due_date', l: 'Próxima ação', type: 'date' }, rec?.due_date), tags: field({ k: 'tags', l: 'Tags', opt: 'separe por vírgula', ph: 'SaaS, redesign, landing page' }, rec?.tags),
         notes: field({ k: 'notes', l: 'Notas', type: 'textarea', rows: 7, ph: 'Contexto da conversa, combinados, próximos passos…', full: true }, rec?.notes) };
       const pane = h('div'); let tab = 'det'; let acts = []; let myTasks = [];
+      const startStatus = rec?.status;
       const tabsEl = h('div', { class: 'dw-tabs', role: 'tablist' });
       const drawTabs = () => mount(tabsEl, [['det', 'user', 'Detalhes'], ['tar', 'check', 'Tarefas', myTasks.length], ['not', 'file', 'Notas'], ['his', 'clock', 'Histórico']].map(([k, ic, l, n]) => h('button', { type: 'button', role: 'tab', class: tab === k ? 'on' : '', onclick: () => { tab = k; drawTabs(); drawPane(); } }, icon(ic), l, n !== undefined && h('em', String(n)))));
       const detail = h('div', { class: 'dw-form' }, F.name.el, F.company.el, F.contact.el, F.phone.el, F.email.el, h('div', { class: 'dw-sep' }, 'Contexto comercial'), F.value.el, F.owner_id.el, F.priority.el, F.source.el, F.due_date.el, F.tags.el,
@@ -132,15 +143,31 @@ export default {
       function drawPane() {
         mount(pane, tab === 'det' ? detail : tab === 'not' ? notes
           : tab === 'tar' ? (!rec ? empty('check', 'Tarefas depois de criar', 'Crie a oportunidade para vincular tarefas a ela.') : myTasks.length ? h('ul', { class: 'list-plain' }, myTasks.map((t) => h('li', t.title))) : empty('check', 'Nenhuma tarefa aberta', 'Crie tarefas em Tarefas e vincule a esta oportunidade.'))
-          : (!rec ? empty('clock', 'Histórico vazio', 'As atividades aparecem aqui depois que a oportunidade existir.') : acts.length ? h('ul', { class: 'list-plain' }, acts.map((a) => h('li', h('span', { class: 'badge' }, ACT[a.type] || a.type), ' ', a.text, h('div', { class: 'sm mut' }, `${a.user_name || 'Sistema'} · ${dtt(a.created_at)}`)))) : empty('clock', 'Sem atividades', 'Registre ligações, e-mails e reuniões na ficha da oportunidade.')));
+          : (!rec ? empty('clock', 'Histórico vazio', 'As atividades aparecem aqui depois que a oportunidade existir.') : h('div', actForm(), acts.length ? h('ul', { class: 'list-plain dw-acts' }, acts.map((a) => h('li', h('span', { class: 'badge' }, ACT[a.type] || a.type), ' ', a.text, h('div', { class: 'sm mut' }, `${a.user_name || 'Sistema'} · ${dtt(a.created_at)}`)))) : empty('clock', 'Sem atividades', 'Registre ligações, e-mails e reuniões aqui.'))));
+      }
+      // Registrar atividade direto no dossiê (nota, ligação, e-mail, reunião, WhatsApp).
+      function actForm() {
+        if (!canWrite) return null;
+        const type = h('select', { 'aria-label': 'Tipo de atividade' }, Object.entries(ACT).filter(([k]) => k !== 'etapa').map(([k, v]) => h('option', { value: k }, v)));
+        const txt = h('input', { placeholder: 'Registrar atividade…', 'aria-label': 'Atividade' });
+        return h('form', { class: 'dw-actform', onsubmit: async (e) => { e.preventDefault(); if (!txt.value.trim()) return;
+          try { await api.post(`/leads/${rec.id}/activities`, { type: type.value, text: txt.value }); txt.value = ''; acts = await api.get(`/leads/${rec.id}/activities`); drawTabs(); drawPane(); toast('Atividade registrada.', 'ok'); } catch (x) { fail(x); } } }, type, txt, h('button', { class: 'btn sm' }, 'Adicionar'));
       }
       if (rec) Promise.all([api.get(`/leads/${rec.id}/activities`), api.get('/tasks', { limit: 100 })]).then(([a, t]) => { acts = a; myTasks = t.items.filter((x) => x.lead_id === rec.id && !x.done); drawTabs(); drawPane(); }).catch(() => {});
-      const note = h('span', { class: 'dw-note' }, icon('check'), 'Preencha os dados para começar');
+      const note = h('span', { class: 'dw-note' }, icon('check'), rec ? 'Dados salvos na sua conta' : 'Preencha os dados para começar');
       const go = h('button', { type: 'button', class: 'dw-go', disabled: true }, icon('check'), rec ? 'Salvar alterações' : 'Criar oportunidade');
       const ready = () => F.name.input.value.trim() && F.company.input.value.trim();
-      const sync = () => { const ok = Boolean(ready()); go.disabled = !ok; note.classList.toggle('ok', ok); note.lastChild.textContent = ok ? 'Tudo pronto para salvar' : 'Preencha os dados para começar'; };
-      const D = drawer({ kicker: rec ? 'Editar relacionamento' : 'Novo relacionamento', title: rec ? 'Ajuste a oportunidade.' : 'O próximo projeto começa aqui.', subtitle: 'Dê contexto à conversa. O restante ganha forma no caminho.',
-        body: h('div', F.status.el, tabsEl, pane), footer: h('div', { class: 'dw-foot' }, note, go) });
+      let touched = false;
+      const sync = () => { const ok = Boolean(ready()); go.disabled = !ok; note.classList.toggle('ok', ok); note.lastChild.textContent = !ok ? 'Preencha os dados para começar' : rec && !touched ? 'Dados salvos na sua conta' : rec ? 'Há alterações para salvar' : 'Tudo pronto para salvar'; };
+      // Ações do dossiê: arquivar, converter em cliente e excluir (só em oportunidade que já existe).
+      const act = (ic, t, d, kind, fn) => h('button', { type: 'button', class: 'dw-act ' + kind, onclick: fn }, icon(ic), h('span', h('b', t), h('small', d)));
+      const actions = rec && canWrite ? h('div', { class: 'dw-acts2' },
+        act('archive', rec.archived ? 'Desarquivar oportunidade' : 'Arquivar oportunidade', 'Preserva os dados e o histórico', '', async () => { try { await api.put('/leads/' + rec.id, { archived: !rec.archived }); toast(rec.archived ? 'Desarquivada.' : 'Arquivada.', 'ok'); D.close(); load(); } catch (e) { fail(e); } }),
+        !rec.client_id && act('userplus', 'Converter em cliente', rec.value > 0 ? 'Cria o cliente e uma venda pendente' : 'Cria o cliente com os dados desta oportunidade', '', async () => { try { await api.post(`/leads/${rec.id}/convert`, { createSale: rec.value > 0 }); toast('Convertida em cliente' + (rec.value > 0 ? ' e venda pendente criada.' : '.'), 'ok'); D.close(); load(); } catch (e) { fail(e); } }),
+        act('trash', 'Excluir do CRM', 'Cliente, vendas e lead original são preservados', 'danger', async () => { if (!(await confirmBox(`Excluir "${rec.name}" definitivamente?`))) return; try { await api.del('/leads/' + rec.id); toast('Excluída.', 'ok'); D.close(); load(); } catch (e) { fail(e); } })) : null;
+      const D = drawer({ kicker: rec ? 'Dossiê da oportunidade' : 'Novo relacionamento', title: rec ? rec.name : 'O próximo projeto começa aqui.', subtitle: rec ? [...new Set([rec.company, rec.contact].filter(Boolean))].join(' · ') || 'Sem empresa informada' : 'Dê contexto à conversa. O restante ganha forma no caminho.',
+        body: h('div', F.status.el, tabsEl, pane, actions), footer: h('div', { class: 'dw-foot' }, note, go) });
+      D.panel.addEventListener('input', () => { touched = true; sync(); }); D.panel.addEventListener('change', () => { touched = true; sync(); });
       for (const k of ['name', 'company']) F[k].input.addEventListener('input', sync);
       drawTabs(); drawPane(); sync();
       go.onclick = async () => {
@@ -148,32 +175,14 @@ export default {
         try {
           const g = (k) => F[k].input.value.trim();
           const data = { name: g('name'), company: g('company'), contact: g('contact') || null, phone: g('phone') || null, email: g('email') || null, value: Number(g('value')) || 0, owner_id: g('owner_id') ? Number(g('owner_id')) : null, priority: g('priority'), source: g('source') || null, due_date: g('due_date') || null, tags: g('tags') || null, notes: g('notes') || null, status: g('status') };
-          if (rec) await api.put('/leads/' + rec.id, data); else await api.post('/leads', data);
+          if (rec) { await api.put('/leads/' + rec.id, data); if (data.status !== startStatus) await api.post(`/leads/${rec.id}/stage`, { status: data.status }).catch(() => {}); } else await api.post('/leads', data);
           toast('Oportunidade salva.', 'ok'); D.close(); load();
         } catch (e) { fail(e); go.disabled = false; }
       };
     }
+    // Clicar numa oportunidade abre o dossiê (gaveta lateral), como no Code Makers.
     async function openLead(id) {
-      const [l, acts, tasks] = await Promise.all([api.get('/leads/' + id), api.get(`/leads/${id}/activities`), api.get('/tasks', { limit: 100 })]);
-      const myTasks = tasks.items.filter((t) => t.lead_id === id && !t.done);
-      const actList = h('ul', { class: 'list-plain' });
-      const drawActs = (arr) => mount(actList, arr.length ? arr.map((a) => h('li', h('div', h('span', { class: 'badge' }, ACT[a.type] || a.type), ' ', a.text, h('div', { class: 'sm mut' }, `${a.user_name || 'Sistema'} · ${dtt(a.created_at)}`)),
-        canWrite && a.type !== 'etapa' && h('button', { class: 'btn ghost sm', 'aria-label': 'Excluir atividade', onclick: async () => { await api.del('/activities/' + a.id); drawActs(arr.filter((x) => x.id !== a.id)); } }, '✕'))) : h('li', { class: 'mut' }, 'Sem atividades.'));
-      drawActs(acts);
-      const type = h('select', { style: 'width:auto' }, Object.entries(ACT).filter(([k]) => k !== 'etapa').map(([k, v]) => h('option', { value: k }, v)));
-      const txt = h('input', { placeholder: 'Registrar atividade…', 'aria-label': 'Atividade' });
-      const addAct = canWrite && h('form', { class: 'row', onsubmit: async (e) => { e.preventDefault(); if (!txt.value.trim()) return;
-        try { await api.post(`/leads/${id}/activities`, { type: type.value, text: txt.value }); txt.value = ''; drawActs(await api.get(`/leads/${id}/activities`)); } catch (x) { fail(x); } } }, type, h('div', { class: 'grow' }, txt), h('button', { class: 'btn' }, 'Adicionar'));
-      modal({ title: l.name, size: 'lg', body: h('div', { class: 'stack' },
-        l.archived ? h('div', { class: 'notice' }, 'Esta oportunidade está arquivada.') : null,
-        h('dl', { class: 'kv' }, [['Empresa', l.company], ['E-mail', l.email], ['Telefone', l.phone], ['Site', l.website], ['Origem', l.source], ['Valor', brl(l.value)], ['Etapa', stageLabel(l.status)], ['Prioridade', l.priority], ['Prazo', l.due_date && dt(l.due_date)], ['Responsável', l.owner_name], ['Observações', l.notes]]
-          .filter(([, v]) => v).flatMap(([k, v]) => [h('dt', k), h('dd', v)])),
-        myTasks.length ? h('div', h('b', 'Tarefas abertas'), h('ul', { class: 'list-plain' }, myTasks.map((t) => h('li', t.title)))) : null, h('h3', 'Atividades'), addAct, actList),
-        actions: canWrite ? [
-          { label: 'Excluir', kind: 'danger', keepOpen: true, onClick: async (close) => { if (!(await confirmBox(`Excluir "${l.name}" definitivamente?`))) return false; await api.del('/leads/' + id); toast('Excluído.', 'ok'); close(); load(); } },
-          { label: l.archived ? 'Desarquivar' : 'Arquivar', kind: 'ghost', keepOpen: true, onClick: async (close) => { await api.put('/leads/' + id, { archived: !l.archived }); toast(l.archived ? 'Desarquivada.' : 'Arquivada.', 'ok'); close(); load(); } },
-          { label: 'Converter em cliente', kind: 'ghost', keepOpen: true, onClick: async (close) => { await api.post(`/leads/${id}/convert`, { createSale: l.value > 0 }); toast('Convertida em cliente' + (l.value > 0 ? ' e venda pendente criada.' : '.'), 'ok'); close(); load(); } },
-          { label: 'Editar', keepOpen: true, onClick: (close) => { close(); form(l); } }] : [] });
+      try { form(await api.get('/leads/' + id)); } catch (e) { fail(e); }
     }
     // Editar funil: gaveta "Seu funil. Suas regras."
     function editFunnel() {

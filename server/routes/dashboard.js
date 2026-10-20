@@ -37,6 +37,8 @@ async function metrics(period, ws) {
   return { period: PERIODS[period] ? period : '6m', range: { start: rg.start, end: rg.end },
     revenue: cur.revenue, profit: cur.profit, sales: cur.n, ticket: cur.n ? cur.revenue / cur.n : 0,
     profitVariation: variation(cur.profit, prev.profit), revenueVariation: variation(cur.revenue, prev.revenue), previous: { revenue: prev.revenue, profit: prev.profit },
+    // Maior venda paga do período (vira o "projeto destaque" do resumo compartilhável).
+    top: await get(`SELECT description, amount FROM sales WHERE status='pago' AND ws=? AND ${PAID_DATE} BETWEEN ? AND ? ORDER BY amount DESC, id DESC LIMIT 1`, ws, rg.start, rg.end) || null,
     series: await series(rg, ws) };
 }
 
