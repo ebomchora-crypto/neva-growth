@@ -370,7 +370,14 @@ export default {
         if (site.published) say(editLog, pick(SAY.live), liveLink());
       } catch (e) {
         reading?.fail(); exec?.fail();
-        if (e.name !== 'AbortError') { toast(e.message, 'err'); input.value = instruction; editLog = []; }
+        if (e.name !== 'AbortError') {
+          // O motivo fica escrito na conversa (o aviso de 2,5 s some antes de dar para ler) e o pedido volta para a caixa.
+          const msg = String(e.message || 'Erro inesperado.');
+          const nothing = /^Nenhum arquivo foi alterado\.\s*/.test(msg) && !/formato quebrado/.test(msg);
+          say(editLog, nothing ? `Não precisei mexer nos arquivos. ${msg.replace(/^Nenhum arquivo foi alterado\.\s*/, '')}` : `Não consegui aplicar esta alteração: ${msg}`);
+          if (!nothing) say(editLog, 'Seu pedido continua na caixa. Pode enviar de novo ou explicar de outro jeito.');
+          input.value = instruction;
+        }
       } finally {
         busy = false; pending = null; if (!signal.aborted) phase = 'idle';
         if (!disposed) drawThread();

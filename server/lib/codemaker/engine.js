@@ -4026,7 +4026,7 @@ function cleanPath(value) {
   return (value ?? "").trim().replace(/^\.?\//, "").toLowerCase();
 }
 function parseProjectEdit(raw) {
-  const text2 = raw.replace(/<\/(editar|escrever|substituir|parte|bloco|acoes|tema)\s*$/i, "</$1>");
+  const text2 = raw.replace(/<\/(editar|escrever|substituir|parte|bloco|acoes|tema)\s*$/i, "</$1>").replace(/<antes>((?:(?!<\/?antes>|<\/?depois>)[\s\S])*)<\/depois>(\s*<depois>)/gi, "<antes>$1</antes>$2");
   const operations = [];
   let invalid = 0;
   const tags = /<(editar|substituir)\s+([^>]*)>([\s\S]*?)<\/\1>|<(escrever|parte)\s+([^>]*)>([\s\S]*?)<\/\4>|<(apagar|remover)\s+([^>]*?)\/?>/gi;

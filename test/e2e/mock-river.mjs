@@ -61,7 +61,12 @@ function textFor(stage, body) {
     const id = PLAN.sections.find((x) => x.label === label)?.id || 'hero';
     return '```json\n' + JSON.stringify(PART(id)) + '\n```';
   }
-  if (stage === 'edit') return EDIT;
+  if (stage === 'edit') {
+    const msgs = body.messages || []; const last = msgs[msgs.length - 1]?.content || '';
+    // Simula o formato quebrado do Nemotron: sem o pedido de correção a resposta vem com tag aberta; com ele, vem certa.
+    if (/QUEBRAR_FORMATO/.test(msgs.map((m) => m.content).join('\n')) && !/O formato da sua resposta veio quebrado/.test(last)) return '<acoes>\n- Troquei o texto.\n</acoes>\n<editar arquivo="secoes/contato.html">\n<antes>\nFale com a padaria\n</depois>';
+    return EDIT;
+  }
   if (stage === 'qa') return 'Raciocínio curto.\nRESPOSTA: 301';
   return 'ok';
 }

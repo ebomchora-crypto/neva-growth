@@ -242,7 +242,7 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   // Análise: orçamento do nível + folga pequena só para o raciocínio mínimo (ela é texto, não pensamento escondido).
   const maxTokens = meta.raw ? (meta.maxTokens || 900) + (Object.keys(native).length ? 1000 : 0) : ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native);
   let body = { model, max_tokens: maxTokens, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
-    ...native, messages: [{ role: 'system', content: system }, { role: 'user', content }] };
+    ...native, messages: meta.messages || [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
     response = await fetch(AI_URL(), {
       method: 'POST',
@@ -856,16 +856,30 @@ r.post('/', async (req, res) => {
       }
       if (notes) content += `\n\nSUA ANÁLISE PRÉVIA (interna; use para fazer a alteração e não a repita):\n${notes}`;
     }
-    return [{ role: 'system', content: system }, { role: 'user', content }];
+    editMessages = [{ role: 'system', content: system }, { role: 'user', content }];
+    return editMessages;
   };
+  let editMessages = null;
 
   return streamAi(req, res, {
     apiKey, model, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id,
     prepare: buildMessages,
     messages: [],
     finish: async (full, signal, emit) => {
-      const edit = E.parseProjectEdit(full);
+      let edit = E.parseProjectEdit(full);
       logEdit('parsed', { edit: editId, operations: edit.operations.length, blocks: edit.blocks.length, invalid: edit.invalid, chars: full.length });
+      // Formato quebrado (ex.: <antes> fechado com </depois>): em vez de devolver erro, pede ao modelo para reenviar as operações no formato certo.
+      // Medido em produção: o Neva 1.5 errava o fechamento em 3 de 8 pedidos e a pessoa só via "Tente de novo".
+      if (edit.invalid && edit.operations.length === 0 && edit.blocks.length === 0 && editMessages) {
+        emit('<etapa>alteracao</etapa>\n');
+        try {
+          const retry = repairDsml(await completeJson(apiKey, model, '', '', signal, { ...metaOf('cm_edit:formato'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-30000) },
+            { role: 'user', content: 'O formato da sua resposta veio quebrado e nada foi aplicado. Reenvie TODAS as operações de novo, no formato exato: cada <editar arquivo="..."> tem um <antes>...</antes> e um <depois>...</depois> e fecha com </editar>; <criar arquivo="..."> fecha com </criar>; <apagar arquivo="..."/> é de uma linha só. O <antes> fecha SEMPRE com </antes> (nunca com </depois>). Sem comentários fora das tags.' }] }));
+          const again = E.parseProjectEdit(retry);
+          logEdit('format_retry', { edit: editId, operations: again.operations.length, blocks: again.blocks.length, invalid: again.invalid });
+          if (again.operations.length || again.blocks.length) { edit = again; full = retry; }
+        } catch (error) { if (signal.aborted) throw error; }
+      }
       if (edit.operations.length === 0 && edit.blocks.length === 0) {
         logEdit('no_operations', { edit: editId, actions: edit.actions.length });
         if (edit.invalid) return `Nenhum arquivo foi alterado: ${edit.invalid} operação(ões) vieram com formato quebrado. Tente de novo.`;

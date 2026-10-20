@@ -212,7 +212,8 @@ function cleanPath(value: string | undefined): string {
  */
 export function parseProjectEdit(raw: string): ProjectEdit {
   // A última tag às vezes chega cortada ("</editar"): completa.
-  const text = raw.replace(/<\/(editar|escrever|substituir|parte|bloco|acoes|tema)\s*$/i, '</$1>')
+  // Medido em produção (Neva 1.5): o modelo às vezes fecha o <antes> com </depois> e abre o <depois> em seguida. É inequívoco: conserta.
+  const text = raw.replace(/<\/(editar|escrever|substituir|parte|bloco|acoes|tema)\s*$/i, '</$1>').replace(/<antes>((?:(?!<\/?antes>|<\/?depois>)[\s\S])*)<\/depois>(\s*<depois>)/gi, '<antes>$1</antes>$2')
   const operations: FileOperation[] = []
   let invalid = 0
   const tags = /<(editar|substituir)\s+([^>]*)>([\s\S]*?)<\/\1>|<(escrever|parte)\s+([^>]*)>([\s\S]*?)<\/\4>|<(apagar|remover)\s+([^>]*?)\/?>/gi

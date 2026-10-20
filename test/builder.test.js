@@ -250,3 +250,25 @@ test('textos entre aspas do pedido vão como exatos; exemplo do que evitar não;
   assert.match(head, /"display":\["Oswald","Oswald Reserva"/);
   assert.match(head, /body\{font-family:'Source Sans 3','Source Sans 3 Reserva'/);
 });
+
+test('alteração com formato quebrado: o servidor pede a correção ao modelo e a alteração é aplicada (sem erro para a pessoa)', async () => {
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site para a Padaria Dois em Recife, pedidos pelo WhatsApp.' }, model: 'neva-1-0', effort: 'medium' });
+  const id = created.body.site.id;
+  await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
+  const site = (await call('GET', '/api/code-maker/' + id)).body.site;
+  for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  const before = (await seen()).length;
+  const edit = await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Troque a chamada final (QUEBRAR_FORMATO)' });
+  assert.match(edit.body, /<<<OK>>>\s*$/, edit.body.slice(-300));
+  const calls = (await seen()).slice(before).filter((c) => c.stage === 'edit');
+  assert.equal(calls.length, 2, 'uma resposta quebrada + uma de correção');
+  const changes = (await call('GET', `/api/code-maker/${id}/changes`)).body;
+  assert.ok(changes.files.some((f) => f.path === 'secoes/contato.html'));
+});
+
+test('<antes> fechado com </depois> é lido como o modelo quis dizer', () => {
+  const edit = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nTexto velho\n</depois>\n<depois>\nTexto novo\n</depois>\n</editar>');
+  assert.equal(edit.invalid, 0); assert.equal(edit.operations.length, 1);
+  const good = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nA\n</antes>\n<depois>\nB\n</depois>\n</editar>');
+  assert.equal(good.invalid, 0); assert.equal(good.operations.length, 1);
+});
