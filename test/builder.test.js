@@ -131,6 +131,13 @@ test('escada de raciocínio nativo por família (medida na River): DeepSeek liga
   assert.deepEqual(ai.reasoningParams('xhigh', 'deepseek-ai/DeepSeek-V4.1-Flash'), { reasoning_effort: 'high' });
   assert.deepEqual(ai.reasoningParams('low', 'zai-org/GLM-5.3-Flash'), { reasoning_effort: 'low' });
   assert.deepEqual(ai.reasoningParams('medium', 'zai-org/GLM-5.3-Flash'), { reasoning_effort: 'medium' });
+  const NEMO = 'nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4';
+  assert.deepEqual(ai.reasoningParams('low', NEMO), { reasoning_effort: 'none' });
+  assert.deepEqual(ai.reasoningParams('xhigh', NEMO), { reasoning_effort: 'high' });
+  // Escrita do site (e a análise em texto): Nemotron desligado, GLM no mínimo, DeepSeek sem parâmetro.
+  assert.deepEqual(ai.streamParams(NEMO), { reasoning_effort: 'none' });
+  assert.deepEqual(ai.streamParams('zai-org/GLM-5.3-Flash'), { reasoning_effort: 'low' });
+  assert.deepEqual(ai.streamParams('deepseek-ai/DeepSeek-V4.1-Flash'), {});
   await run("UPDATE app_settings SET value='' WHERE key='RIVER_REASONING'");
   await require('../server/lib/config').refresh(true);
   assert.deepEqual(ai.reasoningParams('high', 'zai-org/GLM-5.3-Flash'), {});
@@ -156,4 +163,15 @@ test('DESIGN.md "preços verdadeiros": preço não informado sai do conteúdo; i
   assert.doesNotMatch(plan.sections[1].brief, /R\$/);
   const html = E.renderPart('programas', plan, brief, { title: 'Programas', items: [{ title: 'Sessão avulsa', text: 'A partir de R$ 180.', price: 'R$ 180', meta: '/sessão' }] });
   assert.doesNotMatch(html, /R\$/);
+});
+
+test('DESIGN.md contraste AA: cor da marca clara demais vira texto legível (mesmo tom, só mais escura)', () => {
+  const pal = { brand: '#0ea5b7', brandDark: '#0b7f8c', accent: '#f2735f', ink: '#12355b', paper: '#ffffff', surface: '#eef7f8', muted: '#5b7285' };
+  const fixed = E.readableBrand(pal, 'light');
+  assert.ok(E.contrastRatio(fixed.brand, pal.paper) >= 4.5 && E.contrastRatio(fixed.brand, pal.surface) >= 4.5);
+  assert.notEqual(fixed.brand, pal.brand);
+  const good = { ...pal, brand: '#0f766e' };
+  assert.equal(E.readableBrand(good, 'light').brand, '#0f766e');
+  const dark = E.readableBrand({ ...pal, brand: '#1e3a8a', paper: '#0b0d12', surface: '#151821', ink: '#f4f2ee' }, 'dark');
+  assert.ok(E.contrastRatio(dark.brand, '#0b0d12') >= 4.5);
 });

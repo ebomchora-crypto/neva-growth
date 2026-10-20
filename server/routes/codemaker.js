@@ -175,7 +175,8 @@ function cleanBrief(input) {
 async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   let response;
   const started = Date.now();
-  const native = meta.sel && meta.native ? ai.reasoningParams(meta.sel.effort, model) : {};
+  // Análise (raw): escreve em texto com o mínimo de raciocínio nativo; o resto (JSON) segue sem parâmetro.
+  const native = meta.sel && meta.native ? ai.streamParams(model) : {};
   let body = { model, max_tokens: ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native), stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
     ...native, messages: [{ role: 'system', content: system }, { role: 'user', content }] };
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -195,7 +196,8 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   }
   const data = await response.json();
   ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, usage: data.usage });
-  if (meta.raw) return String(data.choices?.[0]?.message?.content || '').trim();
+  // Se o modelo pensou tudo e não escreveu, o próprio raciocínio é a análise.
+  if (meta.raw) { const msg = data.choices?.[0]?.message || {}; return String(msg.content || '').trim() || String(msg.reasoning_content || msg.reasoning || '').trim(); }
   if (data.choices?.[0]?.finish_reason === 'length') throw new Error('A leitura dos requisitos não terminou. Tente novamente.');
   const text = data.choices?.[0]?.message?.content;
   if (typeof text !== 'string') throw new Error('A IA não retornou uma especificação válida.');

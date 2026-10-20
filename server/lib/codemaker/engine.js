@@ -93,6 +93,7 @@ __export(engine_exports, {
   planFromSiteJson: () => planFromSiteJson,
   prepareSpecificationContext: () => prepareSpecificationContext,
   projectTree: () => projectTree,
+  readableBrand: () => readableBrand,
   recipeMessage: () => recipeMessage,
   renderPart: () => renderPart,
   replaceInPart: () => replaceInPart,
@@ -2353,13 +2354,23 @@ function mixHex(a, b, weight) {
   const channel = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
   return `#${[0, 1, 2].map((i) => Math.round(channel(a, i) * (1 - weight) + channel(b, i) * weight).toString(16).padStart(2, "0")).join("")}`;
 }
+function readableBrand(palette, theme) {
+  const target = theme === "dark" ? "#ffffff" : "#000000";
+  const ok = (color) => contrastRatio(color, palette.paper) >= 4.5 && contrastRatio(color, palette.surface) >= 4.5;
+  if (ok(palette.brand)) return palette;
+  for (let weight = 0.05; weight <= 0.8; weight += 0.05) {
+    const brand = mixHex(palette.brand, target, weight);
+    if (ok(brand)) return { ...palette, brand, brandDark: mixHex(brand, theme === "dark" ? "#ffffff" : "#000000", 0.2) };
+  }
+  return palette;
+}
 function paletteFor(palette, theme) {
   const next = theme === "dark" ? { ...palette, paper: mixHex(palette.brand, "#0a0a0c", 0.9), surface: mixHex(palette.brand, "#0a0a0c", 0.82), ink: "#f4f2ee", muted: "#a8a6a1" } : { ...palette, paper: mixHex(palette.brand, "#ffffff", 0.95), surface: mixHex(palette.brand, "#ffffff", 0.88), ink: "#15171c", muted: "#5d6168" };
   if (contrastRatio(next.brand, next.paper) < 3) {
     next.brand = mixHex(palette.brand, theme === "dark" ? "#ffffff" : "#000000", 0.35);
     next.brandDark = mixHex(next.brand, "#000000", 0.25);
   }
-  return next;
+  return readableBrand(next, theme);
 }
 function freeId(plan, id) {
   let candidate = id;
@@ -3067,13 +3078,14 @@ function normalizePlan(raw, brief) {
     if (heroIndex > 0) sections.unshift(...sections.splice(heroIndex, 1));
     else sections.unshift({ id: "hero", label: "In\xEDcio", brief: "Topo de impacto do site.", bg: "paper", layout: "hero-dividido" });
   }
+  const theme = input.theme === "dark" ? "dark" : "light";
   return {
     title: String(input.title ?? brief.businessName).slice(0, 80),
     description: stripInventedClaims(String(input.description ?? ""), brief).slice(0, 200),
     direction: stripInventedClaims(String(input.direction ?? ""), brief).slice(0, 400),
-    theme: input.theme === "dark" ? "dark" : "light",
+    theme,
     lang: cleanLang(input.lang),
-    palette,
+    palette: readableBrand(palette, theme),
     fonts: {
       display: cleanFont(input.fonts?.display, "Inter"),
       body: cleanFont(input.fonts?.body, "Inter")
@@ -4319,6 +4331,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   planFromSiteJson,
   prepareSpecificationContext,
   projectTree,
+  readableBrand,
   recipeMessage,
   renderPart,
   replaceInPart,

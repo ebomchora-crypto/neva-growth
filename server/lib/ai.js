@@ -57,11 +57,16 @@ const temperatureOf = (id) => MODELS.find((m) => m.id === resolveModel(id))?.tem
 let nativeRefused = false;
 // Medido na River (sonda /api/qa/ai-probe, out/2026): no DeepSeek o parâmetro só liga/desliga o raciocínio
 // ("medium" desliga e "low" ≈ "high"); no GLM e no Nemotron ele regula a profundidade. Por isso a escada muda por família.
+// No Nemotron "low" não reduz nada (medido: 1.165 tokens pensando, mais que sem parâmetro); "none" desliga de verdade (0 tokens, 3× mais rápido).
+// No GLM não dá para desligar ("none" volta 400); "low" é o mínimo (~50 tokens).
 const DEEPSEEK_LEVELS = { low: null, medium: 'low', high: 'high', xhigh: 'high' };
+const NEMOTRON_LEVELS = { low: 'none', medium: 'low', high: 'medium', xhigh: 'high' };
+const family = (providerModel = '') => (/deepseek/i.test(providerModel) ? 'deepseek' : /nemotron/i.test(providerModel) ? 'nemotron' : 'other');
 function reasoningParams(effort, providerModel = '') {
   const kind = config.get('RIVER_REASONING');
   if (!kind || nativeRefused || !EFFORTS[effort]) return {};
-  const level = /deepseek/i.test(providerModel) ? DEEPSEEK_LEVELS[effort] : EFFORTS[effort].native;
+  const fam = family(providerModel);
+  const level = fam === 'deepseek' ? DEEPSEEK_LEVELS[effort] : fam === 'nemotron' ? NEMOTRON_LEVELS[effort] : EFFORTS[effort].native;
   if (!level) return {};
   if (kind === 'reasoning_effort') return { reasoning_effort: level };
   if (kind === 'reasoning') return { reasoning: { effort: level } };
@@ -74,9 +79,12 @@ const withHeadroom = (maxTokens, effort, params) => (params && Object.keys(param
 // Escrita longa e com formato (plano, seções e alterações do site) sai com o mínimo de raciocínio nativo:
 // medido em produção, GLM e Nemotron gastavam os 9.000 tokens do plano só pensando e não escreviam nada.
 // O "pensar" fica na etapa de análise (chamada própria, com a escada completa).
+// Também vale para a análise: ela é escrita em texto (orçamento próprio por nível), não escondida no raciocínio nativo,
+// que no prompt grande do site não respeita limite (medido: DeepSeek e GLM gastaram 8.900 de 8.900 tokens e não escreveram a análise).
 function streamParams(providerModel = '') {
-  if (!config.get('RIVER_REASONING') || nativeRefused) return {};
-  return /deepseek/i.test(providerModel) ? {} : { reasoning_effort: 'low' };
+  if (config.get('RIVER_REASONING') !== 'reasoning_effort' || nativeRefused) return {};
+  const fam = family(providerModel);
+  return fam === 'deepseek' ? {} : { reasoning_effort: fam === 'nemotron' ? 'none' : 'low' };
 }
 const markRefused = () => { nativeRefused = true; };
 const hasNative = (body) => ['reasoning_effort', 'reasoning', 'thinking'].some((k) => k in body);
@@ -156,5 +164,5 @@ async function complete({ system, messages, maxTokens = 4096, model, effort, noT
   if (!resp.ok) throw new HttpError(502, `Falha na API de IA: ${data?.error?.message || resp.status}`, 'ai_upstream');
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
-module.exports = { complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
+module.exports = { family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
   logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };

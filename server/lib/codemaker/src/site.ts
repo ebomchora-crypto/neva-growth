@@ -741,6 +741,19 @@ function mixHex(a: string, b: string, weight: number): string {
     .join('')}`
 }
 
+// DESIGN.md exige contraste AA: a cor da marca vira texto pequeno (sobretítulos, links, ícones com rótulo).
+// Se ela não chega a 4,5:1 no fundo e na superfície, escurece (tema claro) ou clareia (escuro) só o necessário — o tom continua.
+export function readableBrand(palette: SitePlan['palette'], theme: 'dark' | 'light'): SitePlan['palette'] {
+  const target = theme === 'dark' ? '#ffffff' : '#000000'
+  const ok = (color: string) => contrastRatio(color, palette.paper) >= 4.5 && contrastRatio(color, palette.surface) >= 4.5
+  if (ok(palette.brand)) return palette
+  for (let weight = 0.05; weight <= 0.8; weight += 0.05) {
+    const brand = mixHex(palette.brand, target, weight)
+    if (ok(brand)) return { ...palette, brand, brandDark: mixHex(brand, theme === 'dark' ? '#ffffff' : '#000000', 0.2) }
+  }
+  return palette
+}
+
 // O diretor de arte ignorou o tema da receita: refaz os fundos e o texto a
 // partir da cor da marca (a identidade continua, só a luz muda).
 function paletteFor(palette: SitePlan['palette'], theme: 'dark' | 'light'): SitePlan['palette'] {
@@ -752,7 +765,7 @@ function paletteFor(palette: SitePlan['palette'], theme: 'dark' | 'light'): Site
     next.brand = mixHex(palette.brand, theme === 'dark' ? '#ffffff' : '#000000', 0.35)
     next.brandDark = mixHex(next.brand, '#000000', 0.25)
   }
-  return next
+  return readableBrand(next, theme)
 }
 
 function freeId(plan: SitePlan, id: string): string {
@@ -1611,13 +1624,14 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
     if (heroIndex > 0) sections.unshift(...sections.splice(heroIndex, 1))
     else sections.unshift({ id: 'hero', label: 'Início', brief: 'Topo de impacto do site.', bg: 'paper', layout: 'hero-dividido' })
   }
+  const theme: 'dark' | 'light' = input.theme === 'dark' ? 'dark' : 'light'
   return {
     title: String(input.title ?? brief.businessName).slice(0, 80),
     description: stripInventedClaims(String(input.description ?? ''), brief).slice(0, 200),
     direction: stripInventedClaims(String(input.direction ?? ''), brief).slice(0, 400),
-    theme: input.theme === 'dark' ? 'dark' : 'light',
+    theme,
     lang: cleanLang(input.lang),
-    palette,
+    palette: readableBrand(palette, theme),
     fonts: {
       display: cleanFont(input.fonts?.display, 'Inter'),
       body: cleanFont(input.fonts?.body, 'Inter'),
