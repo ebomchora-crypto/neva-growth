@@ -70,6 +70,7 @@ __export(engine_exports, {
   isProjectPath: () => isProjectPath,
   isReservedSlug: () => isReservedSlug,
   joinContinuation: () => joinContinuation,
+  liftFaintText: () => liftFaintText,
   logoOf: () => logoOf,
   normalizePart: () => normalizePart,
   normalizePlan: () => normalizePlan,
@@ -2356,7 +2357,7 @@ function mixHex(a, b, weight) {
 }
 function readableBrand(palette, theme) {
   const target = theme === "dark" ? "#ffffff" : "#000000";
-  const ok = (color) => contrastRatio(color, palette.paper) >= 4.5 && contrastRatio(color, palette.surface) >= 4.5;
+  const ok = (color) => [palette.paper, palette.surface, mixHex(palette.surface, color, 0.12)].every((bg) => contrastRatio(color, bg) >= 4.5);
   if (ok(palette.brand)) return palette;
   for (let weight = 0.05; weight <= 0.8; weight += 0.05) {
     const brand = mixHex(palette.brand, target, weight);
@@ -3218,15 +3219,23 @@ ${balanceHtml(html)}
     const footer = balanceHtml(html.slice(found2.start, found2.end));
     const rest = html.slice(found2.end);
     const floating = findElement(rest, "a", (attrs) => /\bfixed\b/.test(attrs));
-    return floating ? `${footer}
-${balanceHtml(rest.slice(floating.start, floating.end))}` : footer;
+    if (!floating) return footer;
+    const link = balanceHtml(rest.slice(floating.start, floating.end));
+    return `${footer}
+<aside aria-label="Atalho do WhatsApp">${link}</aside>`;
   }
   const found = findElement(html, "section", hasId(partId)) ?? findElement(html, "section");
   if (!found) return `<section id="${partId}">
 ${balanceHtml(html)}
 </section>`;
-  const section = balanceHtml(html.slice(found.start, found.end));
+  const section = liftFaintText(balanceHtml(html.slice(found.start, found.end)));
   return /^<section\b[^>]*\sid\s*=/i.test(section) ? section : section.replace(/^<section\b/i, `<section id="${partId}"`);
+}
+function liftFaintText(html) {
+  return html.replace(
+    /\btext-(ink|paper|white|black)\/(\d{2})\b/g,
+    (cls, color, value) => Number(value) >= 40 && Number(value) < 70 ? `text-${color}/70` : cls
+  );
 }
 var MISSING_INFO = /n[ãa]o\s+informad[oa]s?|imagem\s+ilustrativa|quando\s+(?:essas|estas|as|esses|estes|os)?\s*(?:informa[çc][õo]es|dados)\s+(?:forem|estiverem)|ainda\s+n[ãa]o\s+(?:foi|foram)\s+(?:informad|fornecid)|poder[ãa]o?\s+ser\s+(?:apresentad|inclu[íi]d|adicionad)[oa]s?\s+aqui|ser[ãa]o?\s+(?:informad|divulgad)[oa]s?\s+em\s+breve/i;
 function stripMissingInfo(html) {
@@ -4308,6 +4317,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   isProjectPath,
   isReservedSlug,
   joinContinuation,
+  liftFaintText,
   logoOf,
   normalizePart,
   normalizePlan,

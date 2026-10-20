@@ -170,8 +170,17 @@ test('DESIGN.md contraste AA: cor da marca clara demais vira texto legível (mes
   const fixed = E.readableBrand(pal, 'light');
   assert.ok(E.contrastRatio(fixed.brand, pal.paper) >= 4.5 && E.contrastRatio(fixed.brand, pal.surface) >= 4.5);
   assert.notEqual(fixed.brand, pal.brand);
-  const good = { ...pal, brand: '#0f766e' };
-  assert.equal(E.readableBrand(good, 'light').brand, '#0f766e');
+  const good = { ...pal, brand: '#115e59' };
+  assert.equal(E.readableBrand(good, 'light').brand, '#115e59');
   const dark = E.readableBrand({ ...pal, brand: '#1e3a8a', paper: '#0b0d12', surface: '#151821', ink: '#f4f2ee' }, 'dark');
   assert.ok(E.contrastRatio(dark.brand, '#0b0d12') >= 4.5);
+});
+
+test('DESIGN.md contraste AA: texto apagado da IA sobe para o secundário legível; enfeite grande fica', () => {
+  assert.equal(E.liftFaintText('<p class="text-ink/50 text-xs">a</p><span class="text-white/60">b</span>'), '<p class="text-ink/70 text-xs">a</p><span class="text-white/70">b</span>');
+  assert.equal(E.liftFaintText('<span aria-hidden="true" class="text-ink/10 text-9xl">01</span><p class="text-ink/80">c</p><div class="bg-ink/50">'), '<span aria-hidden="true" class="text-ink/10 text-9xl">01</span><p class="text-ink/80">c</p><div class="bg-ink/50">');
+  const html = E.normalizePart('servicos', '<section id="servicos"><p class="text-ink/55">x</p></section>');
+  assert.match(html, /text-ink\/70/);
+  const footer = E.normalizePart('footer', '<footer>f</footer>\n<a class="fixed bottom-5" href="#">w</a>');
+  assert.match(footer, /<aside aria-label="Atalho do WhatsApp"><a class="fixed/);
 });

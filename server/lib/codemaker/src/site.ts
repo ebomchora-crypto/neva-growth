@@ -745,7 +745,8 @@ function mixHex(a: string, b: string, weight: number): string {
 // Se ela não chega a 4,5:1 no fundo e na superfície, escurece (tema claro) ou clareia (escuro) só o necessário — o tom continua.
 export function readableBrand(palette: SitePlan['palette'], theme: 'dark' | 'light'): SitePlan['palette'] {
   const target = theme === 'dark' ? '#ffffff' : '#000000'
-  const ok = (color: string) => contrastRatio(color, palette.paper) >= 4.5 && contrastRatio(color, palette.surface) >= 4.5
+  // Também sobre o selo tingido (bg-brand/10 por cima da superfície), onde a marca aparece como texto pequeno.
+  const ok = (color: string) => [palette.paper, palette.surface, mixHex(palette.surface, color, 0.12)].every((bg) => contrastRatio(color, bg) >= 4.5)
   if (ok(palette.brand)) return palette
   for (let weight = 0.05; weight <= 0.8; weight += 0.05) {
     const brand = mixHex(palette.brand, target, weight)
@@ -1800,13 +1801,24 @@ export function normalizePart(partId: string, html: string): string {
     // O botão flutuante de WhatsApp vem logo depois do rodapé.
     const rest = html.slice(found.end)
     const floating = findElement(rest, 'a', (attrs) => /\bfixed\b/.test(attrs))
-    return floating ? `${footer}\n${balanceHtml(rest.slice(floating.start, floating.end))}` : footer
+    if (!floating) return footer
+    // Sempre dentro de uma região (<aside>): conteúdo fora de região é erro de acessibilidade (axe "region").
+    const link = balanceHtml(rest.slice(floating.start, floating.end))
+    return `${footer}\n<aside aria-label="Atalho do WhatsApp">${link}</aside>`
   }
   const found = findElement(html, 'section', hasId(partId)) ?? findElement(html, 'section')
   if (!found) return `<section id="${partId}">\n${balanceHtml(html)}\n</section>`
-  const section = balanceHtml(html.slice(found.start, found.end))
+  const section = liftFaintText(balanceHtml(html.slice(found.start, found.end)))
   // Os links do menu usam o id da seção: mantém o que veio, só completa se faltar.
   return /^<section\b[^>]*\sid\s*=/i.test(section) ? section : section.replace(/^<section\b/i, `<section id="${partId}"`)
+}
+
+// Texto "apagado" (text-ink/50, /60…) fica abaixo de 4,5:1 — medido nos sites de teste. Sobe para /70, o secundário
+// do guia de contraste. Opacidade baixa (≤ 35) é enfeite grande (números e letreiros de fundo) e fica como está.
+export function liftFaintText(html: string): string {
+  return html.replace(/\btext-(ink|paper|white|black)\/(\d{2})\b/g, (cls, color, value) =>
+    Number(value) >= 40 && Number(value) < 70 ? `text-${color}/70` : cls,
+  )
 }
 
 // Frases sobre dado que falta ("Número não informado", "Imagem ilustrativa",
