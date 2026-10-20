@@ -229,3 +229,17 @@ test('blocos que funcionam: simulador e formulário montam, o script do site com
   for (const code of scripts) assert.doesNotThrow(() => new Function(code));
   assert.match(html, /replace\(\/\[\^\\d,\.\]\/g/, 'regex do valor com \\d de verdade');
 });
+
+test('textos entre aspas do pedido vão como exatos; exemplo do que evitar não; fonte de reserva calibrada evita o pulo', () => {
+  const details = 'Botão principal: "Pedir orçamento gratuito".\nO público desconfia de "conta zero".\nRuim (não use): "A melhor empresa de Goiás".\nMensagem: "Como podemos te chamar?"';
+  const quoted = E.quotedTexts({ details });
+  assert.match(quoted, /"Pedir orçamento gratuito"/);
+  assert.match(quoted, /"Como podemos te chamar\?"/);
+  assert.doesNotMatch(quoted, /conta zero|melhor empresa/);
+  const plan = E.normalizePlan({ title: 'T', description: 'd', direction: 'x', theme: 'light', palette: { brand: '#1d4ed8', brandDark: '#1e40af', accent: '#f59e0b', ink: '#111827', paper: '#ffffff', surface: '#f3f4f6', muted: '#4b5563' }, fonts: { display: 'Oswald', body: 'Source Sans 3' },
+    sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'h', brief: 'b', bg: 'paper' }] }, { businessName: 'X', details: 'x', style: 'auto', assets: [] });
+  const head = E.buildHead(plan);
+  assert.match(head, /@font-face\{font-family:"Oswald Reserva";src:local\("Arial"\)[^}]*size-adjust:83%\}/);
+  assert.match(head, /"display":\["Oswald","Oswald Reserva"/);
+  assert.match(head, /body\{font-family:'Source Sans 3','Source Sans 3 Reserva'/);
+});

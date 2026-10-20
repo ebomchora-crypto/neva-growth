@@ -670,7 +670,7 @@ const cardsFoto = (c: BlockContent, t: BlockTokens) => {
         .map(
           (item, i) => `<article${has(t, 'tilt') ? ' data-fx="tilt"' : ''} class="group relative overflow-hidden ${r(t).rc} bg-${t.tx}/5">
         <div class="aspect-[4/5] overflow-hidden">${photo(t, c, i, 'size-full object-cover transition duration-700 ease-out group-hover:scale-[1.06]')}</div>
-        <div class="absolute inset-x-3 bottom-3 ${r(t).ri} border border-white/15 bg-black/50 p-5 text-white backdrop-blur-md">
+        <div class="absolute inset-x-3 bottom-3 ${r(t).ri} border border-white/15 bg-black/70 p-5 text-white backdrop-blur-md">
           <div class="flex items-start justify-between gap-4">
             <div><h3 class="font-display text-xl font-semibold">${esc(item.title)}</h3>${item.text || item.meta ? `<p class="mt-1 text-sm text-white/70">${esc(item.meta || item.text)}</p>` : ''}</div>
             ${item.price ? `<span class="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-black tabular-nums">${esc(item.price)}</span>` : ''}

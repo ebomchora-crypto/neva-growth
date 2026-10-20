@@ -100,6 +100,7 @@ __export(engine_exports, {
   planFromSiteJson: () => planFromSiteJson,
   prepareSpecificationContext: () => prepareSpecificationContext,
   projectTree: () => projectTree,
+  quotedTexts: () => quotedTexts,
   readableBrand: () => readableBrand,
   recipeMessage: () => recipeMessage,
   renderPart: () => renderPart,
@@ -1179,7 +1180,7 @@ var cardsFoto = (c, t) => {
       ${list.map(
       (item, i) => `<article${has(t, "tilt") ? ' data-fx="tilt"' : ""} class="group relative overflow-hidden ${r(t).rc} bg-${t.tx}/5">
         <div class="aspect-[4/5] overflow-hidden">${photo(t, c, i, "size-full object-cover transition duration-700 ease-out group-hover:scale-[1.06]")}</div>
-        <div class="absolute inset-x-3 bottom-3 ${r(t).ri} border border-white/15 bg-black/50 p-5 text-white backdrop-blur-md">
+        <div class="absolute inset-x-3 bottom-3 ${r(t).ri} border border-white/15 bg-black/70 p-5 text-white backdrop-blur-md">
           <div class="flex items-start justify-between gap-4">
             <div><h3 class="font-display text-xl font-semibold">${esc(item.title)}</h3>${item.text || item.meta ? `<p class="mt-1 text-sm text-white/70">${esc(item.meta || item.text)}</p>` : ""}</div>
             ${item.price ? `<span class="shrink-0 rounded-full bg-white px-3 py-1 text-sm font-semibold text-black tabular-nums">${esc(item.price)}</span>` : ""}
@@ -2920,6 +2921,10 @@ function buildPartMessage(partId, plan, brief) {
 ${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim()}` : null,
     realFacts(brief),
     exactContacts(brief),
+    quotedTexts(brief),
+    // Blocos que funcionam (simulador, formulário): o pedido inteiro, para copiar regras, mensagens e opções ao pé da letra.
+    scoped && ["simulador", "formulario"].includes(blockId) && brief.details?.trim() ? `Pedido original do cliente (copie mensagens, r\xF3tulos e op\xE7\xF5es exatamente):
+${brief.details.trim()}` : null,
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? "pt-BR", tema: plan.theme })}`,
     `Se\xE7\xF5es do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(", ")}`,
     `SE\xC7\xC3O QUE VOC\xCA ESCREVE: "${section?.label ?? partId}" \u2014 bloco "${block.name}": ${block.when}`,
@@ -2934,6 +2939,16 @@ ${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief
     leadRules,
     `Exemplo da FORMA do conte\xFAdo deste bloco (troque todo o texto pelo conte\xFAdo real): ${JSON.stringify(block.sample)}`
   ].filter(Boolean).join("\n\n");
+}
+function quotedTexts(brief) {
+  const found = /* @__PURE__ */ new Set();
+  for (const line of String(brief.details ?? "").split("\n")) {
+    if (/n[ãa]o use|ruim|proibid|nada de/i.test(line)) continue;
+    const textLine = /bot[aã]o|bot[oõ]es|texto|mensag|t[ií]tulo|link|frase/i.test(line);
+    for (const m of line.matchAll(/["“]([^"”]{3,160})["”]/g)) if (textLine || m[1].trim().split(/\s+/).length >= 3) found.add(m[1].trim());
+  }
+  return found.size ? `TEXTOS EXATOS DO PEDIDO (quando um deles couber nesta se\xE7\xE3o, use-o letra por letra, sem trocar palavras):
+${[...found].slice(0, 40).map((t) => `- "${t}"`).join("\n")}` : null;
 }
 function exactContacts(brief) {
   const c = contactsOf(brief);
@@ -3708,6 +3723,12 @@ function localBusinessJsonLd(plan) {
   if (b.instagram) data.sameAs = [`https://instagram.com/${b.instagram}`];
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
 }
+var FONT_WIDTH = { "Abril Fatface": 99.1, "Anton": 87.7, "Archivo": 98.5, "Archivo Black": 120.2, "Baloo 2": 93.9, "Bebas Neue": 73.1, "Big Shoulders Display": 69.7, "Bricolage Grotesque": 102.9, "Caprasimo": 109.7, "Cormorant Garamond": 84.6, "DM Sans": 102.7, "DM Serif Display": 96, "Figtree": 97.5, "Fraunces": 104, "Fredoka": 97.9, "Gloock": 99.5, "Hanken Grotesk": 97.5, "IBM Plex Sans": 99.1, "Instrument Serif": 73, "Inter": 103.9, "Karla": 101.5, "Lato": 94.1, "Libre Franklin": 100.6, "Manrope": 101.5, "Nunito": 97.9, "Nunito Sans": 97.8, "Onest": 102.2, "Oswald": 83, "Playfair Display": 98.3, "Plus Jakarta Sans": 102.2, "Poppins": 110.7, "Public Sans": 101, "Quicksand": 103.1, "Sora": 109.7, "Source Sans 3": 92.3, "Space Grotesk": 104.6, "Syne": 106.6, "Unbounded": 132.7, "Work Sans": 107.3, "Young Serif": 108.3 };
+var fallbackName = (font) => `${font} Reserva`;
+function fallbackFaces(fonts) {
+  const faces = fonts.filter((font) => FONT_WIDTH[font]).map((font) => `@font-face{font-family:"${fallbackName(font)}";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Helvetica"),local("Roboto");size-adjust:${FONT_WIDTH[font]}%}`);
+  return faces.length ? `<style>${faces.join("")}</style>` : "";
+}
 function buildHead(plan) {
   const fonts = [.../* @__PURE__ */ new Set([plan.fonts.display, plan.fonts.body])].map((font) => `family=${encodeURIComponent(font).replace(/%20/g, "+")}:wght@400;500;600;700;800`).join("&");
   const config = {
@@ -3724,8 +3745,8 @@ function buildHead(plan) {
           muted: plan.palette.muted
         },
         fontFamily: {
-          display: [plan.fonts.display, "ui-sans-serif", "system-ui", "sans-serif"],
-          body: [plan.fonts.body, "ui-sans-serif", "system-ui", "sans-serif"]
+          display: [plan.fonts.display, ...FONT_WIDTH[plan.fonts.display] ? [fallbackName(plan.fonts.display)] : [], "ui-sans-serif", "system-ui", "sans-serif"],
+          body: [plan.fonts.body, ...FONT_WIDTH[plan.fonts.body] ? [fallbackName(plan.fonts.body)] : [], "ui-sans-serif", "system-ui", "sans-serif"]
         }
       }
     }
@@ -3745,10 +3766,11 @@ function buildHead(plan) {
     `<link rel="icon" href="${favicon}">`,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    fallbackFaces([.../* @__PURE__ */ new Set([plan.fonts.display, plan.fonts.body])]),
     `<link href="https://fonts.googleapis.com/css2?${fonts}&display=swap" rel="stylesheet">`,
     '<script src="https://cdn.tailwindcss.com"></script>',
     `<script>tailwind.config=${JSON.stringify(config)}</script>`,
-    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`
+    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ""}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`
   ].join("\n");
 }
 var SKIP_LINK = {
@@ -4584,6 +4606,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   planFromSiteJson,
   prepareSpecificationContext,
   projectTree,
+  quotedTexts,
   readableBrand,
   recipeMessage,
   renderPart,

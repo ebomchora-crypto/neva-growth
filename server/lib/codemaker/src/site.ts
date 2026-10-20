@@ -1287,6 +1287,9 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
     scoped ? `Requisitos desta parte:\n${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim()}` : null,
     realFacts(brief),
     exactContacts(brief),
+    quotedTexts(brief),
+    // Blocos que funcionam (simulador, formulário): o pedido inteiro, para copiar regras, mensagens e opções ao pé da letra.
+    scoped && ['simulador', 'formulario'].includes(blockId) && brief.details?.trim() ? `Pedido original do cliente (copie mensagens, rótulos e opções exatamente):\n${brief.details.trim()}` : null,
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? 'pt-BR', tema: plan.theme })}`,
     `Seções do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(', ')}`,
     `SEÇÃO QUE VOCÊ ESCREVE: "${section?.label ?? partId}" — bloco "${block.name}": ${block.when}`,
@@ -1305,6 +1308,19 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
   ]
     .filter(Boolean)
     .join('\n\n')
+}
+
+// Textos que o pedido pôs entre aspas (botões, mensagens de erro, frases obrigatórias): medido em produção,
+// sem esta lista a IA trocava "Digite o valor…" por "Informe o valor…" e "Enviar pelo WhatsApp" por "Enviar orçamento".
+export function quotedTexts(brief: SiteBrief): string | null {
+  const found = new Set<string>()
+  for (const line of String(brief.details ?? '').split('\n')) {
+    if (/n[ãa]o use|ruim|proibid|nada de/i.test(line)) continue
+    // Expressão curta citada no meio de uma frase ("conta zero") costuma ser exemplo do que evitar: só entra se a linha fala de texto de botão, mensagem, título ou link.
+    const textLine = /bot[aã]o|bot[oõ]es|texto|mensag|t[ií]tulo|link|frase/i.test(line)
+    for (const m of line.matchAll(/["“]([^"”]{3,160})["”]/g)) if (textLine || m[1].trim().split(/\s+/).length >= 3) found.add(m[1].trim())
+  }
+  return found.size ? `TEXTOS EXATOS DO PEDIDO (quando um deles couber nesta seção, use-o letra por letra, sem trocar palavras):\n${[...found].slice(0, 40).map((t) => `- "${t}"`).join('\n')}` : null
 }
 
 // Dados de contato exatos, para a IA copiar (endereço, telefones, e-mail, horário).
@@ -2247,6 +2263,18 @@ function localBusinessJsonLd(plan: SitePlan): string {
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
 }
 
+// Largura de cada fonte do Builder em relação à Arial (medida no navegador, peso 400 e 700, texto em português).
+// A fonte de reserva fica do mesmo tamanho da fonte real enquanto ela carrega: o texto não muda de linha
+// quando a fonte chega. Medido em produção: Oswald (83% da Arial) fazia o topo pular, CLS 0,236 → 0,008 sem a troca.
+const FONT_WIDTH: Record<string, number> = { 'Abril Fatface': 99.1, 'Anton': 87.7, 'Archivo': 98.5, 'Archivo Black': 120.2, 'Baloo 2': 93.9, 'Bebas Neue': 73.1, 'Big Shoulders Display': 69.7, 'Bricolage Grotesque': 102.9, 'Caprasimo': 109.7, 'Cormorant Garamond': 84.6, 'DM Sans': 102.7, 'DM Serif Display': 96.0, 'Figtree': 97.5, 'Fraunces': 104.0, 'Fredoka': 97.9, 'Gloock': 99.5, 'Hanken Grotesk': 97.5, 'IBM Plex Sans': 99.1, 'Instrument Serif': 73.0, 'Inter': 103.9, 'Karla': 101.5, 'Lato': 94.1, 'Libre Franklin': 100.6, 'Manrope': 101.5, 'Nunito': 97.9, 'Nunito Sans': 97.8, 'Onest': 102.2, 'Oswald': 83.0, 'Playfair Display': 98.3, 'Plus Jakarta Sans': 102.2, 'Poppins': 110.7, 'Public Sans': 101.0, 'Quicksand': 103.1, 'Sora': 109.7, 'Source Sans 3': 92.3, 'Space Grotesk': 104.6, 'Syne': 106.6, 'Unbounded': 132.7, 'Work Sans': 107.3, 'Young Serif': 108.3 }
+const fallbackName = (font: string) => `${font} Reserva`
+function fallbackFaces(fonts: string[]): string {
+  const faces = fonts
+    .filter((font) => FONT_WIDTH[font])
+    .map((font) => `@font-face{font-family:"${fallbackName(font)}";src:local("Arial"),local("Liberation Sans"),local("Helvetica Neue"),local("Helvetica"),local("Roboto");size-adjust:${FONT_WIDTH[font]}%}`)
+  return faces.length ? `<style>${faces.join('')}</style>` : ''
+}
+
 export function buildHead(plan: SitePlan): string {
   const fonts = [...new Set([plan.fonts.display, plan.fonts.body])]
     .map((font) => `family=${encodeURIComponent(font).replace(/%20/g, '+')}:wght@400;500;600;700;800`)
@@ -2265,8 +2293,8 @@ export function buildHead(plan: SitePlan): string {
           muted: plan.palette.muted,
         },
         fontFamily: {
-          display: [plan.fonts.display, 'ui-sans-serif', 'system-ui', 'sans-serif'],
-          body: [plan.fonts.body, 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          display: [plan.fonts.display, ...(FONT_WIDTH[plan.fonts.display] ? [fallbackName(plan.fonts.display)] : []), 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          body: [plan.fonts.body, ...(FONT_WIDTH[plan.fonts.body] ? [fallbackName(plan.fonts.body)] : []), 'ui-sans-serif', 'system-ui', 'sans-serif'],
         },
       },
     },
@@ -2286,10 +2314,11 @@ export function buildHead(plan: SitePlan): string {
     `<link rel="icon" href="${favicon}">`,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
+    fallbackFaces([...new Set([plan.fonts.display, plan.fonts.body])]),
     `<link href="https://fonts.googleapis.com/css2?${fonts}&display=swap" rel="stylesheet">`,
     '<script src="https://cdn.tailwindcss.com"></script>',
     `<script>tailwind.config=${JSON.stringify(config)}</script>`,
-    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
+    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ''}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
   ].join('\n')
 }
 
