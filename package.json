@@ -17,6 +17,8 @@
     "build:design": "node scripts/compile-design.js"
   },
   "dependencies": {
+    "@neon/config": "^1.9.2",
+    "@neon/env": "^1.6.3",
     "express": "^4.21.2",
     "express-async-errors": "^3.1.1",
     "gsap": "^3.15.0",
