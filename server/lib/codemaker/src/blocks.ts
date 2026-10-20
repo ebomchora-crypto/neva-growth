@@ -337,17 +337,17 @@ export interface FooterData {
 export function renderFooter(data: FooterData): string {
   const R = RADIUS[data.radius] ?? RADIUS.round
   const nav = data.nav
-    .map((item) => `<li><a href="#${esc(item.id)}" class="text-${data.dtx}/75 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`)
+    .map((item) => `<li><a href="#${esc(item.id)}" class="inline-block py-2 text-${data.dtx}/75 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`)
     .join('')
   const contacts = data.contacts
     .map((item) =>
       item.href
-        ? `<li><a href="${esc(item.href)}"${external(item.href)} class="transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`
+        ? `<li><a href="${esc(item.href)}"${external(item.href)} class="inline-block py-2 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`
         : `<li>${esc(item.label)}</li>`,
     )
     .join('')
   const floating = data.whatsapp
-    ? `\n<a href="${esc(data.whatsapp)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105">${WHATSAPP_ICON.replace('size-5', 'size-7')}</a>`
+    ? `\n<aside aria-label="Atalho do WhatsApp"><a href="${esc(data.whatsapp)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105">${WHATSAPP_ICON.replace('size-5', 'size-7')}</a></aside>`
     : ''
   return `<footer class="relative overflow-hidden bg-${data.dk} pt-20 text-${data.dtx}">
   <div class="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-[1.4fr_1fr_1fr] md:px-10">
@@ -356,10 +356,10 @@ export function renderFooter(data: FooterData): string {
       ${data.tagline ? `<p class="mt-3 max-w-sm leading-relaxed text-${data.dtx}/60">${esc(data.tagline)}</p>` : ''}
       <a href="${esc(data.href)}"${external(data.href)} class="mt-7 inline-flex min-h-11 items-center gap-2 ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110">${esc(data.cta)}</a>
     </div>
-    <nav aria-label="Rodapé"><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/50">Navegue</p><ul class="mt-5 space-y-3">${nav}</ul></nav>
-    ${contacts ? `<div><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/50">Contato</p><ul class="mt-5 space-y-3 text-${data.dtx}/75">${contacts}</ul></div>` : ''}
+    <nav aria-label="Rodapé"><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/70">Navegue</p><ul class="mt-3 space-y-1">${nav}</ul></nav>
+    ${contacts ? `<div><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/70">Contato</p><ul class="mt-3 space-y-1 text-${data.dtx}/75">${contacts}</ul></div>` : ''}
   </div>
-  <div class="mx-auto mt-16 max-w-7xl border-t border-${data.dtx}/10 px-5 py-6 text-sm text-${data.dtx}/50 md:px-10"><p>© <span data-year></span> ${esc(data.name)}</p></div>
+  <div class="mx-auto mt-16 max-w-7xl border-t border-${data.dtx}/10 px-5 py-6 pb-24 text-sm text-${data.dtx}/70 md:pb-6 md:px-10"><p>© <span data-year></span> ${esc(data.name)}</p></div>
   <p aria-hidden="true" class="pointer-events-none -mb-[0.16em] select-none whitespace-nowrap text-center font-display ${giantSize(data.name, 18)} font-black uppercase leading-none tracking-tighter text-${data.dtx}/[0.06]">${esc(data.name)}</p>
 </footer>${floating}`
 }

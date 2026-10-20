@@ -915,12 +915,12 @@ function renderHeader(block, data) {
 }
 function renderFooter(data) {
   const R = RADIUS[data.radius] ?? RADIUS.round;
-  const nav = data.nav.map((item) => `<li><a href="#${esc(item.id)}" class="text-${data.dtx}/75 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`).join("");
+  const nav = data.nav.map((item) => `<li><a href="#${esc(item.id)}" class="inline-block py-2 text-${data.dtx}/75 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>`).join("");
   const contacts = data.contacts.map(
-    (item) => item.href ? `<li><a href="${esc(item.href)}"${external(item.href)} class="transition hover:text-${data.dtx}">${esc(item.label)}</a></li>` : `<li>${esc(item.label)}</li>`
+    (item) => item.href ? `<li><a href="${esc(item.href)}"${external(item.href)} class="inline-block py-2 transition hover:text-${data.dtx}">${esc(item.label)}</a></li>` : `<li>${esc(item.label)}</li>`
   ).join("");
   const floating = data.whatsapp ? `
-<a href="${esc(data.whatsapp)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105">${WHATSAPP_ICON.replace("size-5", "size-7")}</a>` : "";
+<aside aria-label="Atalho do WhatsApp"><a href="${esc(data.whatsapp)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 grid size-14 place-items-center rounded-full bg-[#25D366] text-white shadow-lg shadow-black/20 transition hover:scale-105">${WHATSAPP_ICON.replace("size-5", "size-7")}</a></aside>` : "";
   return `<footer class="relative overflow-hidden bg-${data.dk} pt-20 text-${data.dtx}">
   <div class="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-[1.4fr_1fr_1fr] md:px-10">
     <div>
@@ -928,10 +928,10 @@ function renderFooter(data) {
       ${data.tagline ? `<p class="mt-3 max-w-sm leading-relaxed text-${data.dtx}/60">${esc(data.tagline)}</p>` : ""}
       <a href="${esc(data.href)}"${external(data.href)} class="mt-7 inline-flex min-h-11 items-center gap-2 ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110">${esc(data.cta)}</a>
     </div>
-    <nav aria-label="Rodap\xE9"><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/50">Navegue</p><ul class="mt-5 space-y-3">${nav}</ul></nav>
-    ${contacts ? `<div><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/50">Contato</p><ul class="mt-5 space-y-3 text-${data.dtx}/75">${contacts}</ul></div>` : ""}
+    <nav aria-label="Rodap\xE9"><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/70">Navegue</p><ul class="mt-3 space-y-1">${nav}</ul></nav>
+    ${contacts ? `<div><p class="text-sm font-semibold uppercase tracking-[0.18em] text-${data.dtx}/70">Contato</p><ul class="mt-3 space-y-1 text-${data.dtx}/75">${contacts}</ul></div>` : ""}
   </div>
-  <div class="mx-auto mt-16 max-w-7xl border-t border-${data.dtx}/10 px-5 py-6 text-sm text-${data.dtx}/50 md:px-10"><p>\xA9 <span data-year></span> ${esc(data.name)}</p></div>
+  <div class="mx-auto mt-16 max-w-7xl border-t border-${data.dtx}/10 px-5 py-6 pb-24 text-sm text-${data.dtx}/70 md:pb-6 md:px-10"><p>\xA9 <span data-year></span> ${esc(data.name)}</p></div>
   <p aria-hidden="true" class="pointer-events-none -mb-[0.16em] select-none whitespace-nowrap text-center font-display ${giantSize(data.name, 18)} font-black uppercase leading-none tracking-tighter text-${data.dtx}/[0.06]">${esc(data.name)}</p>
 </footer>${floating}`;
 }
@@ -3230,7 +3230,7 @@ function simpleFooter(plan, brief) {
   const text2 = textOn(plan, "ink");
   const links = plan.sections.filter((section) => section.id !== "hero").slice(0, 6).map((section) => `<a href="#${section.id}" class="hover:text-${text2}">${escapeHtml(section.label)}</a>`).join("");
   const whatsapp = whatsappUrl ? `
-<a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition hover:scale-105"><svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 0 1-1.7-.6 13.4 13.4 0 0 1-5.2-4.6c-.4-.5-1-1.4-1-2.7 0-1.2.7-1.9.9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg></a>` : "";
+<aside aria-label="Atalho do WhatsApp"><a href="${escapeHtml(whatsappUrl)}" target="_blank" rel="noopener" aria-label="Conversar pelo WhatsApp" class="fixed bottom-5 right-5 z-50 flex size-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition hover:scale-105"><svg viewBox="0 0 24 24" class="size-7" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm5.6 14.2c-.2.7-1.4 1.3-2 1.4-.5.1-1.2.1-1.9-.1a17 17 0 0 1-1.7-.6 13.4 13.4 0 0 1-5.2-4.6c-.4-.5-1-1.4-1-2.7 0-1.2.7-1.9.9-2.2.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.2 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.1.1.7-.1 1.3Z"/></svg></a></aside>` : "";
   return `<footer class="bg-ink py-12 text-${text2}">
 <div class="mx-auto flex max-w-6xl flex-col gap-6 px-5 md:flex-row md:items-center md:justify-between md:px-8">
 <div><p class="font-display text-xl font-semibold">${name}</p>${brief.city ? `<p class="mt-1 text-sm text-${text2}/70">${escapeHtml(brief.city)}</p>` : ""}</div>
@@ -3484,7 +3484,6 @@ function buildHead(plan) {
     '<meta property="og:type" content="website">',
     `<meta property="og:locale" content="${escapeHtml((plan.lang ?? "pt-BR").replace("-", "_"))}">`,
     localBusinessJsonLd(plan),
-    '<meta property="og:type" content="website">',
     `<link rel="icon" href="${favicon}">`,
     '<link rel="preconnect" href="https://fonts.googleapis.com">',
     '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',

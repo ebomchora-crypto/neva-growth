@@ -344,7 +344,17 @@ const BRIDGE = `<script>(function(){function s(l,a){try{parent.postMessage({__ne
 ['log','info','warn','error'].forEach(function(k){var o=console[k];console[k]=function(){s(k==='error'?'err':k==='warn'?'warn':'log',arguments);o.apply(console,arguments)}});
 window.addEventListener('error',function(e){s('err',[e.message+' ('+(e.filename||'').split('/').pop()+':'+e.lineno+')'])});
 window.addEventListener('unhandledrejection',function(e){s('err',['Promise rejeitada: '+e.reason])});})();<\/script>`;
-async function serve(project, rel, res, preview = false) {
+// Site público: link canônico, og:url e imagem de compartilhamento (primeira foto da página), se ainda não tiver.
+function shareTags(html, url) {
+  if (!/<head[^>]*>/i.test(html)) return html;
+  const tags = [];
+  if (!/rel=["']canonical/i.test(html)) tags.push(`<link rel="canonical" href="${url}">`);
+  if (!/property=["']og:url/i.test(html)) tags.push(`<meta property="og:url" content="${url}">`);
+  const img = !/property=["']og:image/i.test(html) && html.match(/<img[^>]+src=["'](https:\/\/[^"']+)["']/i)?.[1];
+  if (img) tags.push(`<meta property="og:image" content="${img.replace(/"/g, '&quot;')}">`, '<meta name="twitter:card" content="summary_large_image">');
+  return tags.length ? html.replace(/<head[^>]*>/i, (m) => m + tags.join('')) : html;
+}
+async function serve(project, rel, res, preview = false, publicUrl = null) {
   let fp = rel ? decodeURIComponent(rel) : 'index.html';
   if (fp.endsWith('/')) fp += 'index.html';
   try { fp = cleanPath(fp); } catch { return res.status(404).type('text').send('Não encontrado'); }
@@ -355,6 +365,7 @@ async function serve(project, rel, res, preview = false) {
   if (!f) return res.status(404).type('text').send('Arquivo não encontrado');
   let out = f.content;
   if (preview && fp.endsWith('.html')) out = /<head[^>]*>/i.test(out) ? out.replace(/<head[^>]*>/i, (m) => m + BRIDGE) : BRIDGE + out;
+  if (publicUrl && fp.endsWith('.html')) out = shareTags(out, publicUrl + (fp === 'index.html' ? '' : fp));
   res.set({
     'content-type': MIME[path.extname(fp).toLowerCase()] || 'text/plain; charset=utf-8',
     'content-security-policy': 'sandbox allow-scripts allow-forms allow-popups allow-modals',
@@ -371,7 +382,7 @@ const publicRouter = express.Router();
 publicRouter.get(/^\/([a-z0-9-]+)\/(.*)$/, async (req, res) => {
   const p = await get('SELECT * FROM projects WHERE slug=? AND published=1', req.params[0]);
   if (!p) return res.status(404).type('text').send('Site não encontrado ou não publicado.');
-  await serve(p, req.params[1], res);
+  await serve(p, req.params[1], res, false, `${req.protocol}://${req.get('host')}/s/${p.slug}/`);
 });
 
 publicRouter.get('/:slug', async (req, res) => res.redirect(`/s/${req.params.slug}/`));
