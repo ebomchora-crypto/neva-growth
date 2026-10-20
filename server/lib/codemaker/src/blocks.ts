@@ -258,7 +258,8 @@ export interface HeaderData {
 
 function brandMark(data: HeaderData, size = 'size-8'): string {
   if (data.logo) return `<img src="${esc(data.logo)}" alt="Logo ${esc(data.name)}" class="h-9 w-auto object-contain md:h-10">`
-  return `<span class="grid ${size} place-items-center rounded-full bg-brand text-${data.btx}">${icon('sparkles', 'size-4')}</span><span>${esc(data.name)}</span>`
+  // Nome longo: no máximo 2 linhas, sem empurrar o menu (medido: "Clínica Viver Bem Fisioterapia" ia a 3 linhas).
+  return `<span class="grid ${size} shrink-0 place-items-center rounded-full bg-brand text-${data.btx}">${icon('sparkles', 'size-4')}</span><span class="max-w-[13rem] leading-tight">${esc(data.name)}</span>`
 }
 
 export function renderHeader(block: string, data: HeaderData): string {
@@ -281,7 +282,7 @@ export function renderHeader(block: string, data: HeaderData): string {
       ${links}
     </nav>
     <div class="flex items-center gap-2">
-      <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 sm:inline-flex">${esc(data.cta)}</a>
+      <a href="${esc(data.href)}"${ext} class="hidden min-h-11 shrink-0 items-center gap-2 whitespace-nowrap ${R.rb} bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 sm:inline-flex">${esc(data.cta)}</a>
       <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center ${R.rb} ${bp}:hidden">${MENU}</button>
     </div>
   </div>
@@ -300,19 +301,21 @@ export function renderHeader(block: string, data: HeaderData): string {
   const mobile = data.nav
     .map((item) => `<a href="#${esc(item.id)}" class="block rounded-2xl px-4 py-3 font-medium hover:bg-${data.ptx}/5">${esc(item.label)}</a>`)
     .join('\n      ')
+  // Cápsula: com mais de 4 itens fica mais larga e o menu só abre a partir de 1280px (nome + 5 itens + botão não cabem em 1024px).
+  const pill = data.nav.length > 4 ? { bp: 'xl', width: 'max-w-6xl' } : { bp: 'lg', width: 'max-w-5xl' }
   return `<header data-header class="fixed inset-x-0 top-0 z-50 px-3 pt-3 md:pt-4">${extras}
-  <div class="mx-auto max-w-5xl rounded-[28px] border border-${data.ptx}/10 bg-paper/75 text-${data.ptx} shadow-[0_12px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+  <div class="mx-auto ${pill.width} rounded-[28px] border border-${data.ptx}/10 bg-paper/75 text-${data.ptx} shadow-[0_12px_40px_-18px_rgba(0,0,0,0.35)] backdrop-blur-xl">
     <div class="flex items-center justify-between gap-4 py-2 pl-5 pr-2">
-      <a href="#hero" class="flex items-center gap-2.5 font-display text-lg font-bold tracking-tight">${brandMark(data)}</a>
-      <nav aria-label="Principal" class="hidden items-center gap-1 ${bp}:flex">
+      <a href="#hero" class="flex min-w-0 items-center gap-2.5 font-display text-lg font-bold tracking-tight">${brandMark(data)}</a>
+      <nav aria-label="Principal" class="hidden items-center gap-1 ${pill.bp}:flex">
         ${links}
       </nav>
       <div class="flex items-center gap-1">
-        <a href="${esc(data.href)}"${ext} class="hidden min-h-11 items-center gap-2 rounded-full bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 active:scale-[0.98] sm:inline-flex">${esc(data.cta)}</a>
-        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 ${bp}:hidden">${MENU}</button>
+        <a href="${esc(data.href)}"${ext} class="hidden min-h-11 shrink-0 items-center gap-2 whitespace-nowrap rounded-full bg-brand px-5 text-sm font-semibold text-${data.btx} transition hover:brightness-110 active:scale-[0.98] sm:inline-flex">${esc(data.cta)}</a>
+        <button type="button" data-menu-toggle aria-label="Abrir menu" class="grid size-11 place-items-center rounded-full transition hover:bg-${data.ptx}/5 ${pill.bp}:hidden">${MENU}</button>
       </div>
     </div>
-    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 ${bp}:hidden">
+    <div data-menu class="hidden border-t border-${data.ptx}/10 px-3 pb-4 pt-2 ${pill.bp}:hidden">
       ${mobile}
       <a href="${esc(data.href)}"${ext} class="mt-2 flex min-h-12 items-center justify-center rounded-full bg-brand font-semibold text-${data.btx}">${esc(data.cta)}</a>
     </div>
