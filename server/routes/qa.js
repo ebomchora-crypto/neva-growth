@@ -65,9 +65,15 @@ r.post('/ai-probe', async (req, res) => {
       reasoning_low: { reasoning: { effort: 'low' } }, reasoning_high: { reasoning: { effort: 'high' } },
       thinking_disabled: { thinking: { type: 'disabled' } }, thinking_enabled: { thinking: { type: 'enabled' } }
     };
+    // Variantes extras do pedido (só parâmetros de raciocínio; "sys" põe um prefixo no system, como "/no_think").
+    const SAFE = new Set(['reasoning_effort', 'reasoning', 'thinking', 'chat_template_kwargs', 'enable_thinking', 'sys']);
+    if (req.body?.only) for (const k of Object.keys(variants)) if (!req.body.only.includes(k)) delete variants[k];
+    for (const [name, extra] of Object.entries(req.body?.variants || {}))
+      if (extra && typeof extra === 'object' && Object.keys(extra).every((k) => SAFE.has(k))) variants[String(name).slice(0, 40)] = extra;
     const out = {};
-    for (const [name, extra] of Object.entries(variants)) {
-      const result = await call({ model, max_tokens: 6000, temperature: 0.6, messages, ...extra });
+    for (const [name, { sys, ...extra }] of Object.entries(variants)) {
+      const msgs = sys ? [{ role: 'system', content: `${String(sys).slice(0, 40)}\n${SYSTEM}` }, messages[1]] : messages;
+      const result = await call({ model, max_tokens: 6000, temperature: 0.6, messages: msgs, ...extra });
       out[name] = { ...result, correct: p.a.test(result.answer) };
     }
     return res.json({ model, problem: 'menor inteiro com restos (resposta 301)', variants: out });
