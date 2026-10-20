@@ -779,8 +779,8 @@ r.post('/', async (req, res) => {
     const partCheck = { high: '\n\nAntes de responder, confira o conteúdo contra o CONTRATO DE ENTREGA do DESIGN.md (nada inventado, ação clara, texto escaneável).',
       xhigh: '\n\nAntes de responder, confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md (nada inventado, nada genérico, ação clara, texto escaneável e específico deste negócio) e reescreva o que falhar.' }[sel.effort] || '';
     const free = E.isFreeSection(planForAi, partId, site.brief);
-    // Escrever código é o trabalho mais exigente: NEVA_CODE_MODEL (app_settings) troca só o modelo das seções livres por um mais forte.
-    const writerModel = (free && String(config.get('NEVA_CODE_MODEL') || '').trim()) || model;
+    // Escrever código é o trabalho mais exigente: o modelo das seções livres é o melhor liberado para a chave (ai.pickCodeModel; NEVA_CODE_MODEL fixa um, "off" desliga).
+    const writerModel = (free && (await ai.pickCodeModel().catch(() => null))) || model;
     return streamAi(req, res, {
       apiKey, model: writerModel, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: free ? 'cm_part_livre' : 'cm_part', userId: user.id,
       onFailure: markError,

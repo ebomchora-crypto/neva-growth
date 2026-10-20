@@ -42,6 +42,48 @@ function selection(input = {}, fallback = {}) {
   return { model, effort: resolveEffort(model, input?.effort || fallback?.effort) };
 }
 
+// Catálogo da River liberado para a chave (GET /models), em cache por 1 h. Vários modelos da River são liberados por conta.
+let modelsCache = { at: 0, ids: null };
+async function availableModels() {
+  if (!river()) return null;
+  if (modelsCache.ids && Date.now() - modelsCache.at < 3600e3) return modelsCache.ids;
+  try {
+    const resp = await fetch(`${RIVER_URL()}/models`, { headers: { authorization: `Bearer ${config.get('RIVER_API_KEY')}` }, signal: AbortSignal.timeout(8000) });
+    const data = await resp.json().catch(() => ({}));
+    const ids = Array.isArray(data?.data) ? data.data.map((m) => m?.id).filter(Boolean) : null;
+    modelsCache = { at: Date.now(), ids };
+    return ids;
+  } catch { return modelsCache.ids; }
+}
+// Ordem de preferência para ESCREVER CÓDIGO (modelos maiores primeiro). Só vale o que a chave realmente tem.
+const CODE_PREFERENCE = ['nvidia/Kimi-K2.6-NVFP4-262K', 'nvidia/Kimi-K2.6-NVFP4', 'nvidia/GLM-5.2-NVFP4-262K', 'nvidia/GLM-5.2-NVFP4', 'Qwen/Qwen3.5-397B-A17B-FP8', 'deepseek-ai/DeepSeek-V4.1-Flash-1017', 'XiaomiMiMo/MiMo-V2.6-Pro-RL'];
+const chooseCodeModel = (available) => (Array.isArray(available) ? CODE_PREFERENCE.find((id) => available.includes(id)) || null : null);
+// Chamada mínima de teste: só usa um modelo novo se ele realmente responde nesta chave (cache de 1 h; falha vale 10 min).
+const probeCache = new Map();
+async function modelWorks(id) {
+  const hit = probeCache.get(id);
+  if (hit && Date.now() - hit.at < (hit.ok ? 3600e3 : 600e3)) return hit.ok;
+  let ok = false;
+  try {
+    const resp = await fetch(`${RIVER_URL()}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.get('RIVER_API_KEY')}` },
+      body: JSON.stringify({ model: id, max_tokens: 64, messages: [{ role: 'user', content: 'Responda apenas: ok' }] }), signal: AbortSignal.timeout(20000) });
+    const data = await resp.json().catch(() => ({}));
+    ok = resp.ok && Boolean(data?.choices?.[0]?.message);
+  } catch { ok = false; }
+  probeCache.set(id, { ok, at: Date.now() });
+  return ok;
+}
+/** Modelo que escreve as seções livres: NEVA_CODE_MODEL (ou 'off'), senão o melhor da lista liberado e que responde, senão null (usa o do nível). */
+async function pickCodeModel() {
+  const set = String(config.get('NEVA_CODE_MODEL') || '').trim();
+  if (set.toLowerCase() === 'off') return null;
+  if (set) return set;
+  const available = await availableModels();
+  if (!Array.isArray(available)) return null;
+  for (const id of CODE_PREFERENCE.filter((m) => available.includes(m)).slice(0, 3)) if (await modelWorks(id)) return id;
+  return null;
+}
+
 /** Modelo real da River para o nome público (NEVA_MODEL_MAP em JSON; senão RIVER_MODEL). */
 function providerModelFor(id) {
   try {
@@ -165,4 +207,4 @@ async function complete({ system, messages, maxTokens = 4096, model, effort, noT
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
 module.exports = { family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
-  logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };
+  availableModels, chooseCodeModel, pickCodeModel, CODE_PREFERENCE, logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };

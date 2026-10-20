@@ -432,3 +432,12 @@ test('modo livre: conserta HTML da IA que esvaziou um site real (div autofechada
   assert.equal(E.ensureStackingContext('<section id="a"><p>sem camadas</p></section>'), '<section id="a"><p>sem camadas</p></section>');
   assert.match(E.FREE_PART_SYSTEM, /NUNCA escreva <div \.\.\. \/>/); assert.match(E.FREE_PART_SYSTEM, /colchetes de modelo como \[NOME\]/);
 });
+
+test('modelo das seções livres: escolhe o melhor modelo de código liberado para a chave, sem inventar', () => {
+  const AI = require('../server/lib/ai');
+  assert.equal(AI.chooseCodeModel(['deepseek-ai/DeepSeek-V4.1-Flash', 'nvidia/Kimi-K2.6-NVFP4', 'Qwen/Qwen3.5-397B-A17B-FP8']), 'nvidia/Kimi-K2.6-NVFP4');
+  assert.equal(AI.chooseCodeModel(['nvidia/Kimi-K2.6-NVFP4-262K', 'nvidia/Kimi-K2.6-NVFP4']), 'nvidia/Kimi-K2.6-NVFP4-262K');
+  assert.equal(AI.chooseCodeModel(['Qwen/Qwen3.5-397B-A17B-FP8', 'nvidia/GLM-5.2-NVFP4']), 'nvidia/GLM-5.2-NVFP4');
+  assert.equal(AI.chooseCodeModel(['deepseek-ai/DeepSeek-V4.1-Flash', 'zai-org/GLM-5.3-Flash']), null, 'só modelos pequenos: usa o do nível');
+  assert.equal(AI.chooseCodeModel(null), null);
+});
