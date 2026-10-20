@@ -345,3 +345,27 @@ test('revisão visual: mede um site real renderizado e acusa overflow e contrast
   for (const k of ['overflow-horizontal', 'contraste-baixo', 'texto-pequeno', 'h1']) assert.ok(kinds.has(k), k);
   assert.ok(bad.critical >= 1);
 });
+
+test('biblioteca: referências verificadas entram só com medida, sem descrição inventada, e a seleção as encontra por ramo', async () => {
+  const list = require('../docs/referencias-verificadas.json');
+  assert.ok(list.length >= 5 && list.every((r) => r.verifiedAt && r.measured && r.measured.h1 && /^https:\/\//.test(r.url)));
+  const rows = await all("SELECT title,content,url FROM library_items WHERE kind='design' AND category='Referência verificada'");
+  assert.equal(rows.length, list.length);
+  assert.ok(rows.every((r) => /Medido em \d{4}-\d{2}-\d{2}/.test(r.content) && /fonte realmente renderizada/.test(r.content)));
+  await require('../server/lib/seed').seedVerifiedReferences();
+  assert.equal((await all("SELECT id FROM library_items WHERE category='Referência verificada'")).length, list.length, 'idempotente');
+  const items = await all("SELECT id,title,niche,style,site_type,url,content FROM library_items WHERE kind='design' AND published=1");
+  const top = (details) => REF.pickDesigns({ businessName: 'X', details }, items).selected.map((s) => s.it.title);
+  assert.ok(top('Escritório de advocacia empresarial em Goiânia').includes('Mattos Filho'));
+  assert.ok(top('Empresa de energia solar fotovoltaica residencial').includes('Sunrun'));
+  assert.ok(top('Clínica de saúde e bem-estar com especialistas').includes('Cleveland Clinic'));
+  assert.ok(top('Imobiliária com imóveis para comprar e alugar').some((t) => ['QuintoAndar', 'Zillow'].includes(t)));
+});
+
+test('composição: a decisão chega às partes que a IA escreve', () => {
+  const brief = { businessName: 'Sol', details: 'x' };
+  const plan = E.normalizePlan({ title: 't', description: 'd', direction: 'dir', theme: 'light', palette: { brand: '#0f3b57', brandDark: '#0a2a3f', accent: '#f2a900', ink: '#10202b', paper: '#fbf8f0', surface: '#f1ebdc', muted: '#566470' }, fonts: { display: 'Inter', body: 'Inter' }, sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'Sol', brief: 'b', bg: 'paper' }, { id: 'faq', label: 'FAQ', layout: 'faq', headline: 'Dúvidas', brief: 'b', bg: 'surface' }] }, brief);
+  const msg = (c) => E.buildPartMessage('faq', { ...plan, composition: c }, brief);
+  assert.match(msg({ headings: 'upper', container: 'narrow' }), /CAIXA ALTA[\s\S]*coluna estreita/);
+  assert.doesNotMatch(msg({ headings: 'sentence', container: 'wide' }), /CAIXA ALTA|coluna estreita/);
+});

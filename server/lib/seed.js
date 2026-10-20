@@ -41,4 +41,22 @@ async function seedLibraryV2() {
     await run("INSERT INTO meta(key,value) VALUES ('library_seed_v2','1') ON CONFLICT (key) DO NOTHING");
   });
 }
-module.exports = { seedLibrary, seedLibraryV2 };
+
+// Referências verificadas (docs/referencias-verificadas.json, criado por scripts/add-reference.js): só entra URL que
+// respondeu e foi medida; o texto vem das medidas, nunca de descrição inventada. Idempotente: roda a cada partida.
+async function seedVerifiedReferences() {
+  const file = require('node:path').join(__dirname, '..', '..', 'docs', 'referencias-verificadas.json');
+  let list = [];
+  try { list = JSON.parse(require('node:fs').readFileSync(file, 'utf8')); } catch { return; }
+  for (const r of list) {
+    if (!r.verifiedAt || !r.url || !r.title || !r.measured) continue;
+    if (await get("SELECT 1 x FROM library_items WHERE kind='design' AND title=?", r.title)) continue;
+    const m = r.measured;
+    const content = [`# DESIGN.md — ${r.title}`, '', `> Medido em ${r.verifiedAt.slice(0, 10)} no site real (${r.url}). Leitura objetiva da primeira tela, não é cópia nem as medidas exatas.`, '',
+      '## Cores (medidas no CSS)', (m.colors || []).join(' · ') || 'não detectadas', '',
+      '## Tipografia (fonte realmente renderizada)', `Títulos: ${m.h1?.font || m.fonts?.[0] || 'n/d'}${m.h1 ? `, ${m.h1.px}px, peso ${m.h1.weight}, alinhado ${m.h1.align === 'centro' ? 'ao centro' : 'à esquerda'}${m.h1.upper ? ', caixa alta' : ''}` : ''}. Texto: ${m.bodyFont || 'n/d'}.`, '',
+      '## Composição (primeira tela, 1440px)', `Tema ${m.theme}; imagem/vídeo ocupa ${Math.round((m.mediaShare || 0) * 100)}% da tela; menu ${m.navFixed ? 'fixo' : 'rola junto'} (${m.navLinks} links); página com ${m.screens} telas e ${m.sections} seções.`].join('\n');
+    await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,url,min_plan) VALUES (?,?,?,?,?,?,?,?,?,?)', 'design', r.title, 'Referência verificada', `${r.niche} · ${r.style} (medido em site real)`, content, r.niche, r.style, r.site_type || 'Institucional', r.url, 'member');
+  }
+}
+module.exports = { seedLibrary, seedLibraryV2, seedVerifiedReferences };

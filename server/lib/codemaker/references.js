@@ -3,6 +3,7 @@
 // vai para o plano. Tudo que influencia o resultado fica registrado em `trace` (guardado no brief do site).
 const { all } = require('../db');
 const E = require('./engine');
+const QA = require('./visual-qa');
 
 const AFFINITY = [
   { re: /advoc|jur[ií]d|direito|contab|consultoria|escrit[oó]rio/i, hints: ['editorial elegante', 'luxo discreto', 'minimalismo premium', 'editorial amigável'] },
@@ -19,7 +20,7 @@ const ROLES = [
   { id: 'movimento', label: 'ritmo, movimento e organização dos componentes', section: /movimento|anima|intera|componente/i },
 ];
 const norm = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-const words = (s) => new Set(norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 3));
+const words = (s) => new Set(norm(s).split(/[^a-z0-9]+/).filter((w) => w.length > 3).map((w) => w.slice(0, 5)));
 
 function pickDesigns(brief, items, limit = 3) {
   const text = `${brief.businessName || ''} ${brief.niche || ''} ${(brief.details || '').slice(0, 800)}`;
@@ -33,7 +34,7 @@ function pickDesigns(brief, items, limit = 3) {
     aff.forEach((h, i) => { if (st.includes(norm(h))) { score += Math.max(1, 5 - i * 0.6); why.push(`estilo "${it.style}" combina com o ramo`); } });
     if (STYLE_HINT[brief.style]?.test(it.style || '')) { score += 3; why.push(`estilo pedido (${brief.style})`); }
     const overlap = [...words(`${it.niche} ${it.site_type}`)].filter((w) => wanted.has(w));
-    if (overlap.length) { score += overlap.length * 2; why.push(`mesmo nicho/tipo: ${overlap.join(', ')}`); }
+    if (overlap.length) { score += overlap.length * 4; why.push(`mesmo nicho/tipo: ${overlap.join(', ')}`); }
     return { it, score, why };
   }).sort((a, b) => b.score - a.score);
   const selected = []; const seen = new Set();
@@ -86,6 +87,7 @@ async function inspect(rawUrl) {
       try { const abs = E.normalizeSiteUrl(new URL(href, url).href); if (abs) css += new TextDecoder('utf-8').decode((await withTimeout(E.fetchLimited(abs, 'text/css', 400_000, true), 6000, 'css lento')).bytes) + '\n'; } catch { /* folha opcional */ }
     }
     const v = { url: String(rawUrl), ok: true, ms: Date.now() - t0, cssRead: sheets.length, ...parseFacts(html, css) };
+    if (process.env.CM_REF_BROWSER === '1' && QA.available()) { const visual = await QA.measureReference(url.href, { shotsDir: process.env.CM_REF_SHOTS, name: new URL(url.href).hostname.replace(/\W+/g, '-') }); v.visual = visual.ok ? visual : { error: visual.error }; }
     cache.set(rawUrl, { at: Date.now(), v });
     return v;
   } catch (e) { return { url: String(rawUrl), ok: false, ms: Date.now() - t0, error: String(e.message || e).slice(0, 140) }; }
@@ -93,11 +95,12 @@ async function inspect(rawUrl) {
 
 function urlsIn(text) { return [...new Set((String(text || '').match(/https?:\/\/[^\s)"'<>]+/gi) || []).map((u) => u.replace(/[.,;]+$/, '')))].slice(0, 2); }
 
+const visualLine = (v) => (v && !v.error ? ` Composição medida renderizada (1440px): tema ${v.theme}; título principal ${v.h1 ? `${v.h1.px}px, ${v.h1.align}${v.h1.upper ? ', caixa alta' : ''}, fonte ${v.h1.font}` : 'não encontrado'}; imagem/vídeo ocupa ${Math.round(v.mediaShare * 100)}% da primeira tela; menu ${v.navFixed ? 'fixo' : 'rola junto'} com ${v.navLinks} links; página com ${v.screens} telas.` : '');
 const section = (content, re) => { const parts = String(content).split(/\n(?=## )/); return parts.filter((p) => re.test(p.split('\n')[0])).join('\n'); };
 function describe(sel, facts) {
   const c = String(sel.it.content || '');
   const body = [section(c, /princ[ií]pio/i), section(c, /cores/i), section(c, sel.role.section)].filter(Boolean).join('\n').replace(/^> .*\n?/gm, '').trim().slice(0, 900) || c.slice(0, 700);
-  const measured = facts?.ok ? `Medido no site real (${facts.url}): fontes ${facts.fonts.join(', ') || 'não detectadas'}; cores ${facts.colors.join(' ') || 'não detectadas'}; ${facts.sections} seções, ${facts.h2} subtítulos${facts.libs.length ? `; usa ${facts.libs.join(', ')}` : ''}${facts.video ? '; tem vídeo' : ''}${facts.canvas ? '; tem canvas' : ''}.`
+  const measured = facts?.ok ? `Medido no site real (${facts.url}): fontes ${facts.fonts.join(', ') || 'não detectadas'}; cores ${facts.colors.join(' ') || 'não detectadas'}; ${facts.sections} seções, ${facts.h2} subtítulos${facts.libs.length ? `; usa ${facts.libs.join(', ')}` : ''}${facts.video ? '; tem vídeo' : ''}${facts.canvas ? '; tem canvas' : ''}.${visualLine(facts.visual)}`
     : sel.it.url ? 'Site original não pôde ser inspecionado agora: valem só as notas abaixo.' : '';
   return `### ${sel.it.title} — usar SÓ para: ${sel.role.label}\n${measured}\n${body}`;
 }
@@ -123,7 +126,7 @@ async function buildReferences(brief, { siteId } = {}) {
   const trace = {
     at: new Date().toISOString(), site: siteId ?? null, found: items.length, ms: Date.now() - t0, chars: block.length, truncated,
     selected: selected.map((s) => ({ id: s.it.id, title: s.it.title, score: Math.round(s.score * 10) / 10, role: s.role.id, why: s.why, url: s.it.url || null })),
-    discarded, inspected: facts.filter((f) => f.ok).map(({ url, fonts, colors, libs, sections, ms }) => ({ url, fonts, colors, libs, sections, ms })),
+    discarded, inspected: facts.filter((f) => f.ok).map(({ url, fonts, colors, libs, sections, ms, visual }) => ({ url, fonts, colors, libs, sections, ms, visual: visual || null })),
     failures: facts.filter((f) => !f.ok).map(({ url, error }) => ({ url, error })), inspection: inspectOn ? 'on' : 'off'
   };
   console.log(JSON.stringify({ evt: 'cm_design_trace', site: trace.site, found: trace.found, selected: trace.selected.map((s) => s.title), failures: trace.failures.length, chars: trace.chars, truncated }));

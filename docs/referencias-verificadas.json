@@ -1,0 +1,278 @@
+[
+  {
+    "title": "Mattos Filho",
+    "url": "https://www.mattosfilho.com.br",
+    "niche": "Advocacia",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:19:53.513Z",
+    "measured": {
+      "colors": [
+        "#f28000",
+        "#0070ad",
+        "#6a2f91",
+        "#ec7000",
+        "#038"
+      ],
+      "fonts": [
+        "Inter:wght@100;200;300;400;500;600;700",
+        "Courier"
+      ],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 1,
+      "h1": {
+        "text": "www.mattosfilho.com.br",
+        "px": 40,
+        "weight": "600",
+        "align": "esquerda",
+        "leftPx": 272,
+        "font": "system-ui",
+        "upper": false
+      },
+      "bodyFont": "system-ui",
+      "mediaShare": 0,
+      "navFixed": false,
+      "navLinks": 0,
+      "sections": 0,
+      "screens": 1,
+      "hasVideo": false
+    }
+  },
+  {
+    "title": "Sunrun",
+    "url": "https://www.sunrun.com",
+    "niche": "Energia solar",
+    "style": "Institucional escuro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:20:04.677Z",
+    "measured": {
+      "colors": [
+        "#1f2647",
+        "#49517d",
+        "#c3dbff",
+        "#a5c9ff",
+        "#6a81a4"
+      ],
+      "fonts": [
+        "Roobert"
+      ],
+      "ok": true,
+      "theme": "escuro",
+      "bgLuminance": 0,
+      "h1": {
+        "text": "America's #1 Home Storage & Solar Power. Price. Quality. Confidence.",
+        "px": 64,
+        "weight": "500",
+        "align": "esquerda",
+        "leftPx": 80,
+        "font": "Roobert",
+        "upper": false
+      },
+      "bodyFont": "Roobert",
+      "mediaShare": 1,
+      "navFixed": false,
+      "navLinks": 40,
+      "sections": 13,
+      "screens": 9.4,
+      "hasVideo": false
+    }
+  },
+  {
+    "title": "Cleveland Clinic",
+    "url": "https://www.clevelandclinic.org",
+    "niche": "Clínicas e saúde",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:20:12.663Z",
+    "measured": {
+      "colors": [
+        "#007bc2",
+        "#1b477b",
+        "#0094ea",
+        "#1d8553",
+        "#0a5522"
+      ],
+      "fonts": [
+        "ui-monospace",
+        "Roboto",
+        "Roboto Fallback",
+        "Source Sans\\ 3",
+        "Source Sans\\ 3 Fallback"
+      ],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 1,
+      "h1": {
+        "text": "We’re here when you need us — for every care in the world.",
+        "px": 48,
+        "weight": "400",
+        "align": "esquerda",
+        "leftPx": 88,
+        "font": "Roboto",
+        "upper": false
+      },
+      "bodyFont": "Roboto",
+      "mediaShare": 0.66,
+      "navFixed": false,
+      "navLinks": 19,
+      "sections": 10,
+      "screens": 8.8,
+      "hasVideo": true
+    }
+  },
+  {
+    "title": "QuintoAndar",
+    "url": "https://www.quintoandar.com.br",
+    "niche": "Imobiliárias",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:20:41.453Z",
+    "measured": {
+      "colors": [
+        "#5063f0",
+        "#3e527d"
+      ],
+      "fonts": [
+        "Roboto",
+        "Oatmeal"
+      ],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 1,
+      "h1": {
+        "text": "Alugue um lar para chamar de seu",
+        "px": 47,
+        "weight": "600",
+        "align": "esquerda",
+        "leftPx": 81,
+        "font": "Oatmeal",
+        "upper": false
+      },
+      "bodyFont": "Oatmeal",
+      "mediaShare": 0.82,
+      "navFixed": true,
+      "navLinks": 66,
+      "sections": 4,
+      "screens": 7.5,
+      "hasVideo": false
+    }
+  },
+  {
+    "title": "Zillow",
+    "url": "https://www.zillow.com",
+    "niche": "Imobiliárias",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:20:49.006Z",
+    "measured": {
+      "colors": [
+        "#0041d9",
+        "#bfdfff",
+        "#001962",
+        "#0033ab",
+        "#6000b6"
+      ],
+      "fonts": [
+        "Open Sans",
+        "Ivar Headline",
+        "Ivar Headline Subset",
+        "Object Sans",
+        "Inter"
+      ],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 1,
+      "h1": {
+        "text": "Rentals. Homes. Agents. Loans.",
+        "px": 60,
+        "weight": "900",
+        "align": "esquerda",
+        "leftPx": 175,
+        "font": "Object Sans",
+        "upper": false
+      },
+      "bodyFont": "Times New Roman",
+      "mediaShare": 0.6,
+      "navFixed": false,
+      "navLinks": 14,
+      "sections": 0,
+      "screens": 3.4,
+      "hasVideo": false
+    }
+  },
+  {
+    "title": "Noma",
+    "url": "https://www.noma.dk",
+    "niche": "Restaurantes",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:21:09.453Z",
+    "measured": {
+      "colors": [
+        "#038",
+        "#dc3232",
+        "#00d084",
+        "#0693e3",
+        "#7a00df"
+      ],
+      "fonts": [],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 0.94,
+      "h1": {
+        "text": "noma",
+        "px": 72,
+        "weight": "500",
+        "align": "esquerda",
+        "leftPx": 40,
+        "font": "Reckless-Neue",
+        "upper": false
+      },
+      "bodyFont": "Reckless",
+      "mediaShare": 0.91,
+      "navFixed": false,
+      "navLinks": 13,
+      "sections": 2,
+      "screens": 7.7,
+      "hasVideo": true
+    }
+  },
+  {
+    "title": "Shake Shack",
+    "url": "https://www.shakeshack.com",
+    "niche": "Restaurantes",
+    "style": "Institucional claro",
+    "site_type": "Institucional",
+    "verifiedAt": "2026-10-20T21:21:13.785Z",
+    "measured": {
+      "colors": [
+        "#418613",
+        "#00a0ff",
+        "#00a1ff",
+        "#00beff",
+        "#00d2ff"
+      ],
+      "fonts": [],
+      "ok": true,
+      "theme": "claro",
+      "bgLuminance": 0.83,
+      "h1": {
+        "text": "Sorry, you have been blocked",
+        "px": 60,
+        "weight": "300",
+        "align": "esquerda",
+        "leftPx": 240,
+        "font": "-apple-system",
+        "upper": false
+      },
+      "bodyFont": "Times New Roman",
+      "mediaShare": 0,
+      "navFixed": false,
+      "navLinks": 0,
+      "sections": 0,
+      "screens": 1.1,
+      "hasVideo": false
+    }
+  }
+]

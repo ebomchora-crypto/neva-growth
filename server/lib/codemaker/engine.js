@@ -3030,6 +3030,8 @@ ${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief
     scoped && ["simulador", "formulario"].includes(blockId) && brief.details?.trim() ? `Pedido original do cliente (copie mensagens, r\xF3tulos e op\xE7\xF5es exatamente):
 ${brief.details.trim()}` : null,
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? "pt-BR", tema: plan.theme })}`,
+    plan.composition?.headings === "upper" ? "Composi\xE7\xE3o: os t\xEDtulos de se\xE7\xE3o aparecem em CAIXA ALTA no design. Escreva o title com no m\xE1ximo 5 palavras." : null,
+    plan.composition?.container === "narrow" ? "Composi\xE7\xE3o: coluna estreita e editorial. Textos curtos e densos, sem listas longas." : null,
     `Se\xE7\xF5es do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(", ")}`,
     `SE\xC7\xC3O QUE VOC\xCA ESCREVE: "${section?.label ?? partId}" \u2014 bloco "${block.name}": ${block.when}`,
     section?.headline ? `T\xEDtulo (title): use exatamente "${section.headline}".` : null,

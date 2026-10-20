@@ -94,4 +94,42 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
   return { available: true, findings, critical: findings.filter((f) => f.severity === 'critico').length, results, summary: findings.reduce((a, f) => ({ ...a, [f.severity]: (a[f.severity] || 0) + 1 }), {}), worst: findings.sort((a, b) => rank[b.severity] - rank[a.severity])[0] || null };
 }
 
-module.exports = { inspectHtml, available, browserPath, VIEWPORTS };
+const PRIVATE = /^(localhost|.*\.local|.*\.internal|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|\[?::1\]?$|0\.0\.0\.0)/i;
+
+// Mede a COMPOSIÇÃO renderizada de uma referência (primeira tela em 1440px). Não é "entender o design": são medidas
+// objetivas (tema, tamanho e alinhamento do título, quanto da tela é imagem, menu fixo, fonte realmente usada).
+async function measureReference(url, { shotsDir, name = 'ref', timeout = 25000 } = {}) {
+  if (!available()) return { ok: false, error: 'sem navegador' };
+  const { chromium } = playwright();
+  const browser = await chromium.launch({ executablePath: browserPath(), args: ['--no-sandbox'] });
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', locale: 'pt-BR' });
+    const page = await ctx.newPage();
+    await page.route('**/*', (route) => { try { return PRIVATE.test(new URL(route.request().url()).hostname) ? route.abort() : route.continue(); } catch { return route.abort(); } });
+    await page.goto(url, { waitUntil: 'networkidle', timeout }).catch(() => page.goto(url, { waitUntil: 'domcontentloaded', timeout }));
+    await page.waitForTimeout(1200);
+    const m = await page.evaluate(() => {
+      const vw = innerWidth, vh = innerHeight;
+      const lum = (c) => { const m = c.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); if (a < 0.5) return null; const f = [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * f[0] + 0.7152 * f[1] + 0.0722 * f[2]; };
+      const under = (x, y) => { for (let n = document.elementFromPoint(x, y); n; n = n.parentElement) { const l = lum(getComputedStyle(n).backgroundColor); if (l !== null) return l; } return lum(getComputedStyle(document.documentElement).backgroundColor) ?? 1; };
+      const samples = [[vw * 0.5, vh * 0.5], [vw * 0.15, vh * 0.35], [vw * 0.85, vh * 0.65]].map(([x, y]) => under(x, y));
+      const bgL = samples.sort((p, q) => p - q)[1];
+      const vis = (e) => { const r = e.getBoundingClientRect(); const cs = getComputedStyle(e); return r.width > 4 && r.height > 4 && cs.visibility !== 'hidden' && cs.display !== 'none'; };
+      const h1 = [...document.querySelectorAll('h1')].find(vis);
+      const h1r = h1?.getBoundingClientRect(); const h1s = h1 ? getComputedStyle(h1) : null;
+      let media = 0;
+      document.querySelectorAll('img,video,canvas,picture').forEach((e) => { if (!vis(e)) return; const r = e.getBoundingClientRect(); const w = Math.max(0, Math.min(r.right, vw) - Math.max(r.left, 0)), h = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0)); if (w * h > 20000) media += w * h; });
+      const nav = document.querySelector('header,nav'); const navPos = nav ? getComputedStyle(nav).position : null;
+      const first = (f) => (f || '').split(',')[0].replace(/["']/g, '').trim();
+      return { theme: bgL < 0.25 ? 'escuro' : 'claro', bgLuminance: Math.round(bgL * 100) / 100,
+        h1: h1 ? { text: h1.textContent.trim().replace(/\s+/g, ' ').slice(0, 80), px: Math.round(parseFloat(h1s.fontSize)), weight: h1s.fontWeight, align: h1s.textAlign === 'center' ? 'centro' : h1s.textAlign === 'right' || h1s.textAlign === 'end' ? 'direita' : 'esquerda', leftPx: Math.round(h1r.left), font: first(h1s.fontFamily), upper: h1s.textTransform === 'uppercase' } : null,
+        bodyFont: first(getComputedStyle(document.body).fontFamily), mediaShare: Math.min(1, Math.round((media / (vw * vh)) * 100) / 100),
+        navFixed: navPos === 'fixed' || navPos === 'sticky', navLinks: nav ? nav.querySelectorAll('a').length : 0,
+        sections: document.querySelectorAll('section').length, screens: Math.round((document.documentElement.scrollHeight / vh) * 10) / 10, hasVideo: !!document.querySelector('video') };
+    });
+    if (shotsDir) { require('node:fs').mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}.png` }); m.shot = `${name}.png`; }
+    return { ok: true, ...m };
+  } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 140) }; } finally { await browser.close(); }
+}
+
+module.exports = { measureReference, inspectHtml, available, browserPath, VIEWPORTS };

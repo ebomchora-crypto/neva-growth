@@ -1301,6 +1301,8 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
     // Blocos que funcionam (simulador, formulário): o pedido inteiro, para copiar regras, mensagens e opções ao pé da letra.
     scoped && ['simulador', 'formulario'].includes(blockId) && brief.details?.trim() ? `Pedido original do cliente (copie mensagens, rótulos e opções exatamente):\n${brief.details.trim()}` : null,
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? 'pt-BR', tema: plan.theme })}`,
+    plan.composition?.headings === 'upper' ? 'Composição: os títulos de seção aparecem em CAIXA ALTA no design. Escreva o title com no máximo 5 palavras.' : null,
+    plan.composition?.container === 'narrow' ? 'Composição: coluna estreita e editorial. Textos curtos e densos, sem listas longas.' : null,
     `Seções do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(', ')}`,
     `SEÇÃO QUE VOCÊ ESCREVE: "${section?.label ?? partId}" — bloco "${block.name}": ${block.when}`,
     section?.headline ? `Título (title): use exatamente "${section.headline}".` : null,
