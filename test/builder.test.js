@@ -191,3 +191,41 @@ test('JSON da IA com texto em volta ainda é lido (sem raciocínio, o Nemotron a
   assert.deepEqual(parseJsonLoose('Aqui está a especificação:\n{"a":{"b":[1,2]}}\nPronto.'), { a: { b: [1, 2] } });
   assert.equal(parseJsonLoose('sem json aqui'), undefined);
 });
+
+test('blocos que funcionam: simulador e formulário montam, o script do site compila e os contatos vêm do pedido', () => {
+  const details = 'Empresa de energia solar.\n- WhatsApp comercial: (62) 99123-4567. Telefone fixo: (62) 3251-7788.\n- E-mail: contato@exemplo.com.br\n- Endereço: Avenida T-63, 1500, sala 804, Setor Bueno, Goiânia - GO.\n- Instagram: @exemplosolar\nSimulador: economia estimada = 90% do valor da conta.\nQuero um formulário de orçamento.\nRuim (não use): "economize até 95%".';
+  const contacts = E.extractContacts(details);
+  assert.equal(contacts.address, 'Avenida T-63, 1500, sala 804, Setor Bueno, Goiânia - GO');
+  assert.equal(E.phoneDigits(contacts.whatsapp), '5562991234567');
+  assert.equal(E.phoneDigits(contacts.phone), '556232517788');
+  assert.equal(contacts.instagram, 'exemplosolar');
+  const brief = { businessName: 'Sol', city: 'Goiânia', details, style: 'auto', assets: [] };
+  assert.equal(E.briefPhone(brief), '5562991234567');
+  assert.equal(E.informedRate(brief, 90), true);
+  assert.equal(E.informedRate(brief, 95), false, 'linha do que NÃO fazer não vale como regra');
+  let plan = E.normalizePlan({ title: 'T', description: 'd', direction: 'x', theme: 'light', palette: { brand: '#1d4ed8', brandDark: '#1e40af', accent: '#f59e0b', ink: '#111827', paper: '#ffffff', surface: '#f3f4f6', muted: '#4b5563' }, fonts: { display: 'Sora', body: 'Figtree' },
+    sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'h', brief: 'b', bg: 'paper' }, { id: 'simulador', label: 'Simulador', layout: 'lista-precos', brief: 'b', bg: 'surface' }, { id: 'orcamento', label: 'Orçamento', layout: 'contato', brief: 'b', bg: 'paper' }] }, brief);
+  plan = E.ensureInteractive(plan, brief);
+  assert.deepEqual(plan.sections.map((s) => s.layout), ['hero-brilho', 'simulador', 'formulario']);
+  const C = (o) => E.parseContent(JSON.stringify(o));
+  const calc = { label: 'Conta', button: 'Calcular', rate: 90, min: 100, max: 50000, month: 'Mês', year: 'Ano', empty: 'Vazio', range: 'Fora', disclaimer: 'Estimativa', message: 'Simulei {valor}' };
+  const sim = E.renderPart('simulador', plan, brief, C({ title: 'Simule', primary: 'Quero', calc }));
+  assert.match(sim, /data-nv-calc data-rate="0.9" data-min="100" data-max="50000" data-wa="https:\/\/wa.me\/5562991234567"/);
+  assert.match(sim, /<label for="simulador-valor"/);
+  // Regra que não está no pedido: o bloco não calcula (vira contato).
+  assert.doesNotMatch(E.renderPart('simulador', plan, brief, C({ title: 'Simule', primary: 'Quero', calc: { ...calc, rate: 95 } })), /data-nv-calc/);
+  const form = E.renderPart('orcamento', plan, brief, C({ title: 'Olá!', primary: 'Enviar pelo WhatsApp', badge: 'Pronto! Abrimos o WhatsApp com os seus dados. É só enviar a mensagem.',
+    items: [{ title: 'Nome', meta: 'texto', text: 'Como podemos te chamar?' }, { title: 'Cidade', meta: 'escolha', list: ['Goiânia', 'Trindade'], text: 'Escolha a sua cidade.' }] }));
+  assert.match(form, /data-nv-form/);
+  assert.match(form, /aria-describedby="orcamento-campo-1-erro"/);
+  assert.match(form, /É só enviar a mensagem\./);
+  const footer = E.footerHtml(plan, brief);
+  assert.match(footer, /google\.com\/maps\/search/);
+  assert.match(footer, /instagram\.com\/exemplosolar/);
+  // Todo <script> do site precisa compilar (um "\n" dentro do template já quebrou o site inteiro).
+  const html = E.assembleSite(plan, { header: E.headerHtml(plan, brief), hero: '', simulador: sim, orcamento: form, footer });
+  const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  assert.ok(scripts.length >= 1);
+  for (const code of scripts) assert.doesNotThrow(() => new Function(code));
+  assert.match(html, /replace\(\/\[\^\\d,\.\]\/g/, 'regex do valor com \\d de verdade');
+});

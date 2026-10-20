@@ -70,7 +70,7 @@ export interface SitePlan {
   title: string
   description: string
   /** Dados reais do negócio vindos do pedido (nome, cidade, WhatsApp) — viram dados estruturados (Schema.org). */
-  business?: { name: string; city?: string | null; phone?: string | null; niche?: string | null }
+  business?: { name: string; city?: string | null; phone?: string | null; niche?: string | null; address?: string | null; email?: string | null; instagram?: string | null; landline?: string | null }
   direction: string
   theme: 'dark' | 'light'
   /** Idioma do site (pt-BR por padrão). */
@@ -908,7 +908,7 @@ PARES DE FONTES (todas do Google Fonts; escolha o que tem a cara do negócio e v
 - artesanal/comida: "Caprasimo"+"Karla", "Abril Fatface"+"Lato", "Young Serif"+"Figtree"`
 
 export function buildPlanMessage(brief: SiteBrief, includeLiteral = true, recipe?: SiteRecipe): string {
-  const phone = phoneDigits(brief.phone)
+  const phone = briefPhone(brief)
   return [
     brief.businessName ? `Negócio: ${brief.businessName}` : 'Negócio: (tire o nome e os dados do pedido abaixo)',
     brief.niche ? `Nicho: ${brief.niche}` : null,
@@ -1035,7 +1035,7 @@ function mainAction(plan: SitePlan, brief: SiteBrief): MainAction {
     }
     return { href: '#contato', label: 'Ver contato' }
   }
-  const phone = phoneDigits(brief.phone)
+  const phone = briefPhone(brief)
   const portuguese = (plan.lang ?? 'pt-BR').startsWith('pt')
   const message = portuguese ? `?text=${encodeURIComponent('Olá! Vim pelo site e gostaria de mais informações.')}` : ''
   return {
@@ -1071,7 +1071,10 @@ export function blockTokens(partId: string, plan: SitePlan, brief: SiteBrief, ph
     dtx: textOn(plan, dk),
     radius: plan.radius ?? 'round',
     wa: mainAction(plan, brief).href,
-    next: index >= 0 && after ? `#${after.id}` : '#contato',
+    // O botão secundário do topo leva ao simulador quando o site tem um (pedido típico: "Simular minha economia").
+    next: index === 0 && plan.sections.some((section) => sectionBlock(section) === 'simulador')
+      ? `#${plan.sections.find((section) => sectionBlock(section) === 'simulador')!.id}`
+      : index >= 0 && after ? `#${after.id}` : '#contato',
     photos,
     fx: plan.effects ?? [],
     look: plan.look ?? 'clean',
@@ -1123,7 +1126,15 @@ function checkContent(content: BlockContent, brief: SiteBrief): BlockContent {
       list: item.list?.map((entry) => dropInventedPrices(entry, prices) ?? entry).filter(Boolean),
     })),
     facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief) && !(/R\$/.test(fact.value) && !prices.has(priceKey(fact.value)))),
+    // Simulador: a porcentagem da regra tem de estar escrita no pedido (sem isso, o bloco não calcula).
+    calc: content.calc && informedRate(brief, content.calc.rate) ? content.calc : undefined,
   }
+}
+export function informedRate(brief: SiteBrief, rate: number): boolean {
+  const value = String(rate).replace('.', ',')
+  const pattern = new RegExp(`(^|[^\\d,])${value.replace(',', '[,.]')}\\s*(%|por\\s*cento)`, 'i')
+  // Linhas que listam o que NÃO fazer ("nada de 'economize até 95%'") não valem como regra.
+  return (brief.details ?? '').split('\n').some((line) => pattern.test(line) && !/nada de|n[ãa]o (use|invente|coloque|prometa)|proibid|ruim/i.test(line))
 }
 
 /** HTML de uma seção: o bloco do plano montado com o conteúdo escrito pela IA. */
@@ -1167,11 +1178,22 @@ function formatPhone(digits: string): string {
 export function footerHtml(plan: SitePlan, brief: SiteBrief): string {
   const action = mainAction(plan, brief)
   const prototype = brief.mode === 'lead_prototype'
-  const phone = phoneDigits(brief.phone)
+  const phone = briefPhone(brief)
   const city = brief.city ? [{ label: brief.city }] : []
   const contacts = prototype
     ? [...(brief.contactRoutes?.contacts ?? []).map((href) => ({ label: href.replace(/^(?:tel:|mailto:|https?:\/\/)/, ''), href })), ...city]
-    : [...(phone ? [{ label: `WhatsApp ${formatPhone(phone)}`, href: `https://wa.me/${phone}` }] : []), ...city]
+    : (() => {
+        const c = contactsOf(brief)
+        const landline = phoneDigits(c.phone)
+        return [
+          ...(phone ? [{ label: `WhatsApp ${formatPhone(phone)}`, href: `https://wa.me/${phone}` }] : []),
+          ...(landline ? [{ label: `Telefone ${formatPhone(landline)}`, href: `tel:+${landline}` }] : []),
+          ...(c.email ? [{ label: c.email, href: `mailto:${c.email}` }] : []),
+          ...(c.instagram ? [{ label: `Instagram @${c.instagram}`, href: `https://instagram.com/${c.instagram}` }] : []),
+          ...(c.hours ? [{ label: c.hours }] : []),
+          ...(c.address ? [{ label: c.address, href: mapsUrl(c.address, brief.city) }] : city),
+        ]
+      })()
   const dk = darkPanel(plan)
   return normalizePart(
     'footer',
@@ -1264,6 +1286,7 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
     brief.reviews && brief.rating ? `Reputação real: nota ${brief.rating.toLocaleString('pt-BR')} com ${brief.reviews} avaliações` : null,
     scoped ? `Requisitos desta parte:\n${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim()}` : null,
     realFacts(brief),
+    exactContacts(brief),
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? 'pt-BR', tema: plan.theme })}`,
     `Seções do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(', ')}`,
     `SEÇÃO QUE VOCÊ ESCREVE: "${section?.label ?? partId}" — bloco "${block.name}": ${block.when}`,
@@ -1282,6 +1305,20 @@ export function buildPartMessage(partId: string, plan: SitePlan, brief: SiteBrie
   ]
     .filter(Boolean)
     .join('\n\n')
+}
+
+// Dados de contato exatos, para a IA copiar (endereço, telefones, e-mail, horário).
+function exactContacts(brief: SiteBrief): string | null {
+  const c = contactsOf(brief)
+  const lines = [
+    c.address ? `Endereço: ${c.address}` : null,
+    briefPhone(brief) ? `WhatsApp: ${c.whatsapp ?? brief.phone}` : null,
+    c.phone ? `Telefone: ${c.phone}` : null,
+    c.email ? `E-mail: ${c.email}` : null,
+    c.instagram ? `Instagram: @${c.instagram}` : null,
+    c.hours ? `Horário: ${c.hours}` : null,
+  ].filter(Boolean)
+  return lines.length ? `DADOS EXATOS DO NEGÓCIO (copie como estão, sem mudar nenhum número nem abreviar):\n${lines.join('\n')}` : null
 }
 
 // Lembrete explícito em cada pedido: a IA respeita melhor assim.
@@ -1655,6 +1692,22 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
   }
 }
 
+// O pedido pediu formulário ou simulador e a IA escolheu um bloco parado: troca pelo que funciona.
+export function ensureInteractive(plan: SitePlan, brief: SiteBrief): SitePlan {
+  const asked = normalize(brief.details ?? '')
+  const sections = plan.sections.map((section) => ({ ...section }))
+  const uses = (block: string) => sections.some((section) => sectionBlock(section) === block)
+  if (/simulador|calculadora|simula[cç]/.test(asked) && /\d\s*(%|por cento)/.test(asked) && !uses('simulador')) {
+    const target = sections.find((section, i) => i > 0 && /simul|calcul|economia/.test(section.id))
+    if (target) target.layout = 'simulador'
+  }
+  if (/formul[aá]rio/.test(asked) && briefPhone(brief) && !uses('formulario')) {
+    const target = sections.find((section, i) => i > 0 && /orcamento|formulario|contato|agend/.test(section.id))
+    if (target) target.layout = 'formulario'
+  }
+  return { ...plan, sections }
+}
+
 export interface BusinessInfo {
   name: string | null
   niche: string | null
@@ -1676,6 +1729,7 @@ export function parsePlan(text: string, brief: SiteBrief, recipe?: SiteRecipe): 
       const json = JSON.parse(raw.trim().replace(/^```(?:json)?|```$/g, ''))
       plan = normalizePlan(json, brief)
       if (plan && recipe) plan = applyRecipe(plan, recipe, brief)
+      if (plan) plan = ensureInteractive(plan, brief)
       const info = json?.business
       if (info && typeof info === 'object') {
         business = {
@@ -1692,6 +1746,44 @@ export function parsePlan(text: string, brief: SiteBrief, recipe?: SiteRecipe): 
   return { actions: parseActions(text), plan, business }
 }
 
+// Contatos escritos no pedido, lidos pelo código (não pela IA): medido em produção, num pedido de 107 linhas
+// a IA devolveu o WhatsApp vazio e trocou o número do endereço (1500 → 1330). DESIGN.md: dado real, exato.
+export interface ContactFacts {
+  whatsapp: string | null
+  phone: string | null
+  email: string | null
+  instagram: string | null
+  address: string | null
+  hours: string | null
+}
+const PHONE_RE = /(?:\+?55[\s.-]?)?\(?\b\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}\b/
+const afterColon = (line: string) => line.replace(/^[\s*•-]+/, '').replace(/^[^:]{0,40}:\s*/, '').replace(/[.;]\s*$/, '').trim()
+export function extractContacts(text: string | null | undefined): ContactFacts {
+  const lines = String(text ?? '').split(/\n+/)
+  const out: ContactFacts = { whatsapp: null, phone: null, email: null, instagram: null, address: null, hours: null }
+  for (const line of lines) {
+    // Linha com WhatsApp e telefone fixo juntos: cada número com a palavra mais próxima antes dele.
+    for (const match of line.matchAll(new RegExp(PHONE_RE.source, 'g'))) {
+      const before = line.slice(0, match.index).toLowerCase()
+      const lastWhats = Math.max(before.lastIndexOf('whats'), before.lastIndexOf('zap'))
+      const lastPhone = Math.max(before.lastIndexOf('telefone'), before.lastIndexOf('fixo'), before.lastIndexOf('fone'))
+      if (lastWhats >= 0 && lastWhats >= lastPhone) out.whatsapp ??= match[0]
+      else if (lastPhone >= 0) out.phone ??= match[0]
+    }
+    out.email ??= line.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0] ?? null
+    if (/instagram/i.test(line)) out.instagram ??= line.match(/instagram\.com\/([\w.]{2,30})/i)?.[1] ?? line.match(/@([\w.]{2,30})/)?.[1]?.replace(/\.$/, '') ?? null
+    if (/endere[çc]o\s*:/i.test(line)) out.address ??= afterColon(line)
+    else if (!out.address && /\b(?:rua|r\.|av\.?|avenida|alameda|rodovia|estrada|pra[çc]a|travessa)\s+[^,\n]{2,60},\s*\d+/i.test(line)) out.address = afterColon(line)
+    if (/^[\s*•-]*hor[áa]rio(?:s)?(?: de atendimento)?\s*:/i.test(line)) out.hours ??= afterColon(line)
+  }
+  return out
+}
+export const contactsOf = (brief: SiteBrief): ContactFacts => extractContacts(brief.details)
+/** WhatsApp do negócio (o informado no formulário do Builder, ou o escrito no pedido). */
+export const briefPhone = (brief: SiteBrief): string | null => phoneDigits(brief.phone) || phoneDigits(contactsOf(brief).whatsapp)
+export const mapsUrl = (address: string, city?: string | null) =>
+  `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address, city && !address.toLowerCase().includes(city.toLowerCase()) ? city : ''].filter(Boolean).join(', '))}`
+
 // Pedido escrito livremente: completa o briefing com o que a IA tirou dele
 // (sem trocar o que a pessoa já tinha informado).
 export function fillBrief(brief: SiteBrief, business: BusinessInfo | null): SiteBrief {
@@ -1701,7 +1793,7 @@ export function fillBrief(brief: SiteBrief, business: BusinessInfo | null): Site
     businessName: brief.businessName || business.name || 'Meu negócio',
     niche: brief.niche || business.niche,
     city: brief.city || business.city,
-    phone: brief.phone || business.phone,
+    phone: brief.phone || business.phone || phoneDigits(contactsOf(brief).whatsapp),
   }
 }
 
@@ -1836,7 +1928,7 @@ export function stripMissingInfo(html: string): string {
 // Rodapé de reserva, montado aqui: usado quando a IA não entrega um rodapé
 // aproveitável — o site nunca fica travado por causa dele.
 export function simpleFooter(plan: SitePlan, brief: SiteBrief): string {
-  const phone = phoneDigits(brief.phone)
+  const phone = briefPhone(brief)
   const whatsappUrl = brief.mode === 'lead_prototype' ? brief.contactRoutes?.confirmedWhatsapp : phone ? `https://wa.me/${phone}` : null
   const name = escapeHtml(brief.businessName || plan.title)
   const text = textOn(plan, 'ink')
@@ -2108,6 +2200,37 @@ const BASE_SCRIPT = `<script>
   } else { items.forEach(function(el){ el.classList.add('is-visible'); }); }
   setTimeout(function(){ items.forEach(function(el){ el.classList.add('is-visible'); }); }, 2500);
   document.querySelectorAll('[data-year]').forEach(function(el){ el.textContent=new Date().getFullYear(); });
+  // Formulário e simulador (blocos "formulario" e "simulador"): vazio, erro e sucesso de verdade.
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function num(v){ var s=String(v||'').replace(/[^\\d,.]/g,''); if(s.indexOf(',')>-1){ s=s.replace(/\\./g,'').replace(',','.'); } else if(/\\.\\d{3}(\\.|$)/.test(s)){ s=s.replace(/\\./g,''); } var n=parseFloat(s); return isNaN(n)?null:n; }
+  function brl(n){ try{ return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }catch(e){ return 'R$ '+n.toFixed(2).replace('.',','); } }
+  function rise(el,n){ if(reduce||!window.requestAnimationFrame){ el.textContent=brl(n); return; } var t0=0; function step(t){ if(!t0){t0=t;} var p=Math.min(1,(t-t0)/700); el.textContent=brl(n*(1-Math.pow(1-p,3))); if(p<1){ requestAnimationFrame(step); } else { el.textContent=brl(n); } } requestAnimationFrame(step); }
+  document.querySelectorAll('[data-nv-calc]').forEach(function(f){
+    var input=f.querySelector('input'), err=f.querySelector('[data-err]'), msg=f.querySelector('[data-err-text]'), out=f.querySelector('[data-result]'), cta=f.querySelector('[data-cta]');
+    function fail(text){ msg.textContent=text; err.hidden=false; input.setAttribute('aria-invalid','true'); out.hidden=true; input.focus(); }
+    f.addEventListener('submit',function(e){ e.preventDefault();
+      var raw=input.value.trim(); if(!raw){ return fail(f.getAttribute('data-empty')); }
+      var v=num(raw); if(v===null||v<+f.getAttribute('data-min')||v>+f.getAttribute('data-max')){ return fail(f.getAttribute('data-range')); }
+      err.hidden=true; input.removeAttribute('aria-invalid');
+      var month=v*(+f.getAttribute('data-rate')); out.hidden=false; rise(f.querySelector('[data-month]'),month); rise(f.querySelector('[data-year]'),month*12);
+      if(cta){ cta.href=f.getAttribute('data-wa')+'?text='+encodeURIComponent(f.getAttribute('data-msg').replace('{valor}',brl(v))); } });
+  });
+  document.querySelectorAll('[data-nv-form]').forEach(function(f){
+    var ok=f.querySelector('[data-ok]'), link=f.querySelector('[data-ok-link]');
+    f.addEventListener('submit',function(e){ e.preventDefault(); var first=null, lines=[];
+      f.querySelectorAll('[data-field]').forEach(function(w){
+        var el=w.querySelector('input,select,textarea'), er=w.querySelector('[data-err]'), type=w.getAttribute('data-type'), v=(el.value||'').trim(), bad=false, d;
+        if(!v){ bad=!w.hasAttribute('data-optional'); }
+        else if(type==='telefone'){ d=v.replace(/\\D/g,''); bad=!(d.length===10||d.length===11||(d.length>=12&&d.length<=13&&d.indexOf('55')===0)); }
+        else if(type==='email'){ bad=!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v); }
+        else if(type==='numero'){ d=num(v); bad=d===null||d<=0; }
+        er.hidden=!bad; if(bad){ el.setAttribute('aria-invalid','true'); if(!first){ first=el; } } else { el.removeAttribute('aria-invalid'); }
+        if(v){ lines.push(w.getAttribute('data-label')+': '+(type==='numero'&&num(v)!==null?brl(num(v)):v)); } });
+      if(first){ ok.hidden=true; first.focus(); return; }
+      var url=f.getAttribute('data-wa')+'?text='+encodeURIComponent(f.getAttribute('data-intro')+'\\n'+lines.join('\\n'));
+      if(link){ link.href=url; } ok.hidden=false; window.open(url,'_blank','noopener'); });
+    f.querySelectorAll('input,select,textarea').forEach(function(el){ el.addEventListener('input',function(){ if(el.getAttribute('aria-invalid')){ el.removeAttribute('aria-invalid'); var er=el.parentNode.querySelector('[data-err]'); if(er){ er.hidden=true; } } }); });
+  });
 })();
 </script>`
 
@@ -2117,7 +2240,10 @@ function localBusinessJsonLd(plan: SitePlan): string {
   if (!b?.name) return ''
   const data: Record<string, unknown> = { '@context': 'https://schema.org', '@type': 'LocalBusiness', name: b.name, description: plan.description }
   if (b.phone) data.telephone = `+55${String(b.phone).replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')}`
-  if (b.city) data.address = { '@type': 'PostalAddress', addressLocality: b.city, addressCountry: 'BR' }
+  if (b.city || b.address) data.address = { '@type': 'PostalAddress', ...(b.address ? { streetAddress: b.address } : {}), ...(b.city ? { addressLocality: b.city } : {}), addressCountry: 'BR' }
+  if (b.email) data.email = b.email
+  if (b.landline) data.telephone = data.telephone ?? `+${b.landline}`
+  if (b.instagram) data.sameAs = [`https://instagram.com/${b.instagram}`]
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
 }
 

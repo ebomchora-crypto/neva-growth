@@ -29,6 +29,24 @@ export interface BlockContent {
   items?: BlockItem[]
   facts?: { label: string; value: string }[]
   alts?: string[]
+  /** Simulador: a regra do cálculo e os textos (só o bloco "simulador" usa). */
+  calc?: CalcContent
+}
+
+export interface CalcContent {
+  label: string
+  button: string
+  /** Porcentagem da regra (ex.: 90 = resultado é 90% do valor digitado). */
+  rate: number
+  min: number
+  max: number
+  month: string
+  year: string
+  empty: string
+  range: string
+  disclaimer: string
+  /** Mensagem do WhatsApp; {valor} vira o valor digitado em reais. */
+  message: string
 }
 
 export interface BlockTokens {
@@ -994,6 +1012,104 @@ const carrossel = (c: BlockContent, t: BlockTokens) => {
 }
 
 // ---------------------------------------------------------------------------
+// Blocos que funcionam no navegador (o script do site cuida do comportamento)
+// DESIGN.md: estados reais (vazio, erro, sucesso), rótulo em todo campo,
+// erro ligado ao campo (aria-describedby) e foco no primeiro campo com erro.
+// ---------------------------------------------------------------------------
+
+const ALERT = '<svg viewBox="0 0 24 24" class="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>'
+const fieldClass = (t: BlockTokens) => `mt-2 block min-h-12 w-full ${r(t).ri} border border-${t.ptx}/20 bg-paper px-4 text-base text-${t.ptx} placeholder:text-${t.ptx}/50 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20 aria-[invalid=true]:border-${t.ptx}`
+const errorLine = (id: string, message: string, t: BlockTokens) =>
+  `<p id="${id}" data-err hidden class="mt-2 flex gap-2 text-sm font-semibold text-${t.ptx}"><span class="text-[#c0362c]">${ALERT}</span><span>${esc(message)}</span></p>`
+
+const FIELD_TYPES = ['texto', 'telefone', 'email', 'numero', 'escolha', 'mensagem']
+function formField(item: BlockItem, i: number, t: BlockTokens): string {
+  const type = FIELD_TYPES.includes(String(item.meta)) ? String(item.meta) : 'texto'
+  const id = `${t.id}-campo-${i + 1}`
+  const err = `${id}-erro`
+  const label = item.title || `Campo ${i + 1}`
+  const optional = /opcional/i.test(item.group ?? '') || type === 'mensagem'
+  const describe = ` aria-describedby="${err}"`
+  const common = `id="${id}" name="${esc(label)}"${optional ? '' : ' aria-required="true"'}${describe}`
+  const control =
+    type === 'escolha'
+      ? `<select ${common} class="${fieldClass(t)}"><option value="">Selecione</option>${(item.list ?? []).map((option) => `<option>${esc(option)}</option>`).join('')}</select>`
+      : type === 'mensagem'
+        ? `<textarea ${common} rows="3" class="${fieldClass(t)} py-3"></textarea>`
+        : `<input ${common} ${
+            type === 'telefone'
+              ? 'type="tel" inputmode="tel" autocomplete="tel"'
+              : type === 'email'
+                ? 'type="email" inputmode="email" autocomplete="email"'
+                : type === 'numero'
+                  ? 'type="text" inputmode="decimal" autocomplete="off"'
+                  : /nome/i.test(label)
+                    ? 'type="text" autocomplete="name"'
+                    : 'type="text"'
+          } class="${fieldClass(t)}">`
+  return `<div data-field data-type="${type}" data-label="${esc(label)}"${optional ? ' data-optional' : ''}>
+          <label for="${id}" class="block text-sm font-semibold">${esc(label)}${optional ? ` <span class="font-normal text-${t.ptx}/70">(opcional)</span>` : ''}</label>
+          ${control}
+          ${errorLine(err, item.text || 'Preencha este campo.', t)}
+        </div>`
+}
+
+const formulario = (c: BlockContent, t: BlockTokens) => {
+  const fields = items(c, 8)
+  // Sem WhatsApp não há para onde enviar: um formulário que não envia seria um botão falso.
+  if (!/wa\.me/.test(t.wa) || !fields.length) return contato(c, t)
+  const facts = (c.facts ?? []).slice(0, 4)
+  return `<section id="${t.id}" class="bg-${t.bg} py-24 text-${t.tx} md:py-32">
+  <div class="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-[0.9fr_1.1fr] md:gap-16 md:px-10">
+    <div>
+      ${heading(c, t)}
+      ${facts.length ? `<dl class="reveal mt-10 space-y-5">${facts.map((fact) => `<div class="flex gap-4"><dt class="text-brand">${icon(factIcon(fact.label))}<span class="sr-only">${esc(fact.label)}</span></dt><dd><strong class="block font-semibold">${esc(fact.label)}</strong><span class="text-${t.tx}/70">${esc(fact.value)}</span></dd></div>`).join('')}</dl>` : ''}
+    </div>
+    <form data-nv-form data-wa="${esc(t.wa.split('?')[0])}" data-intro="${esc(c.title || 'Olá! Vim pelo site.')}" novalidate class="reveal ${r(t).rc} border border-${t.ptx}/10 bg-paper p-6 text-${t.ptx} shadow-xl shadow-black/5 md:p-10">
+      <div class="grid gap-5">
+        ${fields.map((item, i) => formField(item, i, t)).join('\n        ')}
+      </div>
+      ${c.note ? `<p class="mt-6 flex gap-2 text-sm text-${t.ptx}/70">${icon('shield', 'size-4 mt-0.5 shrink-0')}<span>${esc(c.note)}</span></p>` : ''}
+      <button type="submit" class="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-3 ${r(t).rb} bg-brand px-7 font-semibold text-${t.btx} shadow-lg shadow-brand/25 transition hover:brightness-110">${WHATSAPP_ICON}${esc(c.primary || 'Enviar pelo WhatsApp')}</button>
+      <div data-ok role="status" hidden class="mt-5 ${r(t).ri} border border-brand/30 bg-brand/10 p-4 text-sm font-semibold">${esc(c.badge || 'Pronto! Abrimos o WhatsApp com os seus dados.')} <a data-ok-link href="${esc(t.wa)}" target="_blank" rel="noopener" class="underline underline-offset-4">Abrir de novo</a></div>
+    </form>
+  </div>
+</section>`
+}
+
+const simulador = (c: BlockContent, t: BlockTokens) => {
+  const k = c.calc
+  // Sem regra informada no pedido não há conta honesta para fazer.
+  if (!k) return contato(c, t)
+  const id = `${t.id}-valor`
+  const wa = /wa\.me/.test(t.wa) ? t.wa.split('?')[0] : ''
+  return `<section id="${t.id}" class="bg-${t.bg} py-24 text-${t.tx} md:py-32">
+  <div class="mx-auto grid max-w-7xl items-start gap-12 px-5 md:grid-cols-[1fr_1fr] md:gap-16 md:px-10">
+    ${heading(c, t)}
+    <form data-nv-calc data-rate="${k.rate / 100}" data-min="${k.min}" data-max="${k.max}" data-wa="${esc(wa)}" data-msg="${esc(k.message)}" data-empty="${esc(k.empty)}" data-range="${esc(k.range)}" novalidate class="reveal ${r(t).rc} border border-${t.ptx}/10 bg-paper p-6 text-${t.ptx} shadow-xl shadow-black/5 md:p-10">
+      <label for="${id}" class="block text-sm font-semibold">${esc(k.label)}</label>
+      <div class="mt-2 flex items-stretch gap-3 max-sm:flex-col">
+        <div class="relative grow">
+          <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-4 grid place-items-center font-semibold text-${t.ptx}/70">R$</span>
+          <input id="${id}" type="text" inputmode="decimal" autocomplete="off" aria-describedby="${id}-erro" placeholder="0,00" class="${fieldClass(t)} mt-0 pl-12 text-lg font-semibold">
+        </div>
+        <button type="submit" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap ${r(t).rb} bg-brand px-6 font-semibold text-${t.btx} transition hover:brightness-110">${esc(k.button)}</button>
+      </div>
+      ${errorLine(`${id}-erro`, k.empty, t).replace('<span>', '<span data-err-text>')}
+      <div data-result hidden aria-live="polite" class="mt-8">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="${r(t).ri} bg-brand/10 p-5"><p class="text-sm font-semibold text-${t.ptx}/70">${esc(k.month)}</p><p data-month class="mt-1 font-display text-3xl font-bold tabular-nums text-${t.ptx}"></p></div>
+          <div class="${r(t).ri} bg-brand/10 p-5"><p class="text-sm font-semibold text-${t.ptx}/70">${esc(k.year)}</p><p data-year class="mt-1 font-display text-3xl font-bold tabular-nums text-${t.ptx}"></p></div>
+        </div>
+        ${wa && c.primary ? `<a data-cta href="${esc(wa)}" target="_blank" rel="noopener" class="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-3 ${r(t).rb} bg-brand px-7 font-semibold text-${t.btx} shadow-lg shadow-brand/25 transition hover:brightness-110">${WHATSAPP_ICON}${esc(c.primary)}</a>` : ''}
+      </div>
+      ${k.disclaimer ? `<p class="mt-6 text-sm leading-relaxed text-${t.ptx}/70">${esc(k.disclaimer)}</p>` : ''}
+    </form>
+  </div>
+</section>`
+}
+
+// ---------------------------------------------------------------------------
 // Catálogo
 // ---------------------------------------------------------------------------
 
@@ -1313,6 +1429,34 @@ export const BLOCKS: Record<string, Block> = {
       ],
     }),
   },
+  formulario: {
+    kind: 'section',
+    name: 'Formulário que envia pelo WhatsApp',
+    when: 'Quando o pedido pede formulário (orçamento, agendamento, inscrição): campos com rótulo, erro em cada campo e aviso de privacidade; ao enviar, abre o WhatsApp com os dados preenchidos. Só se o negócio tem WhatsApp.',
+    photos: 0,
+    fields: 'kicker, title, subtitle, primary (texto do botão de enviar), note (aviso de privacidade curto), badge (mensagem de sucesso), items (os campos, na ordem do pedido: title = rótulo, meta = tipo: texto | telefone | email | numero | escolha | mensagem, list = opções quando o tipo é escolha, text = mensagem de erro do campo, group = "opcional" se não for obrigatório), facts (até 4 contatos reais ao lado: label, value)',
+    render: formulario,
+    sample: S(
+      [
+        { title: 'Nome', meta: 'texto', text: 'Mensagem de erro do campo' },
+        { title: 'WhatsApp', meta: 'telefone', text: 'Mensagem de erro do campo' },
+        { title: 'Opção', meta: 'escolha', list: ['Opção real 1', 'Opção real 2'], text: 'Mensagem de erro do campo' },
+      ],
+      { primary: 'Texto do botão de enviar', note: 'Aviso curto de privacidade', badge: 'Mensagem de sucesso' },
+    ),
+  },
+  simulador: {
+    kind: 'section',
+    name: 'Simulador que calcula no navegador',
+    when: 'Só quando o pedido descreve um cálculo COM a regra (ex.: "economia = 90% da conta"): o visitante digita um valor em reais e vê o resultado por mês e por ano, com validação e um botão que leva o valor para o WhatsApp. Sem regra no pedido, não use.',
+    photos: 0,
+    fields: 'kicker, title, subtitle, primary (texto do botão que aparece depois do resultado), calc: { label (rótulo do campo), button (texto do botão de calcular), rate (a porcentagem da regra do pedido, só o número), min, max (intervalo aceito), month e year (rótulos dos resultados), empty (erro do campo vazio), range (erro fora do intervalo), disclaimer (frase de aviso), message (mensagem do WhatsApp com {valor} onde entra o valor digitado) }',
+    render: simulador,
+    sample: S([], {
+      primary: 'Texto do botão depois do resultado',
+      calc: { label: 'Rótulo do campo', button: 'Calcular', rate: 50, min: 10, max: 1000, month: 'Por mês', year: 'Por ano', empty: 'Erro do campo vazio', range: 'Erro fora do intervalo', disclaimer: 'Aviso sobre a estimativa', message: 'Olá! Fiz a simulação com {valor}.' },
+    }),
+  },
 }
 
 // Nomes antigos que ainda aparecem em planos salvos.
@@ -1351,7 +1495,7 @@ export function cleanContent(raw: unknown): BlockContent {
     title: text(input.title, 140),
     highlight: text(input.highlight, 60),
     subtitle: text(input.subtitle, 320),
-    badge: text(input.badge, 60),
+    badge: text(input.badge, 140),
     primary: text(input.primary, 50),
     secondary: text(input.secondary, 50),
     note: text(input.note, 120),
@@ -1384,6 +1528,33 @@ export function cleanContent(raw: unknown): BlockContent {
     alts: list(input.alts)
       .map((alt) => text(alt, 140))
       .slice(0, 8),
+    ...(cleanCalc(input.calc) ? { calc: cleanCalc(input.calc)! } : {}),
+  }
+}
+
+const num = (value: unknown): number => {
+  const n = typeof value === 'number' ? value : Number(String(value ?? '').replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.'))
+  return Number.isFinite(n) ? n : NaN
+}
+function cleanCalc(raw: unknown): CalcContent | null {
+  if (!raw || typeof raw !== 'object') return null
+  const v = raw as Record<string, unknown>
+  const rate = num(v.rate)
+  const min = num(v.min)
+  const max = num(v.max)
+  if (!(rate > 0 && rate <= 100) || !(min >= 0) || !(max > min)) return null
+  return {
+    label: text(v.label, 80) || 'Valor',
+    button: text(v.button, 40) || 'Calcular',
+    rate,
+    min,
+    max,
+    month: text(v.month, 60) || 'Por mês',
+    year: text(v.year, 60) || 'Por ano',
+    empty: text(v.empty, 120) || 'Digite um valor.',
+    range: text(v.range, 120) || 'Valor fora do intervalo.',
+    disclaimer: text(v.disclaimer, 240),
+    message: text(v.message, 240) || 'Olá! Fiz a simulação no site com {valor}.',
   }
 }
 

@@ -44,6 +44,7 @@ __export(engine_exports, {
   backendLimitations: () => backendLimitations,
   balanceHtml: () => balanceHtml,
   blockTokens: () => blockTokens,
+  briefPhone: () => briefPhone,
   buildEditMessage: () => buildEditMessage,
   buildHead: () => buildHead,
   buildPartMessage: () => buildPartMessage,
@@ -52,9 +53,12 @@ __export(engine_exports, {
   cleanAssets: () => cleanAssets,
   cleanFragment: () => cleanFragment,
   cleanUserText: () => cleanUserText,
+  contactsOf: () => contactsOf,
   contrastGuide: () => contrastGuide,
   contrastRatio: () => contrastRatio,
   dropInventedPrices: () => dropInventedPrices,
+  ensureInteractive: () => ensureInteractive,
+  extractContacts: () => extractContacts,
   faviconDataUri: () => faviconDataUri,
   faviconSvg: () => faviconSvg,
   fetchLimited: () => fetchLimited,
@@ -66,12 +70,14 @@ __export(engine_exports, {
   imagesMessage: () => imagesMessage,
   importedSummary: () => importedSummary,
   informedPrices: () => informedPrices,
+  informedRate: () => informedRate,
   isBlockedHost: () => isBlockedHost,
   isProjectPath: () => isProjectPath,
   isReservedSlug: () => isReservedSlug,
   joinContinuation: () => joinContinuation,
   liftFaintText: () => liftFaintText,
   logoOf: () => logoOf,
+  mapsUrl: () => mapsUrl,
   normalizePart: () => normalizePart,
   normalizePlan: () => normalizePlan,
   normalizeSiteUrl: () => normalizeSiteUrl,
@@ -1459,6 +1465,76 @@ var carrossel = (c, t) => {
   </div>
 </section>`;
 };
+var ALERT = '<svg viewBox="0 0 24 24" class="mt-0.5 size-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>';
+var fieldClass = (t) => `mt-2 block min-h-12 w-full ${r(t).ri} border border-${t.ptx}/20 bg-paper px-4 text-base text-${t.ptx} placeholder:text-${t.ptx}/50 focus:border-brand focus:outline-none focus:ring-4 focus:ring-brand/20 aria-[invalid=true]:border-${t.ptx}`;
+var errorLine = (id, message, t) => `<p id="${id}" data-err hidden class="mt-2 flex gap-2 text-sm font-semibold text-${t.ptx}"><span class="text-[#c0362c]">${ALERT}</span><span>${esc(message)}</span></p>`;
+var FIELD_TYPES = ["texto", "telefone", "email", "numero", "escolha", "mensagem"];
+function formField(item, i, t) {
+  const type = FIELD_TYPES.includes(String(item.meta)) ? String(item.meta) : "texto";
+  const id = `${t.id}-campo-${i + 1}`;
+  const err = `${id}-erro`;
+  const label = item.title || `Campo ${i + 1}`;
+  const optional = /opcional/i.test(item.group ?? "") || type === "mensagem";
+  const describe = ` aria-describedby="${err}"`;
+  const common = `id="${id}" name="${esc(label)}"${optional ? "" : ' aria-required="true"'}${describe}`;
+  const control = type === "escolha" ? `<select ${common} class="${fieldClass(t)}"><option value="">Selecione</option>${(item.list ?? []).map((option) => `<option>${esc(option)}</option>`).join("")}</select>` : type === "mensagem" ? `<textarea ${common} rows="3" class="${fieldClass(t)} py-3"></textarea>` : `<input ${common} ${type === "telefone" ? 'type="tel" inputmode="tel" autocomplete="tel"' : type === "email" ? 'type="email" inputmode="email" autocomplete="email"' : type === "numero" ? 'type="text" inputmode="decimal" autocomplete="off"' : /nome/i.test(label) ? 'type="text" autocomplete="name"' : 'type="text"'} class="${fieldClass(t)}">`;
+  return `<div data-field data-type="${type}" data-label="${esc(label)}"${optional ? " data-optional" : ""}>
+          <label for="${id}" class="block text-sm font-semibold">${esc(label)}${optional ? ` <span class="font-normal text-${t.ptx}/70">(opcional)</span>` : ""}</label>
+          ${control}
+          ${errorLine(err, item.text || "Preencha este campo.", t)}
+        </div>`;
+}
+var formulario = (c, t) => {
+  const fields = items(c, 8);
+  if (!/wa\.me/.test(t.wa) || !fields.length) return contato(c, t);
+  const facts = (c.facts ?? []).slice(0, 4);
+  return `<section id="${t.id}" class="bg-${t.bg} py-24 text-${t.tx} md:py-32">
+  <div class="mx-auto grid max-w-7xl gap-12 px-5 md:grid-cols-[0.9fr_1.1fr] md:gap-16 md:px-10">
+    <div>
+      ${heading(c, t)}
+      ${facts.length ? `<dl class="reveal mt-10 space-y-5">${facts.map((fact) => `<div class="flex gap-4"><dt class="text-brand">${icon(factIcon(fact.label))}<span class="sr-only">${esc(fact.label)}</span></dt><dd><strong class="block font-semibold">${esc(fact.label)}</strong><span class="text-${t.tx}/70">${esc(fact.value)}</span></dd></div>`).join("")}</dl>` : ""}
+    </div>
+    <form data-nv-form data-wa="${esc(t.wa.split("?")[0])}" data-intro="${esc(c.title || "Ol\xE1! Vim pelo site.")}" novalidate class="reveal ${r(t).rc} border border-${t.ptx}/10 bg-paper p-6 text-${t.ptx} shadow-xl shadow-black/5 md:p-10">
+      <div class="grid gap-5">
+        ${fields.map((item, i) => formField(item, i, t)).join("\n        ")}
+      </div>
+      ${c.note ? `<p class="mt-6 flex gap-2 text-sm text-${t.ptx}/70">${icon("shield", "size-4 mt-0.5 shrink-0")}<span>${esc(c.note)}</span></p>` : ""}
+      <button type="submit" class="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-3 ${r(t).rb} bg-brand px-7 font-semibold text-${t.btx} shadow-lg shadow-brand/25 transition hover:brightness-110">${WHATSAPP_ICON}${esc(c.primary || "Enviar pelo WhatsApp")}</button>
+      <div data-ok role="status" hidden class="mt-5 ${r(t).ri} border border-brand/30 bg-brand/10 p-4 text-sm font-semibold">${esc(c.badge || "Pronto! Abrimos o WhatsApp com os seus dados.")} <a data-ok-link href="${esc(t.wa)}" target="_blank" rel="noopener" class="underline underline-offset-4">Abrir de novo</a></div>
+    </form>
+  </div>
+</section>`;
+};
+var simulador = (c, t) => {
+  const k = c.calc;
+  if (!k) return contato(c, t);
+  const id = `${t.id}-valor`;
+  const wa = /wa\.me/.test(t.wa) ? t.wa.split("?")[0] : "";
+  return `<section id="${t.id}" class="bg-${t.bg} py-24 text-${t.tx} md:py-32">
+  <div class="mx-auto grid max-w-7xl items-start gap-12 px-5 md:grid-cols-[1fr_1fr] md:gap-16 md:px-10">
+    ${heading(c, t)}
+    <form data-nv-calc data-rate="${k.rate / 100}" data-min="${k.min}" data-max="${k.max}" data-wa="${esc(wa)}" data-msg="${esc(k.message)}" data-empty="${esc(k.empty)}" data-range="${esc(k.range)}" novalidate class="reveal ${r(t).rc} border border-${t.ptx}/10 bg-paper p-6 text-${t.ptx} shadow-xl shadow-black/5 md:p-10">
+      <label for="${id}" class="block text-sm font-semibold">${esc(k.label)}</label>
+      <div class="mt-2 flex items-stretch gap-3 max-sm:flex-col">
+        <div class="relative grow">
+          <span aria-hidden="true" class="pointer-events-none absolute inset-y-0 left-4 grid place-items-center font-semibold text-${t.ptx}/70">R$</span>
+          <input id="${id}" type="text" inputmode="decimal" autocomplete="off" aria-describedby="${id}-erro" placeholder="0,00" class="${fieldClass(t)} mt-0 pl-12 text-lg font-semibold">
+        </div>
+        <button type="submit" class="inline-flex min-h-12 items-center justify-center whitespace-nowrap ${r(t).rb} bg-brand px-6 font-semibold text-${t.btx} transition hover:brightness-110">${esc(k.button)}</button>
+      </div>
+      ${errorLine(`${id}-erro`, k.empty, t).replace("<span>", "<span data-err-text>")}
+      <div data-result hidden aria-live="polite" class="mt-8">
+        <div class="grid gap-3 sm:grid-cols-2">
+          <div class="${r(t).ri} bg-brand/10 p-5"><p class="text-sm font-semibold text-${t.ptx}/70">${esc(k.month)}</p><p data-month class="mt-1 font-display text-3xl font-bold tabular-nums text-${t.ptx}"></p></div>
+          <div class="${r(t).ri} bg-brand/10 p-5"><p class="text-sm font-semibold text-${t.ptx}/70">${esc(k.year)}</p><p data-year class="mt-1 font-display text-3xl font-bold tabular-nums text-${t.ptx}"></p></div>
+        </div>
+        ${wa && c.primary ? `<a data-cta href="${esc(wa)}" target="_blank" rel="noopener" class="mt-6 inline-flex min-h-14 w-full items-center justify-center gap-3 ${r(t).rb} bg-brand px-7 font-semibold text-${t.btx} shadow-lg shadow-brand/25 transition hover:brightness-110">${WHATSAPP_ICON}${esc(c.primary)}</a>` : ""}
+      </div>
+      ${k.disclaimer ? `<p class="mt-6 text-sm leading-relaxed text-${t.ptx}/70">${esc(k.disclaimer)}</p>` : ""}
+    </form>
+  </div>
+</section>`;
+};
 var S = (items2, extra = {}) => ({
   kicker: "R\xF3tulo curto",
   title: "T\xEDtulo da se\xE7\xE3o com o benef\xEDcio",
@@ -1767,6 +1843,34 @@ var BLOCKS = {
         { label: "Hor\xE1rio", value: "S\xF3 se informado" }
       ]
     })
+  },
+  formulario: {
+    kind: "section",
+    name: "Formul\xE1rio que envia pelo WhatsApp",
+    when: "Quando o pedido pede formul\xE1rio (or\xE7amento, agendamento, inscri\xE7\xE3o): campos com r\xF3tulo, erro em cada campo e aviso de privacidade; ao enviar, abre o WhatsApp com os dados preenchidos. S\xF3 se o neg\xF3cio tem WhatsApp.",
+    photos: 0,
+    fields: 'kicker, title, subtitle, primary (texto do bot\xE3o de enviar), note (aviso de privacidade curto), badge (mensagem de sucesso), items (os campos, na ordem do pedido: title = r\xF3tulo, meta = tipo: texto | telefone | email | numero | escolha | mensagem, list = op\xE7\xF5es quando o tipo \xE9 escolha, text = mensagem de erro do campo, group = "opcional" se n\xE3o for obrigat\xF3rio), facts (at\xE9 4 contatos reais ao lado: label, value)',
+    render: formulario,
+    sample: S(
+      [
+        { title: "Nome", meta: "texto", text: "Mensagem de erro do campo" },
+        { title: "WhatsApp", meta: "telefone", text: "Mensagem de erro do campo" },
+        { title: "Op\xE7\xE3o", meta: "escolha", list: ["Op\xE7\xE3o real 1", "Op\xE7\xE3o real 2"], text: "Mensagem de erro do campo" }
+      ],
+      { primary: "Texto do bot\xE3o de enviar", note: "Aviso curto de privacidade", badge: "Mensagem de sucesso" }
+    )
+  },
+  simulador: {
+    kind: "section",
+    name: "Simulador que calcula no navegador",
+    when: 'S\xF3 quando o pedido descreve um c\xE1lculo COM a regra (ex.: "economia = 90% da conta"): o visitante digita um valor em reais e v\xEA o resultado por m\xEAs e por ano, com valida\xE7\xE3o e um bot\xE3o que leva o valor para o WhatsApp. Sem regra no pedido, n\xE3o use.',
+    photos: 0,
+    fields: "kicker, title, subtitle, primary (texto do bot\xE3o que aparece depois do resultado), calc: { label (r\xF3tulo do campo), button (texto do bot\xE3o de calcular), rate (a porcentagem da regra do pedido, s\xF3 o n\xFAmero), min, max (intervalo aceito), month e year (r\xF3tulos dos resultados), empty (erro do campo vazio), range (erro fora do intervalo), disclaimer (frase de aviso), message (mensagem do WhatsApp com {valor} onde entra o valor digitado) }",
+    render: simulador,
+    sample: S([], {
+      primary: "Texto do bot\xE3o depois do resultado",
+      calc: { label: "R\xF3tulo do campo", button: "Calcular", rate: 50, min: 10, max: 1e3, month: "Por m\xEAs", year: "Por ano", empty: "Erro do campo vazio", range: "Erro fora do intervalo", disclaimer: "Aviso sobre a estimativa", message: "Ol\xE1! Fiz a simula\xE7\xE3o com {valor}." }
+    })
   }
 };
 var ALIASES = { hero: "hero-dividido" };
@@ -1794,7 +1898,7 @@ function cleanContent(raw) {
     title: text(input.title, 140),
     highlight: text(input.highlight, 60),
     subtitle: text(input.subtitle, 320),
-    badge: text(input.badge, 60),
+    badge: text(input.badge, 140),
     primary: text(input.primary, 50),
     secondary: text(input.secondary, 50),
     note: text(input.note, 120),
@@ -1815,7 +1919,33 @@ function cleanContent(raw) {
       const value = fact && typeof fact === "object" ? fact : {};
       return { label: text(value.label, 40), value: text(value.value, 40) };
     }).filter((fact) => fact.label && fact.value),
-    alts: list(input.alts).map((alt) => text(alt, 140)).slice(0, 8)
+    alts: list(input.alts).map((alt) => text(alt, 140)).slice(0, 8),
+    ...cleanCalc(input.calc) ? { calc: cleanCalc(input.calc) } : {}
+  };
+}
+var num = (value) => {
+  const n = typeof value === "number" ? value : Number(String(value ?? "").replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}\b)/g, "").replace(",", "."));
+  return Number.isFinite(n) ? n : NaN;
+};
+function cleanCalc(raw) {
+  if (!raw || typeof raw !== "object") return null;
+  const v = raw;
+  const rate = num(v.rate);
+  const min = num(v.min);
+  const max = num(v.max);
+  if (!(rate > 0 && rate <= 100) || !(min >= 0) || !(max > min)) return null;
+  return {
+    label: text(v.label, 80) || "Valor",
+    button: text(v.button, 40) || "Calcular",
+    rate,
+    min,
+    max,
+    month: text(v.month, 60) || "Por m\xEAs",
+    year: text(v.year, 60) || "Por ano",
+    empty: text(v.empty, 120) || "Digite um valor.",
+    range: text(v.range, 120) || "Valor fora do intervalo.",
+    disclaimer: text(v.disclaimer, 240),
+    message: text(v.message, 240) || "Ol\xE1! Fiz a simula\xE7\xE3o no site com {valor}."
   };
 }
 function renderBlock(id, content, tokens) {
@@ -2499,7 +2629,7 @@ PARES DE FONTES (todas do Google Fonts; escolha o que tem a cara do neg\xF3cio e
 - amig\xE1vel/fam\xEDlia: "Nunito"+"Nunito Sans", "Quicksand"+"Nunito", "Baloo 2"+"Nunito Sans", "Fredoka"+"Figtree", "Poppins"+"Poppins"
 - artesanal/comida: "Caprasimo"+"Karla", "Abril Fatface"+"Lato", "Young Serif"+"Figtree"`;
 function buildPlanMessage(brief, includeLiteral = true, recipe) {
-  const phone = phoneDigits(brief.phone);
+  const phone = briefPhone(brief);
   return [
     brief.businessName ? `Neg\xF3cio: ${brief.businessName}` : "Neg\xF3cio: (tire o nome e os dados do pedido abaixo)",
     brief.niche ? `Nicho: ${brief.niche}` : null,
@@ -2595,7 +2725,7 @@ function mainAction(plan, brief) {
     }
     return { href: "#contato", label: "Ver contato" };
   }
-  const phone = phoneDigits(brief.phone);
+  const phone = briefPhone(brief);
   const portuguese = (plan.lang ?? "pt-BR").startsWith("pt");
   const message = portuguese ? `?text=${encodeURIComponent("Ol\xE1! Vim pelo site e gostaria de mais informa\xE7\xF5es.")}` : "";
   return {
@@ -2622,7 +2752,8 @@ function blockTokens(partId, plan, brief, photos) {
     dtx: textOn(plan, dk),
     radius: plan.radius ?? "round",
     wa: mainAction(plan, brief).href,
-    next: index >= 0 && after ? `#${after.id}` : "#contato",
+    // O botão secundário do topo leva ao simulador quando o site tem um (pedido típico: "Simular minha economia").
+    next: index === 0 && plan.sections.some((section) => sectionBlock(section) === "simulador") ? `#${plan.sections.find((section) => sectionBlock(section) === "simulador").id}` : index >= 0 && after ? `#${after.id}` : "#contato",
     photos,
     fx: plan.effects ?? [],
     look: plan.look ?? "clean"
@@ -2657,8 +2788,15 @@ function checkContent(content, brief) {
       price: item.price && /\d/.test(item.price) && !prices.has(priceKey(item.price)) ? void 0 : item.price,
       list: item.list?.map((entry) => dropInventedPrices(entry, prices) ?? entry).filter(Boolean)
     })),
-    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief) && !(/R\$/.test(fact.value) && !prices.has(priceKey(fact.value))))
+    facts: content.facts?.filter((fact) => stripInventedClaims(`${fact.value} ${fact.label}`, brief) && !(/R\$/.test(fact.value) && !prices.has(priceKey(fact.value)))),
+    // Simulador: a porcentagem da regra tem de estar escrita no pedido (sem isso, o bloco não calcula).
+    calc: content.calc && informedRate(brief, content.calc.rate) ? content.calc : void 0
   };
+}
+function informedRate(brief, rate) {
+  const value = String(rate).replace(".", ",");
+  const pattern = new RegExp(`(^|[^\\d,])${value.replace(",", "[,.]")}\\s*(%|por\\s*cento)`, "i");
+  return (brief.details ?? "").split("\n").some((line) => pattern.test(line) && !/nada de|n[ãa]o (use|invente|coloque|prometa)|proibid|ruim/i.test(line));
 }
 function renderPart(partId, plan, brief, content, options = {}) {
   const section = plan.sections.find((item) => item.id === partId);
@@ -2697,9 +2835,20 @@ function formatPhone(digits) {
 function footerHtml(plan, brief) {
   const action = mainAction(plan, brief);
   const prototype = brief.mode === "lead_prototype";
-  const phone = phoneDigits(brief.phone);
+  const phone = briefPhone(brief);
   const city = brief.city ? [{ label: brief.city }] : [];
-  const contacts = prototype ? [...(brief.contactRoutes?.contacts ?? []).map((href) => ({ label: href.replace(/^(?:tel:|mailto:|https?:\/\/)/, ""), href })), ...city] : [...phone ? [{ label: `WhatsApp ${formatPhone(phone)}`, href: `https://wa.me/${phone}` }] : [], ...city];
+  const contacts = prototype ? [...(brief.contactRoutes?.contacts ?? []).map((href) => ({ label: href.replace(/^(?:tel:|mailto:|https?:\/\/)/, ""), href })), ...city] : (() => {
+    const c = contactsOf(brief);
+    const landline = phoneDigits(c.phone);
+    return [
+      ...phone ? [{ label: `WhatsApp ${formatPhone(phone)}`, href: `https://wa.me/${phone}` }] : [],
+      ...landline ? [{ label: `Telefone ${formatPhone(landline)}`, href: `tel:+${landline}` }] : [],
+      ...c.email ? [{ label: c.email, href: `mailto:${c.email}` }] : [],
+      ...c.instagram ? [{ label: `Instagram @${c.instagram}`, href: `https://instagram.com/${c.instagram}` }] : [],
+      ...c.hours ? [{ label: c.hours }] : [],
+      ...c.address ? [{ label: c.address, href: mapsUrl(c.address, brief.city) }] : city
+    ];
+  })();
   const dk = darkPanel(plan);
   return normalizePart(
     "footer",
@@ -2770,6 +2919,7 @@ function buildPartMessage(partId, plan, brief) {
     scoped ? `Requisitos desta parte:
 ${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief.details.trim()}` : null,
     realFacts(brief),
+    exactContacts(brief),
     `Site: ${JSON.stringify({ direcao: plan.direction, idioma: plan.lang ?? "pt-BR", tema: plan.theme })}`,
     `Se\xE7\xF5es do site, na ordem: ${plan.sections.map((item) => `${item.label} (#${item.id})`).join(", ")}`,
     `SE\xC7\xC3O QUE VOC\xCA ESCREVE: "${section?.label ?? partId}" \u2014 bloco "${block.name}": ${block.when}`,
@@ -2784,6 +2934,19 @@ ${JSON.stringify(scoped)}` : brief.details?.trim() ? `Pedido do cliente: ${brief
     leadRules,
     `Exemplo da FORMA do conte\xFAdo deste bloco (troque todo o texto pelo conte\xFAdo real): ${JSON.stringify(block.sample)}`
   ].filter(Boolean).join("\n\n");
+}
+function exactContacts(brief) {
+  const c = contactsOf(brief);
+  const lines = [
+    c.address ? `Endere\xE7o: ${c.address}` : null,
+    briefPhone(brief) ? `WhatsApp: ${c.whatsapp ?? brief.phone}` : null,
+    c.phone ? `Telefone: ${c.phone}` : null,
+    c.email ? `E-mail: ${c.email}` : null,
+    c.instagram ? `Instagram: @${c.instagram}` : null,
+    c.hours ? `Hor\xE1rio: ${c.hours}` : null
+  ].filter(Boolean);
+  return lines.length ? `DADOS EXATOS DO NEG\xD3CIO (copie como est\xE3o, sem mudar nenhum n\xFAmero nem abreviar):
+${lines.join("\n")}` : null;
 }
 function realFacts(brief) {
   const reputation = brief.rating && brief.reviews ? `nota ${brief.rating.toLocaleString("pt-BR")} com ${brief.reviews} avalia\xE7\xF5es (reais, pode usar)` : "nenhuma nota nem avalia\xE7\xE3o informada \u2014 N\xC3O mostre nota, estrelas, avalia\xE7\xF5es nem depoimentos";
@@ -3107,6 +3270,20 @@ function normalizePlan(raw, brief) {
     ...specification ? { specification, globalRequirementIds: requirementIds(input.globalRequirementIds) } : {}
   };
 }
+function ensureInteractive(plan, brief) {
+  const asked = normalize(brief.details ?? "");
+  const sections = plan.sections.map((section) => ({ ...section }));
+  const uses = (block) => sections.some((section) => sectionBlock(section) === block);
+  if (/simulador|calculadora|simula[cç]/.test(asked) && /\d\s*(%|por cento)/.test(asked) && !uses("simulador")) {
+    const target = sections.find((section, i) => i > 0 && /simul|calcul|economia/.test(section.id));
+    if (target) target.layout = "simulador";
+  }
+  if (/formul[aá]rio/.test(asked) && briefPhone(brief) && !uses("formulario")) {
+    const target = sections.find((section, i) => i > 0 && /orcamento|formulario|contato|agend/.test(section.id));
+    if (target) target.layout = "formulario";
+  }
+  return { ...plan, sections };
+}
 function cleanText(value, max) {
   const text2 = typeof value === "string" ? value.trim().slice(0, max) : "";
   return text2 && text2.toLowerCase() !== "null" ? text2 : null;
@@ -3120,6 +3297,7 @@ function parsePlan(text2, brief, recipe) {
       const json = JSON.parse(raw.trim().replace(/^```(?:json)?|```$/g, ""));
       plan = normalizePlan(json, brief);
       if (plan && recipe) plan = applyRecipe(plan, recipe, brief);
+      if (plan) plan = ensureInteractive(plan, brief);
       const info = json?.business;
       if (info && typeof info === "object") {
         business = {
@@ -3135,6 +3313,30 @@ function parsePlan(text2, brief, recipe) {
   }
   return { actions: parseActions(text2), plan, business };
 }
+var PHONE_RE = /(?:\+?55[\s.-]?)?\(?\b\d{2}\)?[\s.-]?9?\d{4}[\s.-]?\d{4}\b/;
+var afterColon = (line) => line.replace(/^[\s*•-]+/, "").replace(/^[^:]{0,40}:\s*/, "").replace(/[.;]\s*$/, "").trim();
+function extractContacts(text2) {
+  const lines = String(text2 ?? "").split(/\n+/);
+  const out = { whatsapp: null, phone: null, email: null, instagram: null, address: null, hours: null };
+  for (const line of lines) {
+    for (const match of line.matchAll(new RegExp(PHONE_RE.source, "g"))) {
+      const before = line.slice(0, match.index).toLowerCase();
+      const lastWhats = Math.max(before.lastIndexOf("whats"), before.lastIndexOf("zap"));
+      const lastPhone = Math.max(before.lastIndexOf("telefone"), before.lastIndexOf("fixo"), before.lastIndexOf("fone"));
+      if (lastWhats >= 0 && lastWhats >= lastPhone) out.whatsapp ??= match[0];
+      else if (lastPhone >= 0) out.phone ??= match[0];
+    }
+    out.email ??= line.match(/[\w.+-]+@[\w-]+(?:\.[\w-]+)+/)?.[0] ?? null;
+    if (/instagram/i.test(line)) out.instagram ??= line.match(/instagram\.com\/([\w.]{2,30})/i)?.[1] ?? line.match(/@([\w.]{2,30})/)?.[1]?.replace(/\.$/, "") ?? null;
+    if (/endere[çc]o\s*:/i.test(line)) out.address ??= afterColon(line);
+    else if (!out.address && /\b(?:rua|r\.|av\.?|avenida|alameda|rodovia|estrada|pra[çc]a|travessa)\s+[^,\n]{2,60},\s*\d+/i.test(line)) out.address = afterColon(line);
+    if (/^[\s*•-]*hor[áa]rio(?:s)?(?: de atendimento)?\s*:/i.test(line)) out.hours ??= afterColon(line);
+  }
+  return out;
+}
+var contactsOf = (brief) => extractContacts(brief.details);
+var briefPhone = (brief) => phoneDigits(brief.phone) || phoneDigits(contactsOf(brief).whatsapp);
+var mapsUrl = (address, city) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address, city && !address.toLowerCase().includes(city.toLowerCase()) ? city : ""].filter(Boolean).join(", "))}`;
 function fillBrief(brief, business) {
   if (!business) return brief;
   return {
@@ -3142,7 +3344,7 @@ function fillBrief(brief, business) {
     businessName: brief.businessName || business.name || "Meu neg\xF3cio",
     niche: brief.niche || business.niche,
     city: brief.city || business.city,
-    phone: brief.phone || business.phone
+    phone: brief.phone || business.phone || phoneDigits(contactsOf(brief).whatsapp)
   };
 }
 function cleanFragment(html) {
@@ -3246,7 +3448,7 @@ function stripMissingInfo(html) {
   );
 }
 function simpleFooter(plan, brief) {
-  const phone = phoneDigits(brief.phone);
+  const phone = briefPhone(brief);
   const whatsappUrl = brief.mode === "lead_prototype" ? brief.contactRoutes?.confirmedWhatsapp : phone ? `https://wa.me/${phone}` : null;
   const name = escapeHtml(brief.businessName || plan.title);
   const text2 = textOn(plan, "ink");
@@ -3462,6 +3664,37 @@ var BASE_SCRIPT = `<script>
   } else { items.forEach(function(el){ el.classList.add('is-visible'); }); }
   setTimeout(function(){ items.forEach(function(el){ el.classList.add('is-visible'); }); }, 2500);
   document.querySelectorAll('[data-year]').forEach(function(el){ el.textContent=new Date().getFullYear(); });
+  // Formul\xE1rio e simulador (blocos "formulario" e "simulador"): vazio, erro e sucesso de verdade.
+  var reduce=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function num(v){ var s=String(v||'').replace(/[^\\d,.]/g,''); if(s.indexOf(',')>-1){ s=s.replace(/\\./g,'').replace(',','.'); } else if(/\\.\\d{3}(\\.|$)/.test(s)){ s=s.replace(/\\./g,''); } var n=parseFloat(s); return isNaN(n)?null:n; }
+  function brl(n){ try{ return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }catch(e){ return 'R$ '+n.toFixed(2).replace('.',','); } }
+  function rise(el,n){ if(reduce||!window.requestAnimationFrame){ el.textContent=brl(n); return; } var t0=0; function step(t){ if(!t0){t0=t;} var p=Math.min(1,(t-t0)/700); el.textContent=brl(n*(1-Math.pow(1-p,3))); if(p<1){ requestAnimationFrame(step); } else { el.textContent=brl(n); } } requestAnimationFrame(step); }
+  document.querySelectorAll('[data-nv-calc]').forEach(function(f){
+    var input=f.querySelector('input'), err=f.querySelector('[data-err]'), msg=f.querySelector('[data-err-text]'), out=f.querySelector('[data-result]'), cta=f.querySelector('[data-cta]');
+    function fail(text){ msg.textContent=text; err.hidden=false; input.setAttribute('aria-invalid','true'); out.hidden=true; input.focus(); }
+    f.addEventListener('submit',function(e){ e.preventDefault();
+      var raw=input.value.trim(); if(!raw){ return fail(f.getAttribute('data-empty')); }
+      var v=num(raw); if(v===null||v<+f.getAttribute('data-min')||v>+f.getAttribute('data-max')){ return fail(f.getAttribute('data-range')); }
+      err.hidden=true; input.removeAttribute('aria-invalid');
+      var month=v*(+f.getAttribute('data-rate')); out.hidden=false; rise(f.querySelector('[data-month]'),month); rise(f.querySelector('[data-year]'),month*12);
+      if(cta){ cta.href=f.getAttribute('data-wa')+'?text='+encodeURIComponent(f.getAttribute('data-msg').replace('{valor}',brl(v))); } });
+  });
+  document.querySelectorAll('[data-nv-form]').forEach(function(f){
+    var ok=f.querySelector('[data-ok]'), link=f.querySelector('[data-ok-link]');
+    f.addEventListener('submit',function(e){ e.preventDefault(); var first=null, lines=[];
+      f.querySelectorAll('[data-field]').forEach(function(w){
+        var el=w.querySelector('input,select,textarea'), er=w.querySelector('[data-err]'), type=w.getAttribute('data-type'), v=(el.value||'').trim(), bad=false, d;
+        if(!v){ bad=!w.hasAttribute('data-optional'); }
+        else if(type==='telefone'){ d=v.replace(/\\D/g,''); bad=!(d.length===10||d.length===11||(d.length>=12&&d.length<=13&&d.indexOf('55')===0)); }
+        else if(type==='email'){ bad=!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(v); }
+        else if(type==='numero'){ d=num(v); bad=d===null||d<=0; }
+        er.hidden=!bad; if(bad){ el.setAttribute('aria-invalid','true'); if(!first){ first=el; } } else { el.removeAttribute('aria-invalid'); }
+        if(v){ lines.push(w.getAttribute('data-label')+': '+(type==='numero'&&num(v)!==null?brl(num(v)):v)); } });
+      if(first){ ok.hidden=true; first.focus(); return; }
+      var url=f.getAttribute('data-wa')+'?text='+encodeURIComponent(f.getAttribute('data-intro')+'\\n'+lines.join('\\n'));
+      if(link){ link.href=url; } ok.hidden=false; window.open(url,'_blank','noopener'); });
+    f.querySelectorAll('input,select,textarea').forEach(function(el){ el.addEventListener('input',function(){ if(el.getAttribute('aria-invalid')){ el.removeAttribute('aria-invalid'); var er=el.parentNode.querySelector('[data-err]'); if(er){ er.hidden=true; } } }); });
+  });
 })();
 </script>`;
 function localBusinessJsonLd(plan) {
@@ -3469,7 +3702,10 @@ function localBusinessJsonLd(plan) {
   if (!b?.name) return "";
   const data = { "@context": "https://schema.org", "@type": "LocalBusiness", name: b.name, description: plan.description };
   if (b.phone) data.telephone = `+55${String(b.phone).replace(/\D/g, "").replace(/^55(?=\d{10,11}$)/, "")}`;
-  if (b.city) data.address = { "@type": "PostalAddress", addressLocality: b.city, addressCountry: "BR" };
+  if (b.city || b.address) data.address = { "@type": "PostalAddress", ...b.address ? { streetAddress: b.address } : {}, ...b.city ? { addressLocality: b.city } : {}, addressCountry: "BR" };
+  if (b.email) data.email = b.email;
+  if (b.landline) data.telephone = data.telephone ?? `+${b.landline}`;
+  if (b.instagram) data.sameAs = [`https://instagram.com/${b.instagram}`];
   return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, "\\u003c")}</script>`;
 }
 function buildHead(plan) {
@@ -4292,6 +4528,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   backendLimitations,
   balanceHtml,
   blockTokens,
+  briefPhone,
   buildEditMessage,
   buildHead,
   buildPartMessage,
@@ -4300,9 +4537,12 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   cleanAssets,
   cleanFragment,
   cleanUserText,
+  contactsOf,
   contrastGuide,
   contrastRatio,
   dropInventedPrices,
+  ensureInteractive,
+  extractContacts,
   faviconDataUri,
   faviconSvg,
   fetchLimited,
@@ -4314,12 +4554,14 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   imagesMessage,
   importedSummary,
   informedPrices,
+  informedRate,
   isBlockedHost,
   isProjectPath,
   isReservedSlug,
   joinContinuation,
   liftFaintText,
   logoOf,
+  mapsUrl,
   normalizePart,
   normalizePlan,
   normalizeSiteUrl,

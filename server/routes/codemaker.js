@@ -672,7 +672,9 @@ r.post('/', async (req, res) => {
         const brief = E.fillBrief(planningBrief, business);
         const renamed = !site.brief.businessName && brief.businessName;
         signal.throwIfAborted();
-        const bizInfo = brief.businessName ? { name: brief.businessName, city: brief.city || null, phone: E.phoneDigits(brief.phone) || null, niche: brief.niche || null } : undefined;
+        const contacts = E.contactsOf(brief);
+        const bizInfo = brief.businessName ? { name: brief.businessName, city: brief.city || null, phone: E.briefPhone(brief) || null, niche: brief.niche || null,
+          address: contacts.address, email: contacts.email, instagram: contacts.instagram, landline: E.phoneDigits(contacts.phone) } : undefined;
         await run("UPDATE code_sites SET plan=?, parts='{}', status='building', html=NULL, brief=?, rev=rev+1, updated_at=datetime('now') WHERE project_id=?",
           S({ ...plan, actions, ...(bizInfo ? { business: bizInfo } : {}) }), S(brief), site.id);
         if (renamed) await run("UPDATE projects SET name=?, slug=?, updated_at=datetime('now') WHERE id=?", brief.businessName.slice(0, 80), await uniqueSlug(brief.businessName, site.id), site.id);
