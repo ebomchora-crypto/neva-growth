@@ -1613,3 +1613,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 /* Moldura fixa (como no Code Makers): tudo que fica FORA da linha é uma faixa sólida da cor do fundo.
    O conteúdo, as sombras e o brilho do menu são cortados na linha e nada aparece do lado de fora, nem ao rolar. */
 .shell::after{border-color:rgba(47,123,189,.4);box-shadow:0 0 0 100vmax #e6f0fa,inset 0 0 0 1px rgba(255,255,255,.9),inset 0 0 36px rgba(127,180,224,.12)}
+
+/* Cloudflare Turnstile no form de auth */
+.ts-wrap{display:flex;justify-content:center;margin:4px 0 2px}
+.ts-wrap iframe{border-radius:8px}

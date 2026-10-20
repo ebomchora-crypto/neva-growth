@@ -13,11 +13,22 @@ const setupToken = () => process.env.SETUP_TOKEN || '';
 const setupBlocked = () => Boolean(process.env.VERCEL) && !setupToken();
 // Cadastro público aberto por padrão; SIGNUP_OPEN=0 fecha.
 const signupOpen = () => process.env.SIGNUP_OPEN !== '0';
+// Cloudflare Turnstile: só ativo quando TURNSTILE_SECRET estiver definido.
+const turnstileEnabled = () => Boolean(process.env.TURNSTILE_SECRET);
+const verifyTurnstile = async (token, ip) => {
+  if (!turnstileEnabled()) return;
+  const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: process.env.TURNSTILE_SECRET, response: token || '', remoteip: ip }),
+  });
+  const data = await res.json();
+  if (!data.success) throw new HttpError(400, 'Verificação de segurança falhou. Tente novamente.', 'turnstile_failed');
+};
 const sha = (x) => crypto.createHash('sha256').update(x).digest('hex');
 const remember = (b) => b?.remember === true || b?.remember === 'on' || b?.remember === 'true';
 const baseUrl = (req) => (process.env.PUBLIC_URL || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
 
-r.get('/status', async (req, res) => res.json({ needsSetup: (await A.countUsers()) === 0, setupTokenRequired: Boolean(setupToken()), setupBlocked: setupBlocked(), signupOpen: signupOpen(), mailConfigured: mail.configured(), user: req.user }));
+r.get('/status', async (req, res) => res.json({ needsSetup: (await A.countUsers()) === 0, setupTokenRequired: Boolean(setupToken()), setupBlocked: setupBlocked(), signupOpen: signupOpen(), mailConfigured: mail.configured(), turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || null, user: req.user }));
 
 // Primeiro acesso: cria o administrador. Depois disso, o cadastro público é fechado.
 r.post('/setup', async (req, res) => {
@@ -34,6 +45,7 @@ r.post('/setup', async (req, res) => {
 });
 
 r.post('/login', async (req, res) => {
+  await verifyTurnstile(req.body?.['cf-turnstile-response'], req.ip);
   const email = String(req.body?.email || '').trim().toLowerCase();
   const password = String(req.body?.password || '');
   const th = A.loginThrottle(`${req.ip}|${email}`);
@@ -48,6 +60,7 @@ r.post('/login', async (req, res) => {
 // Créditos: o padrão da plataforma (100), como qualquer outra conta; regras de crédito ficam para depois.
 r.post('/signup', async (req, res) => {
   if (!signupOpen()) throw new HttpError(403, 'O cadastro está fechado no momento.', 'signup_closed');
+  await verifyTurnstile(req.body?.['cf-turnstile-response'], req.ip);
   if (req.body?.website) throw bad('Não foi possível concluir o cadastro.'); // campo-isca para robôs
   const th = A.loginThrottle(`signup|${req.ip}`, 6, 60 * 60e3); // 6 contas novas por hora por IP
   const name = String(req.body?.name || '').trim();
@@ -69,6 +82,7 @@ r.post('/signup', async (req, res) => {
 // Recuperação de senha: gera um link de uso único (1 hora) e envia por e-mail. A resposta é a mesma exista ou não a conta.
 r.post('/forgot', async (req, res) => {
   if (!mail.configured()) throw new HttpError(503, 'O envio de e-mails ainda não foi configurado neste servidor. Peça ao administrador para redefinir sua senha em Usuários.', 'mail_not_configured');
+  await verifyTurnstile(req.body?.['cf-turnstile-response'], req.ip);
   const email = String(req.body?.email || '').trim().toLowerCase();
   A.loginThrottle(`forgot|${req.ip}`, 5, 60 * 60e3).fail();
   if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

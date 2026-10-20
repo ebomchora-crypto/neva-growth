@@ -64,6 +64,23 @@ const AUTH_MODES = [['login', 'Entrar'], ['signup', 'Criar conta'], ['forgot', '
 let drapeOff = null;
 const dropDrape = () => { drapeOff?.(); drapeOff = null; };
 
+// Cloudflare Turnstile — carrega o script uma única vez
+let _tsLoaded = false;
+function loadTurnstile(siteKey, container) {
+  if (!siteKey || !container) return;
+  const render = () => {
+    if (typeof turnstile !== 'undefined') { turnstile.render(container, { sitekey: siteKey, theme: 'light', size: 'normal' }); }
+  };
+  if (_tsLoaded) { render(); return; }
+  _tsLoaded = true;
+  const s = document.createElement('script');
+  s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+  s.async = true; s.defer = true;
+  s.onload = render;
+  document.head.appendChild(s);
+}
+function resetTurnstile() { try { if (typeof turnstile !== 'undefined') turnstile.reset(); } catch (_) {} }
+
 function authScreen(mode, st = {}, swapped = false) {
   kill(); dropDrape();
   snow(true);
@@ -80,16 +97,18 @@ function authScreen(mode, st = {}, swapped = false) {
   };
   const enter = async (r) => { state.user = r.user; await loadMe().catch(() => {}); if (reset) history.replaceState(null, '', location.pathname + location.search); location.hash = '#/dashboard'; shell(); };
   const submitLabel = setup ? 'Criar conta de administrador' : signup ? 'Criar minha conta' : forgot ? 'Enviar link de recuperação' : reset ? 'Salvar nova senha' : 'Entrar na dashboard';
+  const tsKey = st.turnstileSiteKey || null;
+  const tsDiv = tsKey && !reset && !setup ? h('div', { class: 'ts-wrap' }) : null;
   const form = h('form', { class: 'stack', onsubmit: async (e) => {
     e.preventDefault(); err.textContent = ''; ok.hidden = true;
     const d = Object.fromEntries(new FormData(form));
     const btn = form.querySelector('button.loginbtn'); btn.disabled = true;
     try {
       if (signup) await enter(await api.post('/auth/signup', { ...d, remember: true }));
-      else if (forgot) { await api.post('/auth/forgot', { email: d.email }); ok.textContent = 'Se este e-mail estiver cadastrado, enviamos um link para criar uma nova senha. Confira a caixa de entrada e o spam. O link vale por 1 hora.'; ok.hidden = false; form.reset(); }
+      else if (forgot) { await api.post('/auth/forgot', { email: d.email }); ok.textContent = 'Se este e-mail estiver cadastrado, enviamos um link para criar uma nova senha. Confira a caixa de entrada e o spam. O link vale por 1 hora.'; ok.hidden = false; form.reset(); resetTurnstile(); }
       else if (reset) { if (d.password !== d.confirm) throw new Error('As senhas não conferem.'); await enter(await api.post('/auth/reset', { token: st.token, password: d.password })); }
       else await enter(await api.post(setup ? '/auth/setup' : '/auth/login', { ...d, remember: setup ? true : d.remember === 'on' }));
-    } catch (ex) { err.textContent = ex.message; shake(form); } finally { btn.disabled = false; }
+    } catch (ex) { err.textContent = ex.message; shake(form); resetTurnstile(); } finally { btn.disabled = false; }
   } },
     setup && st.setupBlocked && h('div', { class: 'notice' }, 'Instalação bloqueada: defina SETUP_TOKEN nas variáveis de ambiente do servidor e faça um novo deploy.'),
     signup && !signupOpen && h('div', { class: 'notice' }, 'O cadastro está fechado no momento. Peça um convite ao administrador.'),
@@ -108,6 +127,7 @@ function authScreen(mode, st = {}, swapped = false) {
       h('label', { class: 'chk' }, h('input', { type: 'checkbox', name: 'remember' }), h('span', 'Salvar sessão')),
       h('a', { href: '#', onclick: go('forgot') }, 'Esqueci a senha')),
     forgot && h('p', { class: 'pwhint' }, st.mailConfigured === false ? 'O envio de e-mails ainda não está configurado neste servidor: peça ao administrador para redefinir sua senha em Usuários.' : 'Informe o e-mail da conta. Você receberá um link para criar uma nova senha.'),
+    tsDiv,
     err, ok, h('button', { class: 'btn loginbtn', disabled: (setup && st.setupBlocked) || (signup && !signupOpen) || (reset && !st.token) }, h('span', submitLabel), h('i', icon('arrow'))));
   const foot = signup ? h('div', { class: 'afoot' }, h('span', 'Já faz parte?'), h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
     : forgot ? h('div', { class: 'afoot' }, h('span', 'Lembrou a senha?'), h('a', { href: '#', onclick: go('login') }, 'Voltar para o login'))
@@ -127,6 +147,7 @@ function authScreen(mode, st = {}, swapped = false) {
   const pinch = h('nav', { class: 'apinch', 'aria-label': 'Telas de acesso' }, AUTH_MODES.filter(([m]) => m !== 'signup' || signupOpen).map(([m, l]) => h('button', { type: 'button', class: m === cur ? 'on' : '', 'aria-label': l, 'aria-current': m === cur ? 'page' : null, disabled: setup, onclick: go(m) })));
   const main = h('main', { class: 'auth2' + (rev ? ' rev' : '') }, left, right, pinch);
   mount(root, main); drapeOff = drapeBg(main, { instant: swapped }); authIn(main, swapped);
+  if (tsDiv) loadTurnstile(tsKey, tsDiv);
   main.querySelector('input:not([type=checkbox]):not(.hp)')?.focus({ preventScroll: true });
 }
 
