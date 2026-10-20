@@ -421,3 +421,14 @@ test('modo livre (estilo Dyad): seções escritas em HTML; blocos só onde preci
   assert.equal(DY.SOURCE.license, 'Apache-2.0'); assert.match(DY.ADDITIONAL_GUIDELINES, /NEVER make partial changes/); assert.match(DY.ADDITIONAL_GUIDELINES, /ALWAYS generate responsive designs/);
   assert.ok(fs.existsSync(path.join(__dirname, '..', 'docs', 'dyad', 'LICENSE')) && fs.existsSync(path.join(__dirname, '..', 'docs', 'dyad', 'system_prompt.ts')));
 });
+
+test('modo livre: conserta HTML da IA que esvaziou um site real (div autofechada estilo JSX e camada -z sem isolate)', () => {
+  const bad = '<section id="hero" class="bg-paper py-24"><div class="relative"><div class="absolute inset-0 -z-10"><img src="x" alt="a" /><div class="absolute inset-0 bg-black/50" /></div><div class="max-w-3xl"><h1>Título</h1><p>Texto</p></div></div></section>';
+  const fixed = E.normalizePart('hero', E.parsePart('```html\n' + bad + '\n```').html);
+  assert.ok(fixed.includes('<div class="absolute inset-0 bg-black/50"></div></div><div class="max-w-3xl">'), 'a camada decorativa fecha antes do conteúdo');
+  assert.match(fixed, /^<section id="hero" class="bg-paper py-24 relative isolate">/);
+  assert.equal(E.expandSelfClosing('<svg><path d="M0"/></svg><br/><img src="x"/><span class="a"/>'), '<svg><path d="M0"/></svg><br/><img src="x"/><span class="a"></span>');
+  assert.equal(E.ensureStackingContext('<section id="a" class="relative isolate"><div class="absolute"></div></section>'), '<section id="a" class="relative isolate"><div class="absolute"></div></section>');
+  assert.equal(E.ensureStackingContext('<section id="a"><p>sem camadas</p></section>'), '<section id="a"><p>sem camadas</p></section>');
+  assert.match(E.FREE_PART_SYSTEM, /NUNCA escreva <div \.\.\. \/>/); assert.match(E.FREE_PART_SYSTEM, /colchetes de modelo como \[NOME\]/);
+});

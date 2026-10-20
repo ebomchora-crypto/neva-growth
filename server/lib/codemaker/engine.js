@@ -67,6 +67,8 @@ __export(engine_exports, {
   contrastRatio: () => contrastRatio,
   dropInventedPrices: () => dropInventedPrices,
   ensureInteractive: () => ensureInteractive,
+  ensureStackingContext: () => ensureStackingContext,
+  expandSelfClosing: () => expandSelfClosing,
   extractContacts: () => extractContacts,
   faviconDataUri: () => faviconDataUri,
   faviconSvg: () => faviconSvg,
@@ -3453,8 +3455,22 @@ function fillBrief(brief, business) {
     phone: brief.phone || business.phone || phoneDigits(contactsOf(brief).whatsapp)
   };
 }
+var HTML_ELEMENTS = "div|span|section|article|aside|header|footer|nav|main|p|a|button|ul|ol|li|h[1-6]|figure|figcaption|label|form|table|thead|tbody|tr|td|th|strong|em|b|i|small|blockquote|details|summary";
+function expandSelfClosing(html) {
+  const parts = html.split(/(<svg\b[\s\S]*?<\/svg>)/gi);
+  return parts.map((part, i) => i % 2 ? part : part.replace(new RegExp(`<(${HTML_ELEMENTS})(\\s[^<>]*?)?\\s*/>`, "gi"), (_m, tag, attrs = "") => `<${tag}${attrs}></${tag}>`)).join("");
+}
+function ensureStackingContext(html) {
+  const open = html.match(/^\s*<section\b[^>]*>/i)?.[0];
+  if (!open || !/\b(?:absolute|-z-\d+)\b/.test(html.slice(open.length))) return html;
+  const classMatch = open.match(/\bclass\s*=\s*"([^"]*)"/i);
+  const add = ["relative", "isolate"].filter((cls) => !(classMatch ? new RegExp(`(^|\\s)${cls}(\\s|$)`).test(classMatch[1]) : false));
+  if (!add.length) return html;
+  const next = classMatch ? open.replace(classMatch[0], `class="${classMatch[1]} ${add.join(" ")}"`) : open.replace(/^(\s*<section\b)/i, `$1 class="${add.join(" ")}"`);
+  return html.replace(open, next);
+}
 function cleanFragment(html) {
-  return html.replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<script[^>]*>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "").replace(/<!doctype[^>]*>/gi, "").replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, "").trim();
+  return expandSelfClosing(html).replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<script[^>]*>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<\/?(?:html|head|body)\b[^>]*>/gi, "").replace(/<!doctype[^>]*>/gi, "").replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*')/gi, "").trim();
 }
 var TAG = /<!--[\s\S]*?-->|<(\/?)([a-zA-Z][\w:-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/g;
 var VOID_TAGS = /* @__PURE__ */ new Set(["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr"]);
@@ -3508,6 +3524,7 @@ function findElement(html, tag, accept = () => true) {
 var hasId = (id) => (attrs) => new RegExp(`\\bid\\s*=\\s*["']${id}["']`, "i").test(attrs);
 function normalizePart(partId, html) {
   if (!html.trim()) return "";
+  html = ensureStackingContext(expandSelfClosing(html));
   if (partId === "header") {
     const found2 = findElement(html, "header");
     if (!found2) return `<header data-header class="fixed inset-x-0 top-0 z-50 transition">
@@ -4036,6 +4053,9 @@ AMBIENTE (j\xE1 configurado no site):
 - Cont\xEAiner: <div class="mx-auto max-w-7xl px-5 md:px-10">; respiro vertical da se\xE7\xE3o: py-24 md:py-32 (o sistema ajusta largura e respiro \xE0 composi\xE7\xE3o do site). Se\xE7\xF5es de destaque podem usar bg-ink ou bg-brand.
 - Entrada suave: acrescente a classe reveal nos blocos que devem aparecer ao rolar (conte\xFAdo j\xE1 \xE9 vis\xEDvel sem JavaScript).
 - \xCDcones: SVG inline simples e coerente (tra\xE7o 1.5) ou nenhum; nunca emoji.
+- HTML V\xC1LIDO, n\xE3o JSX: em HTML s\xF3 as tags vazias (img, br, hr, input, meta, link) fecham sozinhas. NUNCA escreva <div ... /> nem <span ... />: sempre <div ...></div>. Cada tag aberta \xE9 fechada, e a camada decorativa (imagem de fundo, overlay) fecha antes do conte\xFAdo.
+- Imagem ou camada de fundo: a <section> leva as classes relative, isolate e overflow-hidden; a imagem fica em um <div class="absolute inset-0 -z-10"> pr\xF3prio (com <img class="size-full object-cover">) e o conte\xFAdo em outro <div class="relative">, irm\xE3o da camada. Sobre foto o texto \xE9 claro (text-white) com overlay escuro.
+- Texto vis\xEDvel nunca leva colchetes de modelo como [NOME] ou [CIDADE]: use o nome e a cidade reais do pedido; se faltar, escreva sem citar.
 
 DESIGN (cumpra):
 - Esta se\xE7\xE3o tem composi\xE7\xE3o PR\xD3PRIA, a da fam\xEDlia indicada. N\xE3o copie a estrutura das se\xE7\xF5es vizinhas (informadas na mensagem). Alterne escala, alinhamento, densidade e uso de imagem.
@@ -4730,6 +4750,8 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   contrastRatio,
   dropInventedPrices,
   ensureInteractive,
+  ensureStackingContext,
+  expandSelfClosing,
   extractContacts,
   faviconDataUri,
   faviconSvg,

@@ -1841,8 +1841,29 @@ export function fillBrief(brief: SiteBrief, business: BusinessInfo | null): Site
 }
 
 // Limpa um pedaço de HTML escrito pela IA: sem scripts, estilos ou documento.
+// A IA às vezes escreve <div class="..." /> (JSX). Em HTML isso ABRE a div e engole o que vem depois: foi o que esvaziou o topo
+// de um site real (o texto inteiro ficou dentro da camada decorativa absoluta). Aqui vira <div ...></div>. SVG não é tocado.
+const HTML_ELEMENTS = 'div|span|section|article|aside|header|footer|nav|main|p|a|button|ul|ol|li|h[1-6]|figure|figcaption|label|form|table|thead|tbody|tr|td|th|strong|em|b|i|small|blockquote|details|summary'
+export function expandSelfClosing(html: string): string {
+  const parts = html.split(/(<svg\b[\s\S]*?<\/svg>)/gi)
+  return parts
+    .map((part, i) => (i % 2 ? part : part.replace(new RegExp(`<(${HTML_ELEMENTS})(\\s[^<>]*?)?\\s*/>`, 'gi'), (_m, tag: string, attrs = '') => `<${tag}${attrs}></${tag}>`)))
+    .join('')
+}
+
+/** Seção com camadas posicionadas (absolute / -z-): precisa de `relative isolate`, senão o fundo da seção cobre a imagem. */
+export function ensureStackingContext(html: string): string {
+  const open = html.match(/^\s*<section\b[^>]*>/i)?.[0]
+  if (!open || !/\b(?:absolute|-z-\d+)\b/.test(html.slice(open.length))) return html
+  const classMatch = open.match(/\bclass\s*=\s*"([^"]*)"/i)
+  const add = ['relative', 'isolate'].filter((cls) => !(classMatch ? new RegExp(`(^|\\s)${cls}(\\s|$)`).test(classMatch[1]) : false))
+  if (!add.length) return html
+  const next = classMatch ? open.replace(classMatch[0], `class="${classMatch[1]} ${add.join(' ')}"`) : open.replace(/^(\s*<section\b)/i, `$1 class="${add.join(' ')}"`)
+  return html.replace(open, next)
+}
+
 export function cleanFragment(html: string): string {
-  return html
+  return expandSelfClosing(html)
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<script[^>]*>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -1917,6 +1938,7 @@ const hasId = (id: string) => (attrs: string) => new RegExp(`\\bid\\s*=\\s*["']$
 
 export function normalizePart(partId: string, html: string): string {
   if (!html.trim()) return ''
+  html = ensureStackingContext(expandSelfClosing(html))
   if (partId === 'header') {
     const found = findElement(html, 'header')
     if (!found) return `<header data-header class="fixed inset-x-0 top-0 z-50 transition">\n${balanceHtml(html)}\n</header>`
@@ -2541,6 +2563,9 @@ AMBIENTE (já configurado no site):
 - Contêiner: <div class="mx-auto max-w-7xl px-5 md:px-10">; respiro vertical da seção: py-24 md:py-32 (o sistema ajusta largura e respiro à composição do site). Seções de destaque podem usar bg-ink ou bg-brand.
 - Entrada suave: acrescente a classe reveal nos blocos que devem aparecer ao rolar (conteúdo já é visível sem JavaScript).
 - Ícones: SVG inline simples e coerente (traço 1.5) ou nenhum; nunca emoji.
+- HTML VÁLIDO, não JSX: em HTML só as tags vazias (img, br, hr, input, meta, link) fecham sozinhas. NUNCA escreva <div ... /> nem <span ... />: sempre <div ...></div>. Cada tag aberta é fechada, e a camada decorativa (imagem de fundo, overlay) fecha antes do conteúdo.
+- Imagem ou camada de fundo: a <section> leva as classes relative, isolate e overflow-hidden; a imagem fica em um <div class="absolute inset-0 -z-10"> próprio (com <img class="size-full object-cover">) e o conteúdo em outro <div class="relative">, irmão da camada. Sobre foto o texto é claro (text-white) com overlay escuro.
+- Texto visível nunca leva colchetes de modelo como [NOME] ou [CIDADE]: use o nome e a cidade reais do pedido; se faltar, escreva sem citar.
 
 DESIGN (cumpra):
 - Esta seção tem composição PRÓPRIA, a da família indicada. Não copie a estrutura das seções vizinhas (informadas na mensagem). Alterne escala, alinhamento, densidade e uso de imagem.

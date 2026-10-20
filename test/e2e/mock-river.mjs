@@ -60,7 +60,7 @@ function textFor(stage, body) {
     const user = body.messages.filter((m) => m.role === 'user').pop().content;
     if (/MODO LIVRE/.test(body.messages?.find((m) => m.role === 'system')?.content || '')) {
       const fid = user.match(/SEÇÃO QUE VOCÊ ESCREVE: id="([^"]+)"/)?.[1] || 'hero';
-      return '```html\n<section id="' + fid + '" class="bg-paper py-24"><div class="mx-auto max-w-7xl px-5"><' + (fid === 'hero' ? 'h1' : 'h2') + ' class="font-display text-4xl">Seção ' + fid + ' escrita à mão</' + (fid === 'hero' ? 'h1' : 'h2') + '><p class="text-muted">Conteúdo livre do modo Dyad.</p><a href="#contato" class="underline">Pedir agora</a></div></section>\n```';
+      return '```html\n<section id="' + fid + '" class="bg-paper py-24"><div class="mx-auto max-w-7xl px-5"><' + (fid === 'hero' ? 'h1' : 'h2') + ' class="font-display text-4xl">Seção ' + fid + ' escrita à mão</' + (fid === 'hero' ? 'h1' : 'h2') + '><p class="text-muted">Conteúdo livre do modo Dyad, escrito seção por seção com composição própria, tipografia pensada e links reais para o contato e para o WhatsApp do negócio.</p><p class="mt-4 text-muted">Segundo parágrafo para dar corpo à seção simulada e manter o tamanho próximo de uma seção de verdade.</p><a href="#contato" class="underline">Pedir agora</a></div></section>\n```';
     }
     const label = user.match(/SEÇÃO QUE VOCÊ ESCREVE: "([^"]+)"/)?.[1];
     const id = PLAN.sections.find((x) => x.label === label)?.id || 'hero';
