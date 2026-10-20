@@ -188,7 +188,9 @@ r.use('/clients', crud({
     github: { type: 'string', max: 200 }, site_url: { type: 'string', max: 200 }, vercel_url: { type: 'string', max: 200 },
     stage: { type: 'enum', values: CLIENT_STAGES, default: 'lead', label: 'Estágio' }
   },
-  async beforeCreate(d) { d.stage = d.stage || 'lead'; }
+  async beforeCreate(d) { d.stage = d.stage || 'lead'; },
+  // O lead do CRM que veio deste cliente deixa de apontar para um cliente que não existe mais (e pode ser convertido de novo).
+  async afterDelete(id, req) { await run('UPDATE leads SET client_id=NULL WHERE client_id=? AND ws=?', id, req.user.ws); }
 }));
 
 // ---- Tarefas

@@ -1,6 +1,6 @@
 import { crudPage } from '../crud-page.js';
 import { api } from '../api.js';
-import { h, brl, dt, fail, toast, money, statCard, icon } from '../ui.js';
+import { h, mount, brl, dt, fail, toast, money, statCard, icon, confirmBox } from '../ui.js';
 import { formSheet } from '../form-sheet.js';
 
 const waIcon = () => { const NS = 'http://www.w3.org/2000/svg'; const sv = document.createElementNS(NS, 'svg'); sv.setAttribute('viewBox', '0 0 24 24'); sv.setAttribute('aria-hidden', 'true'); sv.setAttribute('class', 'waico');
@@ -44,17 +44,32 @@ export const clients = crudPage({
     const abs = (u) => (/^https?:\/\//i.test(u) ? u : 'https://' + u);
     const since = (d) => new Date(String(d).replace(' ', 'T') + 'Z').toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' });
     const chan = (c, k, ic, l) => c[k] ? h('a', { class: 'dg on', href: abs(c[k]), target: '_blank', rel: 'noopener', title: l, 'aria-label': l }, icon(ic)) : h('span', { class: 'dg', title: l + ' (não informado)' }, icon(ic));
-    return h('div', { class: 'crows' }, h('div', { class: 'crow head' }, ['Empresa', 'Contato', 'Estágio', 'Entrega digital', 'Resultado'].map((t, i) => h('span', { class: i === 4 ? 'right' : '' }, t))),
+    // Excluir da carteira: um por vez (lixeira na linha) ou vários (caixas de seleção). Vendas e projetos continuam, só perdem o vínculo com o cliente.
+    const sel = new Set();
+    const bar = h('div', { class: 'selbar' }); const boxes = [];
+    const note = 'As vendas continuam no financeiro e os projetos continuam em Sites, sem o vínculo com o cliente.';
+    async function wipe(list, label) {
+      if (!(await confirmBox(`Excluir ${label} da carteira? ${note} Esta ação não pode ser desfeita.`))) return;
+      let ok = 0; for (const c of list) { try { await api.del('/clients/' + c.id); ok++; } catch (e) { fail(e); } }
+      if (ok) toast(ok === 1 ? 'Cliente excluído.' : `${ok} clientes excluídos.`, 'ok'); reload();
+    }
+    const drawBar = () => { const all = items.length && sel.size === items.length; boxes.forEach((b) => { b.checked = sel.has(Number(b.dataset.id)); });
+      mount(bar, canWrite && h('label', { class: 'selall' }, h('input', { type: 'checkbox', checked: all, 'aria-label': 'Selecionar todos', onchange: (e) => { sel.clear(); if (e.target.checked) items.forEach((c) => sel.add(c.id)); drawBar(); } }), sel.size ? `${sel.size} selecionado${sel.size === 1 ? '' : 's'}` : 'Selecionar todos'),
+        canWrite && sel.size > 0 && h('button', { type: 'button', class: 'btn danger sm', onclick: () => wipe(items.filter((c) => sel.has(c.id)), sel.size === 1 ? 'o cliente selecionado' : `os ${sel.size} clientes selecionados`) }, icon('trash'), 'Excluir selecionados')); };
+    const rows = h('div', { class: 'crows' }, bar, h('div', { class: 'crow head' }, ['Empresa', 'Contato', 'Estágio', 'Entrega digital', 'Resultado'].map((t, i) => h('span', { class: i === 4 ? 'right' : '' }, t))),
       items.map((c) => {
         const name = c.company || c.name; const n = ['github', 'vercel_url', 'site_url'].filter((k) => c[k]).length;
+        const box = canWrite ? h('input', { type: 'checkbox', class: 'csel', 'data-id': String(c.id), 'aria-label': `Selecionar ${name}`, onchange: (e) => { if (e.target.checked) sel.add(c.id); else sel.delete(c.id); drawBar(); } }) : null; if (box) boxes.push(box);
         return h('div', { class: 'crow' },
-          h('div', { class: 'ccell co' }, h('i', { class: 'cav' }, name.trim()[0]?.toUpperCase() || '?'), h('div', h('b', name), h('small', `${c.projects_count} projeto${c.projects_count === 1 ? '' : 's'} · desde ${since(c.created_at)}`))),
+          h('div', { class: 'ccell co' }, box, h('i', { class: 'cav' }, name.trim()[0]?.toUpperCase() || '?'), h('div', h('b', name), h('small', `${c.projects_count} projeto${c.projects_count === 1 ? '' : 's'} · desde ${since(c.created_at)}`))),
           h('div', { class: 'ccell ct' }, h('span', { class: 'wa', title: 'WhatsApp' }, waIcon()), h('div', h('b', c.name), h('small', c.phone || '—'))),
           h('div', { class: 'ccell st' }, h('div', { class: 'cstage' }, h('select', { 'aria-label': 'Estágio', disabled: !canWrite, onchange: async (e) => { try { await api.put('/clients/' + c.id, { stage: e.target.value }); toast('Estágio atualizado.', 'ok'); reload(); } catch (x) { fail(x); reload(); } } },
             CSTAGES.map(([k, l]) => h('option', { value: k, selected: c.stage === k }, l))), h('i', { class: 'fs-chev', 'aria-hidden': 'true' }))),
           h('div', { class: 'ccell dgc' }, h('div', { class: 'dgrow' }, chan(c, 'github', 'github', 'GitHub'), chan(c, 'vercel_url', 'rocket', 'Vercel'), chan(c, 'site_url', 'globe', 'Site publicado'), h('small', `${n}/3`))),
-          h('div', { class: 'ccell rs' }, h('b', money(c.total_profit)), canWrite ? h('button', { type: 'button', class: 'dossie', onclick: () => openForm(c) }, 'Abrir dossiê ', icon('arrow')) : null));
+          h('div', { class: 'ccell rs' }, h('b', money(c.total_profit)), canWrite ? h('div', { class: 'racts' }, h('button', { type: 'button', class: 'dossie', onclick: () => openForm(c) }, 'Abrir dossiê ', icon('arrow')),
+            h('button', { type: 'button', class: 'cdel', title: 'Excluir da carteira', 'aria-label': `Excluir ${name} da carteira`, onclick: () => wipe([c], `"${name}"`) }, icon('trash'))) : null));
       }));
+    drawBar(); return rows;
   },
   title: (c) => c.name, searchPlaceholder: 'Buscar cliente, empresa ou telefone…',
   stats: async () => { const s = await api.get('/clients/summary'); return [statCard('Clientes cadastrados', s.total, 'na sua carteira', 'users'), statCard('Em negociação', s.emNegociacao, 'oportunidades abertas', 'trend'),

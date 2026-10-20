@@ -130,6 +130,7 @@ function crud(cfg) {
     const id = Number(req.params.id);
     const info = await run(`DELETE FROM ${table} WHERE id=?${sc ? ' AND ws=?' : ''}`, id, ...(sc ? [req.user.ws] : []));
     if (!info.changes) throw new HttpError(404, 'Registro não encontrado.');
+    if (cfg.afterDelete) await cfg.afterDelete(id, req);
     res.json({ ok: true });
   });
   return r;

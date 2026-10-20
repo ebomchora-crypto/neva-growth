@@ -273,6 +273,18 @@ await step('Prospecção: mapa, áreas, raio e aviso de chave', async () => {
   await page.click('#map', { position: { x: 300, y: 250 } }); await page.waitForSelector('b:has-text("1 área selecionada")'); await page.click('#map', { position: { x: 120, y: 120 } }); await page.waitForSelector('b:has-text("2 áreas selecionadas")');
   await page.fill('input[aria-label="Raio das áreas"]', '25'); await page.waitForSelector('text=25 km'); await page.waitForSelector('button:has-text("Buscar empresas")[disabled]');
 });
+await step('Clientes: excluir da carteira (lixeira na linha e seleção em lote), venda preservada', async () => {
+  const mk = (name) => page.evaluate(async (n) => (await (await fetch('/api/clients', { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'neva' }, body: JSON.stringify({ name: n, company: n, stage: 'cliente' }) })).json()).id, name);
+  const a = await mk('Carteira A'); await mk('Carteira B'); await mk('Carteira C');
+  await page.evaluate(async (id) => { await fetch('/api/sales', { method: 'POST', headers: { 'content-type': 'application/json', 'x-requested-with': 'neva' }, body: JSON.stringify({ client_id: id, description: 'Venda da A', amount: 500, cost: 0, status: 'pago', sold_at: new Date().toISOString().slice(0, 10) }) }); }, a);
+  await nav('clientes'); await page.reload(); await page.waitForSelector('.crow:has-text("Carteira A")');
+  await page.click('.crow:has-text("Carteira A") .cdel'); await page.waitForSelector('.modal:has-text("As vendas continuam no financeiro")'); await page.click('.modal button:has-text("Excluir")');
+  await page.waitForFunction(() => !document.body.innerText.includes('Carteira A'));
+  await page.check('.crow:has-text("Carteira B") .csel'); await page.check('.crow:has-text("Carteira C") .csel'); await page.click('.selbar button:has-text("Excluir selecionados")'); await page.click('.modal button:has-text("Excluir")');
+  await page.waitForFunction(() => !document.body.innerText.includes('Carteira B') && !document.body.innerText.includes('Carteira C'));
+  const sales = await page.evaluate(async () => (await (await fetch('/api/sales')).json()).items.filter((x) => x.description === 'Venda da A').length);
+  if (sales !== 1) throw new Error('a venda do cliente excluído deveria continuar no financeiro');
+});
 await step('responsivo (390px) sem overflow horizontal', async () => {
   await page.setViewportSize({ width: 390, height: 800 });
   for (const p of ['dashboard', 'leads', 'vendas', 'sites', 'acervo']) { await nav(p); await page.waitForTimeout(500); const o = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth); if (o > 4 && p !== 'leads') throw new Error(`overflow em ${p}: ${o}px`); }
