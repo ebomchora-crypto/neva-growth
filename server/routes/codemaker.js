@@ -181,6 +181,28 @@ function parseJsonLoose(text) {
   if (start < 0 || end <= start) return undefined;
   try { return JSON.parse(clean.slice(start, end + 1)); } catch { return undefined; }
 }
+// Revisão de uma seção: devolve o conteúdo corrigido; se a revisão falhar ou vier fora do formato, fica o texto original.
+const REVIEW = {
+  medium: 'Revise o rascunho abaixo como um editor exigente. Confira: (1) algum fato, número, preço, prazo, garantia ou nome que NÃO esteja no pedido do cliente (apague ou troque por algo verdadeiro); (2) algum texto de botão, mensagem ou frase que o pedido deu entre aspas e que foi trocado (devolva o texto exato); (3) frases genéricas que serviriam a qualquer negócio (troque por algo específico deste negócio); (4) ação clara e texto fácil de escanear.',
+  high: 'Revise o rascunho abaixo como um editor exigente. Confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md: (1) fato, número, preço, prazo, garantia ou nome que NÃO esteja no pedido (apague ou troque por algo verdadeiro); (2) texto de botão, mensagem ou frase que o pedido deu entre aspas e foi trocado (devolva o texto exato); (3) frases genéricas (troque por algo específico deste negócio); (4) ação clara, texto escaneável, tom do pedido; (5) tamanho: nada que estoure o espaço do bloco.',
+};
+REVIEW.xhigh = `${REVIEW.high} Depois de corrigir, releia o resultado uma vez e corrija de novo se ainda houver algo vago, repetido ou que contrarie o pedido.`;
+async function reviewContent(apiKey, model, partId, plan, brief, draft, sel, userId, signal) {
+  try {
+    const message = [
+      E.buildPartMessage(partId, plan, brief),
+      `RASCUNHO ESCRITO (JSON):\n${JSON.stringify(draft)}`,
+      `${REVIEW[sel.effort] || REVIEW.medium}\n\nResponda SÓ com o JSON corrigido, no mesmo formato do rascunho (mantenha os campos; só mude o que precisa mudar).`
+    ].join('\n\n');
+    const fixed = await completeJson(apiKey, model, systemFor('part'), message, signal, { sel, kind: 'cm_review', userId, maxTokens: 4000 });
+    const parsed = E.parseContent(JSON.stringify(fixed));
+    return parsed || draft;
+  } catch (error) {
+    if (signal.aborted) throw error;
+    return draft;
+  }
+}
+
 // Leitura dos requisitos: um deslize de formato tenta mais uma vez antes de parar o site inteiro.
 async function specOnce(apiKey, model, chunk, signal, meta) {
   try { return await completeJson(apiKey, model, E.SPEC_SYSTEM, chunk, signal, meta); }
@@ -726,7 +748,13 @@ r.post('/', async (req, res) => {
       finish: async (full, signal, emit) => {
         // A IA escreve o conteúdo (JSON) e o código monta o bloco. Se ela
         // mandar HTML em vez disso, aproveita como antes.
-        const content = E.parseContent(full);
+        let content = E.parseContent(full);
+        // Revisão (todos os níveis menos o Baixo): segunda leitura crítica do que a IA escreveu, contra o pedido e o DESIGN.md.
+        // Medido nos sites de teste: a revisão troca texto genérico, devolve a frase exata do pedido e tira o que foi inventado.
+        if (content && sel.effort !== 'low') {
+          emit('<etapa>revisao</etapa>\n');
+          content = await reviewContent(apiKey, model, partId, planForAi, site.brief, content, sel, user.id, signal);
+        }
         let html;
         if (content) {
           html = E.renderPart(partId, planForAi, site.brief, content);

@@ -23,6 +23,7 @@ const ACT = {
   fixed: ['executando ação', 'preparando'],
   fix: ['corrigindo', 'refazendo', 'ajustando'],
   more: ['continuando de onde parei', 'escrevendo o restante'],
+  review: ['revisando o texto', 'conferindo com o seu pedido', 'lendo de novo com olhar crítico'],
   finish: ['preparando', 'juntando tudo', 'conferindo o site montado'],
   publish: ['publicando', 'colocando no ar'],
   read: ['lendo os arquivos do site', 'abrindo os arquivos do site'],
@@ -272,9 +273,11 @@ export default {
           progress[pid] = { status: 'writing' };
           const step = attempt === 0 ? act(log, `${pick(fixed ? ACT.fixed : ACT.part)}: ${label}`) : act(log, `${pick(ACT.fix)}: ${label}`);
           try {
-            let more = null;
-            await streamCM({ action: 'part', site_id: id, part_id: pid, ...selector.get() }, () => {}, signal, () => { more ||= act(log, `${pick(ACT.more)} (${label})`); });
-            more?.done();
+            let more = null; let review = null;
+            await streamCM({ action: 'part', site_id: id, part_id: pid, ...selector.get() }, (t) => {
+              if (!review && /<etapa>revisao<\/etapa>/.test(t)) review = act(log, `${pick(ACT.review)} (${label})`);
+            }, signal, () => { more ||= act(log, `${pick(ACT.more)} (${label})`); });
+            more?.done(); review?.done();
             step.done(); progress[pid] = { status: 'done' }; site.parts = { ...site.parts, [pid]: true };
             drawThread(); schedulePreview();
             return;

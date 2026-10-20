@@ -64,7 +64,11 @@ test('criação com Neva 1.5 · Máximo: DESIGN.md vem primeiro, análise prévi
   assert.ok(planCall.system.startsWith('SISTEMA DE DESIGN — DESIGN.md'), 'o DESIGN.md é o começo do system prompt');
   assert.equal(planCall.max_tokens, 16000); assert.equal(planCall.temperature, 0.7);
   assert.equal(calls.find((c) => c.stage === 'analise').max_tokens, 3000);
-  assert.ok(calls.filter((c) => c.stage === 'part').every((c) => c.max_tokens === 10000 && c.system.startsWith('SISTEMA DE DESIGN')));
+  const writes = calls.filter((c) => c.stage === 'part'), reviews = calls.filter((c) => c.stage === 'review');
+  assert.ok(writes.every((c) => c.max_tokens === 10000 && c.system.startsWith('SISTEMA DE DESIGN')));
+  // Revisão: cada seção escrita pela IA (cabeçalho e rodapé saem sem IA) passa por uma segunda leitura crítica.
+  assert.equal(reviews.length, writes.length); assert.ok(reviews.length >= 1);
+  assert.ok(reviews.every((c) => c.system.startsWith('SISTEMA DE DESIGN')));
   const logged = await all("SELECT kind, effort, model FROM ai_calls WHERE user_id IS NOT NULL");
   assert.ok(logged.some((c) => c.kind === 'cm_plan:analise' && c.effort === 'xhigh' && c.model === 'neva-1-5'));
   assert.equal((await call('POST', `/api/projects/${siteId}/publish`, { published: true })).body.published, 1);
@@ -78,6 +82,9 @@ test('nível baixo não faz análise e usa orçamento menor', async () => {
   const calls = (await seen()).slice(before);
   assert.ok(!calls.some((c) => c.stage === 'analise'));
   const p = calls.find((c) => c.stage === 'plan'); assert.equal(p.max_tokens, 7000); assert.equal(p.temperature, 0.4);
+  const before2 = (await seen()).length;
+  await call('POST', '/api/code-maker', { action: 'part', site_id: created.body.site.id, part_id: 'hero' });
+  assert.ok(!(await seen()).slice(before2).some((c) => c.stage === 'review'), 'nível baixo não revisa');
 });
 
 test('alteração + revisão por arquivo: rejeitar volta só aquele arquivo; desfazer a decisão reaplica', async () => {

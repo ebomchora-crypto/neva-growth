@@ -45,7 +45,7 @@ function stageOf(body) {
   if (/Você vai planejar este site\. ANTES/.test(user) || /Você vai alterar este site\. ANTES/.test(user)) return 'analise';
   if (/escolhe quais arquivos/.test(sys)) return 'select';
   if (/diretor de arte do Code Maker/.test(sys)) return 'plan';
-  if (/redator publicitário sênior/.test(sys)) return 'part';
+  if (/redator publicitário sênior/.test(sys)) return /RASCUNHO ESCRITO \(JSON\)/.test(user) ? 'review' : 'part';
   if (/está alterando um projeto de site/.test(sys)) return 'edit';
   if (/Resolva o problema/.test(sys)) return 'qa';
   return 'spec';
@@ -55,7 +55,7 @@ function textFor(stage, body) {
   if (stage === 'select') return '{"arquivos":["secoes/contato.html"]}';
   if (stage === 'analise') return '- Contexto: landing page institucional\n- Ação principal: pedir pelo WhatsApp\n- Não inventar preços nem avaliações';
   if (stage === 'plan') return `<acoes>\n- É uma landing page institucional; a ação principal é pedir pelo WhatsApp.\n- Cores de farinha e crosta tostada.\n- Fontes Fraunces e Figtree.\n</acoes>\n<plano>\n${JSON.stringify(PLAN)}\n</plano>`;
-  if (stage === 'part') {
+  if (stage === 'part' || stage === 'review') {
     const user = body.messages.filter((m) => m.role === 'user').pop().content;
     const label = user.match(/SEÇÃO QUE VOCÊ ESCREVE: "([^"]+)"/)?.[1];
     const id = PLAN.sections.find((x) => x.label === label)?.id || 'hero';
