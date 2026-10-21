@@ -532,3 +532,13 @@ test('refino visual: corrige texto sobre foto em ciclos, verifica e para quando 
   const off = await refineVisually({ plan, parts: {}, assemble: () => '', inspect: async () => clean, onStep: () => {} });
   assert.equal(off.available, false);
 });
+
+test('hero de tema escuro que usa ink como fundo/véu (creme) é invertido para o escuro', () => {
+  const plan = { theme: 'dark', sections: [] };
+  const hero = '<section id="hero" class="relative bg-ink text-paper"><div class="absolute inset-0 bg-gradient-to-t from-ink/90 via-ink/40 to-transparent"></div><h1 class="text-paper">T</h1><a class="border-paper/30 text-brand">x</a></section>';
+  const r = E.fixDarkHero(plan, { hero });
+  assert.ok(r.changed);
+  assert.match(r.parts.hero, /bg-paper text-ink/); assert.match(r.parts.hero, /from-paper\/90 via-paper\/40/); assert.match(r.parts.hero, /border-ink\/30 text-brand/);
+  assert.equal(E.fixDarkHero({ theme: 'light' }, { hero }).changed, false, 'tema claro não muda');
+  assert.equal(E.fixDarkHero(plan, { hero: '<section class="bg-paper text-ink"></section>' }).changed, false, 'hero já escuro não muda');
+});

@@ -2718,3 +2718,13 @@ export function dedupeImages(plan: SitePlan, parts: SiteParts, brief: SiteBrief)
   }
   return { parts: out, fixes, unresolved, total, unique: used.size }
 }
+
+/** Em tema escuro, "ink" é a cor do TEXTO (creme). Um topo que usa ink como FUNDO ou véu sobre a foto sai claro e
+ *  lavado, contra a leitura escura do site. Troca ink <-> paper nas utilidades de cor do hero (fundo, degradê, texto,
+ *  borda), só quando ele realmente usa ink como fundo. */
+export function fixDarkHero(plan: SitePlan, parts: SiteParts): { parts: SiteParts; changed: boolean } {
+  const hero = parts.hero
+  if (plan.theme !== 'dark' || typeof hero !== 'string' || !/\b(?:bg|from|via|to)-ink\b/.test(hero)) return { parts, changed: false }
+  const swapped = hero.replace(/\b(bg|from|via|to|text|border|ring|placeholder|divide|fill|stroke)-(ink|paper)(?=[/\s"'\]):])/g, (_m, utility: string, token: string) => `${utility}-${token === 'ink' ? 'paper' : 'ink'}`)
+  return { parts: { ...parts, hero: swapped }, changed: swapped !== hero }
+}

@@ -76,6 +76,7 @@ __export(engine_exports, {
   fetchLimited: () => fetchLimited,
   fileIndex: () => fileIndex,
   fillBrief: () => fillBrief,
+  fixDarkHero: () => fixDarkHero,
   fixedPart: () => fixedPart,
   footerHtml: () => footerHtml,
   headerHtml: () => headerHtml,
@@ -4202,6 +4203,12 @@ function dedupeImages(plan, parts, brief) {
   }
   return { parts: out, fixes, unresolved, total, unique: used.size };
 }
+function fixDarkHero(plan, parts) {
+  const hero = parts.hero;
+  if (plan.theme !== "dark" || typeof hero !== "string" || !/\b(?:bg|from|via|to)-ink\b/.test(hero)) return { parts, changed: false };
+  const swapped = hero.replace(/\b(bg|from|via|to|text|border|ring|placeholder|divide|fill|stroke)-(ink|paper)(?=[/\s"'\]):])/g, (_m, utility, token) => `${utility}-${token === "ink" ? "paper" : "ink"}`);
+  return { parts: { ...parts, hero: swapped }, changed: swapped !== hero };
+}
 
 // server/lib/codemaker/src/project.ts
 var SITE_JSON = "site.json";
@@ -4858,6 +4865,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   fetchLimited,
   fileIndex,
   fillBrief,
+  fixDarkHero,
   fixedPart,
   footerHtml,
   headerHtml,

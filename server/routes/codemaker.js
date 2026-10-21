@@ -143,7 +143,9 @@ async function mergePart(siteId, partId, html) {
 // Última barreira antes de marcar pronto: nenhuma foto repetida nem URL fora do banco verificado.
 async function finalizeParts(site, plan, parts, userId) {
   const t0 = Date.now();
-  const r = E.dedupeImages(plan, parts, site.brief);
+  const heroFix = E.fixDarkHero(plan, parts);
+  const r = E.dedupeImages(plan, heroFix.parts, site.brief);
+  if (heroFix.changed) r.fixes.push({ part: 'hero', from: 'fundo-ink', to: 'fundo-paper', reason: 'hero-claro-em-tema-escuro' });
   if (r.fixes.length) {
     await tx(async () => {
       const row = await get('SELECT parts FROM code_sites WHERE project_id=? FOR UPDATE', site.id);
