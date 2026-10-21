@@ -30,6 +30,7 @@ const DC = require('../lib/codemaker/design-context');
 const refs = require('../lib/codemaker/references');
 const DYAD = require('../lib/codemaker/dyad-rules');
 const T = require('../lib/telemetry');
+const { refineVisually } = require('../lib/codemaker/refine');
 
 // SYSTEM_PROMPT.md + DESIGN.md (V2) são o system prompt do Builder (compilados em design-md.js). Cada etapa recebe só as seções
 // que usa (design-context.js), e as regras técnicas do Code Maker abaixo delas são a forma de executar isso no Builder da Neva.
@@ -141,7 +142,19 @@ async function finalizeParts(site, plan, parts, userId) {
     });
   }
   await T.event(site.id, userId, 'assets', { ms: Date.now() - t0, detail: { fotos: r.total, unicas: r.unique, trocadas: r.fixes.filter((f) => f.to).length, semSubstituta: r.unresolved } });
-  return r.parts;
+  // Renderiza, inspeciona (contraste por pixels) e corrige em até 3 ciclos. Sem navegador no ambiente, registra "indisponível".
+  const v0 = Date.now();
+  let finalPlan = plan;
+  try {
+    const out = await refineVisually({ plan, parts: r.parts, assemble: (pl, pa) => E.assembleSite(pl, pa), onStep: (stage, detail) => T.event(site.id, userId, stage, { ms: detail.ms ?? null, detail }) });
+    if (!out.available) await T.event(site.id, userId, 'inspect', { status: 'skipped', ms: Date.now() - v0, detail: { motivo: out.reason } });
+    else {
+      finalPlan = out.plan;
+      if (finalPlan.qaCss !== plan.qaCss) await run("UPDATE code_sites SET plan=?, rev=rev+1, updated_at=datetime('now') WHERE project_id=?", S(finalPlan), site.id);
+      await T.event(site.id, userId, 'verify', { ms: Date.now() - v0, detail: { ciclos: out.cycles.length - 1, pendencias: out.remaining } });
+    }
+  } catch (err) { await T.event(site.id, userId, 'inspect', { status: 'error', ms: Date.now() - v0, detail: { erro: String(err?.message || err).slice(0, 160) } }); }
+  return { parts: r.parts, plan: finalPlan };
 }
 // Marca pronto só uma vez (true = foi esta chamada que terminou o site).
 async function markReady(siteId, html) {
@@ -675,11 +688,12 @@ r.post('/', async (req, res) => {
       throw new HttpError(409, 'Ainda faltam partes do site. Clique em "Continuar criação".');
     }
     if (site.status !== 'building') await setStatus(site.id, 'building');
-    const finalParts = await finalizeParts(site, plan, site.parts, user.id);
-    const html = E.assembleSite(plan, finalParts, { files: site.files });
+    const fin = await finalizeParts(site, plan, site.parts, user.id);
+    const finalParts = fin.parts;
+    const html = E.assembleSite(fin.plan, finalParts, { files: site.files });
     if (await markReady(site.id, html)) {
-      await syncProjectFiles(site.id, html, E.assemblePages(plan, finalParts, site.files));
-      await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts: finalParts });
+      await syncProjectFiles(site.id, html, E.assemblePages(fin.plan, finalParts, site.files));
+      await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan: fin.plan, parts: finalParts });
     }
     return res.json({ site: await loadSite(site.id, req) });
   }
@@ -794,12 +808,13 @@ r.post('/', async (req, res) => {
       signal.throwIfAborted();
       const parts = await mergePart(site.id, partId, html);
       if (E.partOrder(plan).every((id) => parts[id])) {
-        const finalParts = await finalizeParts(site, plan, parts, user.id);
-        const document = E.assembleSite(plan, finalParts);
+        const fin = await finalizeParts(site, plan, parts, user.id);
+        const finalParts = fin.parts;
+        const document = E.assembleSite(fin.plan, finalParts);
         signal.throwIfAborted();
         if (await markReady(site.id, document)) {
           await syncProjectFiles(site.id, document, {});
-          await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts: finalParts });
+          await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan: fin.plan, parts: finalParts });
         }
       }
       return null;

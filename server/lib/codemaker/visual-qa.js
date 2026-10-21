@@ -8,7 +8,7 @@ function browserPath() { return CANDIDATES.find((p) => { try { return fs.statSyn
 function playwright() { try { return require('playwright-core'); } catch { return null; } }
 function available() { return Boolean(browserPath() && playwright()); }
 
-const VIEWPORTS = [{ name: 'celular', width: 360, height: 780 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }];
+const VIEWPORTS = [{ name: 'celular', width: 390, height: 844 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }];
 
 // Roda dentro da página.
 function measure() {
@@ -62,6 +62,54 @@ function measure() {
   return out;
 }
 
+
+// Roda dentro da página: texto visível com cor, tamanho e retângulo (em coordenadas da página).
+function collectText() {
+  const out = [];
+  const parse = (s) => { const m = s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r, g, b, a }; };
+  document.querySelectorAll('p,li,a,button,span,h1,h2,h3,h4,summary,label,small,td,dd,dt,div').forEach((el) => {
+    const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
+    if (!own.length) return;
+    const cs = getComputedStyle(el); const r = el.getBoundingClientRect();
+    if (r.width < 8 || r.height < 8 || cs.visibility === 'hidden' || cs.display === 'none' || Number(cs.opacity) < 0.05) return;
+    const fg = parse(cs.color); if (!fg || fg.a < 0.5) return;
+    const range = document.createRange(); range.selectNodeContents(own[0]); const tr = range.getBoundingClientRect();
+    if (tr.width < 6 || tr.height < 6) return;
+    if (tr.bottom + scrollY <= 0 || tr.right <= 0 || tr.top + scrollY < 0 || el.closest('.sr-only,[class*="skip"]')) return; // fora da tela (skip-link) não conta
+    const size = parseFloat(cs.fontSize);
+    out.push({ section: el.closest('main>section,section')?.id || null, el: `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`, text: own[0].textContent.trim().slice(0, 30), fg, size, bold: Number(cs.fontWeight) >= 700, x: tr.left + scrollX, y: tr.top + scrollY, w: tr.width, h: tr.height });
+  });
+  return out.slice(0, 400);
+}
+
+// Roda dentro da página: com o texto apagado, amostra os pixels reais atrás de cada texto (inclui fotos, degradês e vídeo)
+// e calcula o contraste. `shot` é a captura (dataURL) da página inteira sem texto.
+async function pixelContrast({ shot, items }) {
+  const img = new Image(); img.src = shot; await img.decode();
+  const dpr = img.width / document.documentElement.scrollWidth || 1;
+  const canvas = document.createElement('canvas'); canvas.width = img.width; canvas.height = img.height;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true }); ctx.drawImage(img, 0, 0);
+  const lum = (r, g, b) => { const c = [r, g, b].map((v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const bad = [];
+  for (const it of items) {
+    const need = it.size >= 24 || (it.size >= 18.66 && it.bold) ? 3 : 4.5;
+    const lf = lum(it.fg.r, it.fg.g, it.fg.b);
+    const x0 = Math.max(0, Math.round(it.x * dpr)), y0 = Math.max(0, Math.round(it.y * dpr));
+    const w = Math.min(Math.round(it.w * dpr), img.width - x0), h = Math.min(Math.round(it.h * dpr), img.height - y0);
+    if (w < 4 || h < 4) continue;
+    const data = ctx.getImageData(x0, y0, w, h).data;
+    const stepX = Math.max(1, Math.floor(w / 28)), stepY = Math.max(1, Math.floor(h / 8));
+    let n = 0, below = 0; const ratios = [];
+    for (let yy = 0; yy < h; yy += stepY) for (let xx = 0; xx < w; xx += stepX) {
+      const i = (yy * w + xx) * 4; const l = lum(data[i], data[i + 1], data[i + 2]);
+      const ratio = (Math.max(l, lf) + 0.05) / (Math.min(l, lf) + 0.05); ratios.push(ratio); n++; if (ratio < need) below++;
+    }
+    ratios.sort((a, b) => a - b);
+    if (n && below / n >= 0.2) bad.push({ section: it.section, light: lf > 0.4, el: it.el, text: it.text, need, p10: Math.round(ratios[Math.floor(n * 0.1)] * 100) / 100, share: Math.round((below / n) * 100) });
+  }
+  return bad;
+}
+
 /** Renderiza e mede. `shotsDir` (opcional) salva capturas por largura para a inspeção estética. */
 async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = {}) {
   if (!available()) return { available: false, reason: browserPath() ? 'playwright-core ausente' : 'nenhum navegador encontrado (defina CM_BROWSER)' };
@@ -76,6 +124,15 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
       await page.waitForTimeout(600);
       await page.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('is-visible')));
       const m = await page.evaluate(measure);
+      // Contraste por pixels reais: apaga o texto, captura a página e amostra o que fica atrás de cada texto.
+      try {
+        await page.evaluate(() => window.scrollTo(0, 0));
+        const items = await page.evaluate(collectText);
+        const style = await page.addStyleTag({ content: '*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}' });
+        const buf = await page.screenshot({ fullPage: true, type: 'png' });
+        await style.evaluate((el) => el.remove());
+        m.pixelContrast = await page.evaluate(pixelContrast, { shot: `data:image/png;base64,${buf.toString('base64')}`, items });
+      } catch { m.pixelContrast = null; }
       if (shotsDir) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}-${vp.name}.png`, fullPage: vp.name !== 'desktop' || true }); }
       results.push({ viewport: vp.name, width: vp.width, ...m });
       const add = (severity, kind, detail) => findings.push({ severity, viewport: vp.name, kind, detail });
@@ -84,6 +141,7 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
       if (m.brokenImages.length) add('critico', 'imagem-quebrada', m.brokenImages.join(', '));
       if (m.h1 !== 1) add('alto', 'h1', `${m.h1} títulos h1 (esperado 1)`);
       if (m.contrast.length) add('alto', 'contraste-baixo', m.contrast.slice(0, 4).map((c) => `${c.el} ${c.ratio}:1 "${c.text}"`).join(' | '));
+      if (m.pixelContrast?.length) add('alto', 'contraste-sobre-imagem', m.pixelContrast.slice(0, 5).map((c) => `${c.el} "${c.text}" p10 ${c.p10}:1 (precisa ${c.need}; ${c.share}% da área abaixo)`).join(' | '));
       if (m.small.length) add('medio', 'texto-pequeno', m.small.slice(0, 4).map((s) => `${s.px}px "${s.text}"`).join(' | '));
       if (m.taps.length) add('medio', 'alvo-de-toque', m.taps.slice(0, 4).map((t) => `${t.el} ${t.w}x${t.h}`).join(' | '));
       if (m.emptySections.length) add('medio', 'secao-vazia', m.emptySections.join(', '));

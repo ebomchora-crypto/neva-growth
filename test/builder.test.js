@@ -11,6 +11,7 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'neva-builder-'));
 process.env.DATA_DIR = dir;
 process.env.NODE_ENV = 'test';
 process.env.CM_REF_INSPECT = '0';
+process.env.CM_RENDER_QA = '0';
 const MOCK_PORT = 3400 + Math.floor(Math.random() * 400);
 process.env.RIVER_BASE_URL = `http://127.0.0.1:${MOCK_PORT}/v1`;
 const { createApp } = require('../server/index.js');
@@ -505,4 +506,27 @@ test('regressão Brasa Burger: a mesma foto em 12 lugares vira fotos diferentes;
   assert.ok(!urls.includes('photo-0000000000-inventada'), 'URL fora do banco removida');
   assert.equal(r.unresolved, 0);
   assert.ok(r.fixes.length >= 4);
+});
+
+test('refino visual: corrige texto sobre foto em ciclos, verifica e para quando não há pendência; sem navegador não simula', async () => {
+  const { refineVisually } = require('../server/lib/codemaker/refine');
+  const plan = { title: 'x' };
+  const bad = { findings: [{ severity: 'alto', kind: 'contraste-sobre-imagem', viewport: 'desktop' }], critical: 0, summary: { alto: 1 }, results: [{ pixelContrast: [{ section: 'hero', light: true, el: 'h1', text: 'T', p10: 1.1, need: 3 }] }] };
+  const clean = { findings: [], critical: 0, summary: {}, results: [{ pixelContrast: [] }] };
+  let calls = 0; const seenCss = [];
+  const inspect = async (html) => { calls += 1; seenCss.push(html); return calls === 1 ? bad : clean; };
+  process.env.CM_RENDER_QA = '1';
+  try {
+    const out = await refineVisually({ plan, parts: {}, assemble: (pl) => String(pl.qaCss || ''), inspect, onStep: () => {} });
+    assert.equal(out.available, true); assert.equal(calls, 2, 'inspeciona, corrige e verifica');
+    assert.match(out.plan.qaCss, /#hero :is\(img,video\)\{filter:brightness\(\.42\)/);
+    assert.equal(out.remaining.length, 0);
+    assert.equal(seenCss[0], ''); assert.match(seenCss[1], /#hero/, 'a verificação roda sobre o HTML já corrigido');
+    // pendência que nenhuma regra resolve: para no limite de 3 ciclos
+    calls = 0; const stuck = async () => { calls += 1; return { ...bad, results: [{ pixelContrast: [{ section: `s${calls}`, light: true, el: 'p', text: 't', p10: 1, need: 4.5 }] }] }; };
+    const out2 = await refineVisually({ plan, parts: {}, assemble: () => '', inspect: stuck, onStep: () => {} });
+    assert.equal(out2.cycles.length, 4, 'ciclo 0 + 3 correções'); assert.ok(out2.remaining.length > 0, 'pendência registrada, não escondida');
+  } finally { process.env.CM_RENDER_QA = '0'; }
+  const off = await refineVisually({ plan, parts: {}, assemble: () => '', inspect: async () => clean, onStep: () => {} });
+  assert.equal(off.available, false);
 });

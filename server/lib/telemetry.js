@@ -38,11 +38,12 @@ async function timeline(siteId) {
   const events = await all('SELECT id, stage, status, ms, detail, created_at FROM build_events WHERE site_id=? ORDER BY id', siteId);
   const table = prices(); const byStage = {};
   const add = (stage, key, v) => { const s = (byStage[stage] ||= { calls: 0, aiMs: 0, workMs: 0, tokensIn: 0, tokensOut: 0, errors: 0 }); s[key] += v || 0; };
-  let cost = 0, costKnown = true;
+  let cost = 0, costKnown = true, unmetered = 0;
   for (const c of calls) {
     const stage = c.stage || stageOfKind(c.kind); c.stage = stage; c.cost_usd = costOf(c, table);
     add(stage, 'calls', 1); add(stage, 'aiMs', c.ms); add(stage, 'tokensIn', c.prompt_tokens); add(stage, 'tokensOut', c.completion_tokens); if (!c.ok) add(stage, 'errors', 1);
-    if (c.cost_usd == null) costKnown = false; else cost += c.cost_usd;
+    if (c.cost_usd == null && c.prompt_tokens == null && c.completion_tokens == null) unmetered += 1; // chamada sem uso informado (falha/timeout)
+    else if (c.cost_usd == null) costKnown = false; else cost += c.cost_usd;
   }
   for (const e of events) { try { e.detail = e.detail ? JSON.parse(e.detail) : null; } catch { /* mantém texto */ } add(e.stage, 'workMs', e.ms); if (e.status === 'error') add(e.stage, 'errors', 1); }
   const times = [...calls, ...events].map((x) => Date.parse(String(x.created_at).replace(' ', 'T') + 'Z')).filter(Number.isFinite);
@@ -50,7 +51,7 @@ async function timeline(siteId) {
   return {
     site: siteId, calls, events, byStage,
     totals: { calls: calls.length, tokensIn: calls.reduce((n, c) => n + (c.prompt_tokens || 0), 0), tokensOut: calls.reduce((n, c) => n + (c.completion_tokens || 0), 0), aiMs: calls.reduce((n, c) => n + (c.ms || 0), 0),
-      wallMs: times.length > 1 ? Math.max(...times) - Math.min(...times) : null, costUsd: costKnown && calls.length ? Math.round(cost * 1e5) / 1e5 : null, costNote: costKnown ? null : 'preço do provedor/modelo não informado', refineCycles: refine, truncated: calls.filter((c) => c.finish_reason === 'length').length },
+      wallMs: times.length > 1 ? Math.max(...times) - Math.min(...times) : null, costUsd: costKnown && calls.length ? Math.round(cost * 1e5) / 1e5 : null, costNote: !costKnown ? 'preço do provedor/modelo não informado' : unmetered ? `${unmetered} chamada(s) sem uso informado (falha/timeout) fora do custo` : null, refineCycles: refine, truncated: calls.filter((c) => c.finish_reason === 'length').length },
   };
 }
 

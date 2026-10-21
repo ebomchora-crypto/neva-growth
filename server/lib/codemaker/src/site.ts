@@ -129,6 +129,8 @@ export interface SitePlan {
   creative?: CreativeSpec
   /** Correções automáticas feitas na paleta do diretor de arte (contraste texto/fundo, tema coerente). */
   paletteFixes?: string[]
+  /** Correções de legibilidade aplicadas pela inspeção visual (CSS gerado pelo sistema, nunca pela IA). */
+  qaCss?: string
   sections: PlanSection[]
   globalRequirementIds?: string[]
   specification?: CodeMakerSpecification
@@ -2419,7 +2421,7 @@ export function buildHead(plan: SitePlan): string {
     `<link href="https://fonts.googleapis.com/css2?${fonts}&display=swap" rel="stylesheet">`,
     '<script src="https://cdn.tailwindcss.com"></script>',
     `<script>tailwind.config=${JSON.stringify(config)}</script>`,
-    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}${compositionCss(completeComposition(plan.composition, DEFAULT_COMPOSITION))}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ''}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
+    `<style>:root{--fx-brand:${plan.palette.brand};--fx-accent:${plan.palette.accent}}${compositionCss(completeComposition(plan.composition, DEFAULT_COMPOSITION))}${String(plan.qaCss ?? '').replace(/[<>]/g, '').slice(0, 4000)}html{scroll-behavior:smooth}body{font-family:'${plan.fonts.body}',${FONT_WIDTH[plan.fonts.body] ? `'${fallbackName(plan.fonts.body)}',` : ''}ui-sans-serif,system-ui,sans-serif}.reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.16,1,.3,1),transform .6s cubic-bezier(.16,1,.3,1)}.reveal.is-visible{opacity:1;transform:none}:where(a,button,summary,input,select,textarea):focus-visible{outline:2px solid currentColor;outline-offset:3px}.skip-link{position:fixed;left:1rem;top:1rem;z-index:100;transform:translateY(-200%);padding:.75rem 1rem;border-radius:.5rem;background:#fff;color:#111;font-weight:600}.skip-link:focus{transform:none}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.reveal{opacity:1;transform:none;transition:none}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}details>summary{list-style:none;cursor:pointer}details>summary::-webkit-details-marker{display:none}</style>`,
   ].join('\n')
 }
 
