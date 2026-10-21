@@ -1871,3 +1871,10 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
   .topbar2 .livepill{display:inline-flex!important;align-items:center;justify-content:center;gap:0}
   .topbar2 .livepill span{display:none}
 }
+/* Resumo do período: logo oficial e acabamento */
+.sm-brand{display:flex;align-items:center;gap:12px}.sm-brand img{width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(127,180,224,.45))}.sm-brand b{font-size:1.15rem;letter-spacing:-.01em;color:#fff}
+.sm-card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(520px 320px at 85% -5%,rgba(127,180,224,.28),transparent 70%),radial-gradient(420px 300px at 0% 105%,rgba(74,149,210,.22),transparent 70%)}
+.sm-left,.sm-right{position:relative}
+.sm-art{box-shadow:0 30px 70px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.25)}
+.sm-main{background:linear-gradient(135deg,#eaf4fd,#8fc0ea 55%,#5fa4dc);box-shadow:0 16px 36px rgba(95,164,220,.45)}
+.sm-x{z-index:5;background:rgba(10,29,51,.82);backdrop-filter:blur(6px)}

@@ -3,6 +3,8 @@
 import { h, toast, icon } from './ui.js';
 
 const W = 1080, H = 1350;
+// Logo oficial usada na arte: carrega uma vez; a arte é redesenhada quando ela chega.
+const LOGO = { img: null, ready: new Promise((res) => { const i = new Image(); i.onload = () => { LOGO.img = i; res(); }; i.onerror = res; i.src = '/img/logo.png'; }) };
 const brl = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
 const compact = (v) => { const a = Math.abs(v || 0); if (a >= 1e9) return 'R$ ' + (v / 1e9).toFixed(1).replace('.', ',') + ' bi'; if (a >= 1e6) return 'R$ ' + (v / 1e6).toFixed(1).replace('.', ',') + ' mi'; if (a >= 1e4) return 'R$ ' + (v / 1e3).toFixed(0) + ' mil'; return brl(v); };
 const dmy = (iso) => { const [y, m, d] = String(iso).split('-'); const mm = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'][Number(m) - 1]; return `${d} de ${mm}. de ${y}`; };
@@ -35,9 +37,10 @@ export function drawArt(canvas, { name, m, period }) {
   c.save(); c.shadowColor = 'rgba(30,90,160,.45)'; c.shadowBlur = 50; c.shadowOffsetY = 18; c.fillStyle = orb; c.beginPath(); c.arc(ox, oy, or, 0, 7); c.fill(); c.restore();
   c.fillStyle = 'rgba(255,255,255,.9)'; for (let k = 0; k < 46; k++) { const a = k * 2.399963, y = 1 - (2 * (k + 0.5)) / 46, rr0 = Math.sqrt(1 - y * y), z = Math.sin(a) * rr0; if (z < -0.1) continue; c.globalAlpha = 0.35 + z * 0.6; c.beginPath(); c.arc(ox + Math.cos(a) * rr0 * or * 0.9, oy + y * or * 0.9, 3 + z * 5, 0, 7); c.fill(); } c.globalAlpha = 1;
   c.strokeStyle = 'rgba(255,255,255,.9)'; c.lineWidth = 3; rr(c, 40, 40, W - 80, H - 80, 44); c.stroke();
-  // marca
-  c.fillStyle = BLUE; rr(c, px, 100, 72, 72, 22); c.fill(); c.fillStyle = '#fff'; c.font = `800 44px ${F}`; c.textBaseline = 'middle'; c.textAlign = 'center'; c.fillText('N', px + 36, 138); c.textAlign = 'left';
-  c.fillStyle = INK; c.font = `800 34px ${F}`; c.fillText('NEVA GROWTH', px + 94, 124); c.fillStyle = MUT; c.font = `600 20px ${F}`; c.fillText('REGISTRO DE RESULTADO', px + 94, 156);
+  // marca: logo oficial (sem o quadrado azul antigo) + nome
+  const lg = 132; c.save(); c.shadowColor = 'rgba(30,90,160,.35)'; c.shadowBlur = 30; c.shadowOffsetY = 10;
+  if (LOGO.img) c.drawImage(LOGO.img, px - 18, 74, lg, lg); c.restore();
+  c.textBaseline = 'middle'; c.textAlign = 'left'; c.fillStyle = INK; c.font = `800 38px ${F}`; c.fillText('Neva Growth', px + lg - 10, 128); c.fillStyle = MUT; c.font = `700 19px ${F}`; c.fillText('REGISTRO DE RESULTADO', px + lg - 8, 164);
   const tag = LABEL[period] || period; c.font = `700 22px ${F}`; const tw = c.measureText(tag).width + 44; c.fillStyle = 'rgba(255,255,255,.75)'; rr(c, px, 300, tw, 52, 26); c.fill(); c.fillStyle = BLUE; c.fillText(tag.toUpperCase(), px + 22, 327);
   // título
   c.fillStyle = BLUE; c.font = `700 22px ${F}`; c.fillText('EXECUÇÃO VIROU RESULTADO', px, 408);
@@ -52,12 +55,13 @@ export function drawArt(canvas, { name, m, period }) {
   // gráfico
   const gx = px, gy = 838, gw = W - 2 * px, gh = 236; card(gx, gy, gw, gh, 30);
   c.fillStyle = MUT; c.font = `700 18px ${F}`; c.fillText('TRAÇO DE EXECUÇÃO', gx + 28, gy + 38); c.textAlign = 'right'; c.fillText(`${m.sales} ${m.sales === 1 ? 'FECHAMENTO' : 'FECHAMENTOS'}`, gx + gw - 28, gy + 38); c.textAlign = 'left';
+  if (!m.sales) { c.strokeStyle = 'rgba(47,123,189,.35)'; c.lineWidth = 3; c.setLineDash([10, 12]); for (let k = 0; k < 3; k++) { c.beginPath(); c.moveTo(gx + 40, gy + 88 + k * 52); c.lineTo(gx + gw - 40, gy + 88 + k * 52); c.stroke(); } c.setLineDash([]); c.fillStyle = MUT; c.font = `700 26px ${F}`; c.textAlign = 'center'; c.fillText('Seus fechamentos aparecem aqui', gx + gw / 2, gy + 150); c.textAlign = 'left'; }
   const ser = m.series.length ? m.series : [{ revenue: 0, profit: 0 }]; const max = Math.max(1, ...ser.map((s) => s.revenue)); const ix = gx + 40, iw = gw - 80, iy = gy + 72, ih = gh - 104;
   const X = (i) => ix + (ser.length > 1 ? (iw * i) / (ser.length - 1) : iw / 2), Y = (v) => iy + ih * (1 - v / max);
   const area = c.createLinearGradient(0, iy, 0, iy + ih); area.addColorStop(0, 'rgba(74,149,210,.45)'); area.addColorStop(1, 'rgba(74,149,210,0)');
   if (ser.length > 1) { c.beginPath(); ser.forEach((s, i) => (i ? c.lineTo(X(i), Y(s.revenue)) : c.moveTo(X(i), Y(s.revenue)))); c.lineTo(X(ser.length - 1), iy + ih); c.lineTo(X(0), iy + ih); c.closePath(); c.fillStyle = area; c.fill();
     c.beginPath(); ser.forEach((s, i) => (i ? c.lineTo(X(i), Y(s.revenue)) : c.moveTo(X(i), Y(s.revenue)))); c.strokeStyle = BLUE; c.lineWidth = 6; c.lineJoin = 'round'; c.stroke(); }
-  ser.forEach((s, i) => { const last = i === ser.length - 1; if (ser.length <= 14 || last) { c.beginPath(); c.arc(X(i), Y(s.revenue), last ? 11 : 7, 0, 7); c.fillStyle = '#fff'; c.fill(); c.lineWidth = last ? 6 : 4; c.strokeStyle = BLUE; c.stroke(); } });
+  ser.forEach((s, i) => { const last = i === ser.length - 1; if (m.sales && (ser.length <= 14 || last)) { c.beginPath(); c.arc(X(i), Y(s.revenue), last ? 11 : 7, 0, 7); c.fillStyle = '#fff'; c.fill(); c.lineWidth = last ? 6 : 4; c.strokeStyle = BLUE; c.stroke(); } });
   // números
   const bx = px, by = 1092, bw = (W - 2 * px - 40) / 3; [['FATURAMENTO', compact(m.revenue)], ['TICKET MÉDIO', compact(m.ticket)], ['VENDAS', String(m.sales).padStart(2, '0')]].forEach(([l, v], i) => {
     const x = bx + i * (bw + 20); card(x, by, bw, 120, 26); c.fillStyle = MUT; c.font = `700 17px ${F}`; c.fillText(l, x + 24, by + 36); c.fillStyle = INK; c.font = `800 40px ${F}`; c.fillText(v, x + 24, by + 86); });
@@ -92,6 +96,7 @@ export function openSummary({ name, metrics, period }) {
     h('button', { type: 'button', class: 'sm-x', 'aria-label': 'Fechar', onclick: close }, icon('x')),
     h('div', { class: 'sm-left' }, canvas, h('small', 'Arte pronta para Stories e feed · 1080 × 1350 px')),
     h('div', { class: 'sm-right' },
+      h('div', { class: 'sm-brand' }, h('img', { src: '/img/logo.png', alt: '', width: 64, height: 64, decoding: 'async' }), h('b', 'Neva Growth')),
       h('small', { class: 'sm-k' }, h('i'), 'SEU RESUMO ESTÁ PRONTO'),
       h('h2', { id: 'sm-title' }, 'Seu resultado.', h('br'), h('span', 'Pronto para mostrar.')),
       h('p', 'Uma arte com os números do período, pronta para compartilhar ou salvar.'),
@@ -104,7 +109,7 @@ export function openSummary({ name, metrics, period }) {
       h('button', { type: 'button', class: 'sm-back-btn', onclick: close }, 'Voltar para o painel')));
   back.append(card); back.addEventListener('mousedown', (e) => { if (e.target === back) close(); });
   document.addEventListener('keydown', esc); document.body.append(back); document.body.classList.add('fs-open');
-  drawArt(canvas, data); (document.fonts?.ready || Promise.resolve()).then(() => !closed && drawArt(canvas, data));
-  requestAnimationFrame(() => { back.classList.add('in'); card.querySelector('.sm-main')?.focus(); });
+  drawArt(canvas, data); Promise.all([document.fonts?.ready, LOGO.ready]).then(() => !closed && drawArt(canvas, data));
+  requestAnimationFrame(() => { back.classList.add('in'); card.scrollTop = 0; card.querySelector('.sm-main')?.focus({ preventScroll: true }); });
   return { close };
 }
