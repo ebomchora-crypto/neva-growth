@@ -492,6 +492,8 @@ test('regressão Brasa Burger: paleta com texto da cor do fundo é consertada (t
   assert.ok(ratio(plan.palette.ink, plan.palette.surface) >= 4.5, 'texto x superfície');
   assert.ok(ratio(plan.palette.muted, plan.palette.paper) >= 4.5, 'texto secundário x fundo');
   assert.ok(Array.isArray(plan.paletteFixes) && plan.paletteFixes.length > 0, 'correções registradas');
+  const dark = E.normalizePlan({ title: 'B', description: 'd', direction: 'x', theme: 'dark', palette: { brand: '#ff6b3a', brandDark: '#c2410c', accent: '#F6BD36', ink: '#F3EBDD', paper: '#141311', surface: '#302019', muted: '#A99C8B' }, fonts: { display: 'Anton', body: 'DM Sans' }, sections: [{ id: 'hero', label: 'Início', layout: 'hero-cinema', headline: 'h', brief: 'b', bg: 'ink' }] }, { businessName: 'B', details: 'x', style: 'auto', assets: [] });
+  assert.equal(dark.sections[0].bg, 'paper', 'topo de site escuro não usa o fundo creme (ink)');
 });
 
 test('regressão Brasa Burger: a mesma foto em 12 lugares vira fotos diferentes; URL inventada é trocada pelo banco verificado', () => {
@@ -511,7 +513,7 @@ test('regressão Brasa Burger: a mesma foto em 12 lugares vira fotos diferentes;
 test('refino visual: corrige texto sobre foto em ciclos, verifica e para quando não há pendência; sem navegador não simula', async () => {
   const { refineVisually } = require('../server/lib/codemaker/refine');
   const plan = { title: 'x' };
-  const bad = { findings: [{ severity: 'alto', kind: 'contraste-sobre-imagem', viewport: 'desktop' }], critical: 0, summary: { alto: 1 }, results: [{ pixelContrast: [{ path: '#hero>h1:nth-of-type(1)', bgLum: 0.04, el: 'h1', text: 'T', p10: 1.1, need: 3 }] }] };
+  const bad = { findings: [{ severity: 'alto', kind: 'contraste-sobre-imagem', viewport: 'desktop' }], critical: 0, summary: { alto: 1 }, results: [{ pixelContrast: [{ path: '#hero>h1:nth-of-type(1)', bgLum: 0.04, darkBad: 100, lightBad: 0, el: 'h1', text: 'T', p10: 1.1, need: 3 }] }] };
   const clean = { findings: [], critical: 0, summary: {}, results: [{ pixelContrast: [] }] };
   let calls = 0; const seenCss = [];
   const inspect = async (html) => { calls += 1; seenCss.push(html); return calls === 1 ? bad : clean; };
@@ -523,7 +525,7 @@ test('refino visual: corrige texto sobre foto em ciclos, verifica e para quando 
     assert.equal(out.remaining.length, 0);
     assert.equal(seenCss[0], ''); assert.match(seenCss[1], /#hero/, 'a verificação roda sobre o HTML já corrigido');
     // pendência que nenhuma regra resolve: para no limite de 3 ciclos
-    calls = 0; const stuck = async () => { calls += 1; return { ...bad, results: [{ pixelContrast: [{ path: `#s${calls}>p`, bgLum: 0.8, el: 'p', text: 't', p10: 1, need: 4.5 }] }] }; };
+    calls = 0; const stuck = async () => { calls += 1; return { ...bad, results: [{ pixelContrast: [{ path: `#s${calls}>p`, bgLum: 0.8, darkBad: 0, lightBad: 100, el: 'p', text: 't', p10: 1, need: 4.5 }] }] }; };
     const out2 = await refineVisually({ plan, parts: {}, assemble: () => '', inspect: stuck, onStep: () => {} });
     assert.equal(out2.cycles.length, 4, 'ciclo 0 + 3 correções'); assert.ok(out2.remaining.length > 0, 'pendência registrada, não escondida');
   } finally { process.env.CM_RENDER_QA = '0'; }

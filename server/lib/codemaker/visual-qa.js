@@ -78,7 +78,7 @@ function collectText() {
     if (tr.width < 6 || tr.height < 6) return;
     if (tr.bottom + scrollY <= 0 || tr.right <= 0 || tr.top + scrollY < 0 || el.closest('.sr-only,[class*="skip"]')) return; // fora da tela (skip-link) não conta
     const size = parseFloat(cs.fontSize);
-    out.push({ path: pathOf(el), section: el.closest('main>section,section')?.id || null, el: `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`, text: own[0].textContent.trim().slice(0, 30), fg, size, bold: Number(cs.fontWeight) >= 700, x: tr.left + scrollX, y: tr.top + scrollY, w: tr.width, h: tr.height });
+    out.push({ big: size >= 28 || tr.width > 640, path: pathOf(el), section: el.closest('main>section,section')?.id || null, el: `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`, text: own[0].textContent.trim().slice(0, 30), fg, size, bold: Number(cs.fontWeight) >= 700, x: tr.left + scrollX, y: tr.top + scrollY, w: tr.width, h: tr.height });
   });
   return out.slice(0, 400);
 }
@@ -100,13 +100,16 @@ async function pixelContrast({ shot, items }) {
     if (w < 4 || h < 4) continue;
     const data = ctx.getImageData(x0, y0, w, h).data;
     const stepX = Math.max(1, Math.floor(w / 28)), stepY = Math.max(1, Math.floor(h / 8));
-    let n = 0, below = 0, sumL = 0; const ratios = [];
+    let n = 0, below = 0, sumL = 0, darkBad = 0, lightBad = 0; const ratios = [];
+    const LD = lum(20, 19, 17), LL = lum(246, 242, 234);
     for (let yy = 0; yy < h; yy += stepY) for (let xx = 0; xx < w; xx += stepX) {
       const i = (yy * w + xx) * 4; const l = lum(data[i], data[i + 1], data[i + 2]);
-      const ratio = (Math.max(l, lf) + 0.05) / (Math.min(l, lf) + 0.05); ratios.push(ratio); sumL += l; n++; if (ratio < need) below++;
+      const ratio = (Math.max(l, lf) + 0.05) / (Math.min(l, lf) + 0.05); ratios.push(ratio); sumL += l; n++; if ((Math.max(l, LD) + 0.05) / (Math.min(l, LD) + 0.05) < need) darkBad++; if ((Math.max(l, LL) + 0.05) / (Math.min(l, LL) + 0.05) < need) lightBad++; if (ratio < need) below++;
     }
     ratios.sort((a, b) => a - b);
-    if (n && below / n >= 0.2) bad.push({ path: it.path, bgLum: Math.round((sumL / n) * 1000) / 1000, section: it.section, light: lf > 0.4, el: it.el, text: it.text, need, p10: Math.round(ratios[Math.floor(n * 0.1)] * 100) / 100, share: Math.round((below / n) * 100) });
+    const lums = []; for (let yy = 0; yy < h; yy += stepY) for (let xx = 0; xx < w; xx += stepX) { const i = (yy * w + xx) * 4; lums.push(lum(data[i], data[i + 1], data[i + 2])); }
+    lums.sort((a, b) => a - b); const spread = lums.length ? lums[Math.floor(lums.length * 0.9)] - lums[Math.floor(lums.length * 0.1)] : 0;
+    if (n && below / n >= 0.2) bad.push({ darkBad: Math.round((darkBad / n) * 100), lightBad: Math.round((lightBad / n) * 100), big: it.big, spread: Math.round(spread * 100) / 100, path: it.path, bgLum: Math.round((sumL / n) * 1000) / 1000, section: it.section, light: lf > 0.4, el: it.el, text: it.text, need, p10: Math.round(ratios[Math.floor(n * 0.1)] * 100) / 100, share: Math.round((below / n) * 100) });
   }
   return bad;
 }
@@ -125,16 +128,16 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
       await page.waitForTimeout(600);
       await page.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('is-visible')));
       const m = await page.evaluate(measure);
+      if (shotsDir) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}-${vp.name}.png`, fullPage: vp.name !== 'desktop' || true }); }
       // Contraste por pixels reais: apaga o texto, captura a página e amostra o que fica atrás de cada texto.
       try {
         await page.evaluate(() => window.scrollTo(0, 0));
         const items = await page.evaluate(collectText);
-        const style = await page.addStyleTag({ content: '*{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}' });
+        // Estilo inline com !important vence qualquer regra da página (inclusive as correções do refino).
+        await page.evaluate(() => document.querySelectorAll('body *').forEach((el) => { for (const prop of ['color', '-webkit-text-fill-color']) el.style.setProperty(prop, 'transparent', 'important'); el.style.setProperty('text-shadow', 'none', 'important'); }));
         const buf = await page.screenshot({ fullPage: true, type: 'png' });
-        await style.evaluate((el) => el.remove());
         m.pixelContrast = await page.evaluate(pixelContrast, { shot: `data:image/png;base64,${buf.toString('base64')}`, items });
       } catch { m.pixelContrast = null; }
-      if (shotsDir) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}-${vp.name}.png`, fullPage: vp.name !== 'desktop' || true }); }
       results.push({ viewport: vp.name, width: vp.width, ...m });
       const add = (severity, kind, detail) => findings.push({ severity, viewport: vp.name, kind, detail });
       if (m.overflowX > 2) add('critico', 'overflow-horizontal', `${m.overflowX}px além da tela; ex.: ${m.overflowers.map((o) => o.el).slice(0, 3).join(', ')}`);
