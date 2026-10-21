@@ -590,6 +590,45 @@ r.get('/:id(\\d+)/changes', async (req, res) => {
       state: (cur[p] ?? null) === (le.tA[p] ?? null) ? 'rejected' : (cur[p] ?? null) === (le.tB[p] ?? null) ? 'kept' : 'changed' })) });
 });
 
+
+// ---- Fotos e logos enviados pelo cliente: ficam no banco e são servidos em /u/<id> (público, como o site publicado).
+const IMG_RE = /^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/;
+const IMG_URL = /^\/u\/[a-f0-9]{24}\.(?:jpg|png|webp)$/;
+const imgExt = (mime) => (mime === 'image/png' ? 'png' : mime === 'image/webp' ? 'webp' : 'jpg');
+r.post('/images', async (req, res) => {
+  if (req.user.role === 'viewer') throw new HttpError(403, 'Seu perfil só pode visualizar.');
+  const m = IMG_RE.exec(String(req.body?.dataUrl || ''));
+  if (!m) throw bad('Envie uma imagem PNG, JPG ou WebP.');
+  const bytes = Math.floor((m[2].length * 3) / 4);
+  if (bytes > 1_800_000) throw bad('A imagem é grande demais (máximo 1,8 MB depois de reduzida).');
+  const mine = await get('SELECT COUNT(*) n FROM site_images WHERE user_id=?', req.user.id);
+  if (Number(mine?.n || 0) >= 300) throw bad('Você chegou ao limite de 300 imagens enviadas.');
+  const id = crypto.randomBytes(12).toString('hex');
+  await run('INSERT INTO site_images(id,user_id,ws,name,mime,data,bytes) VALUES (?,?,?,?,?,?,?)', id, req.user.id, req.user.ws, String(req.body?.name || '').slice(0, 120), m[1], m[2], bytes);
+  res.json({ id, url: `/u/${id}.${imgExt(m[1])}`, name: String(req.body?.name || '').slice(0, 120), bytes });
+});
+/** Anexos de imagem validados: só URLs nossas, do próprio usuário. */
+async function ownImages(user, list) {
+  const out = [];
+  for (const a of (Array.isArray(list) ? list : []).slice(0, 8)) {
+    const url = String(a?.url || '');
+    if (!IMG_URL.test(url)) continue;
+    const row = await get('SELECT id,name,mime FROM site_images WHERE id=? AND user_id=?', url.slice(3, 27), user.id);
+    if (row) out.push({ url, kind: a.kind === 'logo' ? 'logo' : 'photo', name: String(a.name || row.name || '').slice(0, 80), id: row.id, mime: row.mime });
+  }
+  return out;
+}
+
+async function describeOwn(own) {
+  const images = [];
+  for (const a of own.filter((x) => x.kind === 'photo' || x.kind === 'logo').slice(0, 3)) {
+    const row = await get('SELECT mime,data FROM site_images WHERE id=?', a.id);
+    if (row) images.push({ dataUrl: `data:${row.mime};base64,${row.data}` });
+  }
+  const seen = images.length ? await ai.describeImages(images).catch(() => ({ text: null })) : { text: null };
+  return seen.text;
+}
+
 r.post('/', async (req, res) => {
   const body = req.body || {};
   const user = req.user;
@@ -619,17 +658,19 @@ r.post('/', async (req, res) => {
   }
 
   if (action === 'create') {
-    // Imagens anexadas: um modelo com visão as descreve e a descrição entra no pedido. Se nenhum enxerga, o usuário é avisado.
+    // Fotos/logos anexados: já foram enviadas (POST /images). Um modelo com visão descreve o que há nelas; se nenhum enxerga, o usuário é avisado.
     const notes = [];
-    const images = (Array.isArray(body.images) ? body.images : []).filter((i) => typeof i?.dataUrl === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(i.dataUrl) && i.dataUrl.length < 1.4e6).slice(0, 3);
-    if (images.length) {
-      const seen = await ai.describeImages(images);
-      if (seen.text) body.brief = { ...(body.brief || {}), details: `${body.brief?.details || ''}\n\n=== IMAGENS ANEXADAS PELO CLIENTE (descrição feita por visão computacional; use como referência) ===\n${seen.text}` };
-      else notes.push(`Não consegui ler ${images.length === 1 ? 'a imagem anexada' : 'as imagens anexadas'}: nenhum modelo com visão respondeu nesta conta. O site foi criado só com o seu texto${/arquivo/i.test(body.brief?.details || '') ? ' e os documentos' : ''}.`);
+    const own = await ownImages(user, body.assets);
+    if (own.length) {
+      const seen = await describeOwn(own);
+      const list = own.map((a, i) => `${i + 1}. ${a.kind === 'logo' ? 'LOGO' : 'foto'} "${a.name || 'sem nome'}" → ${a.url}`).join('\n');
+      body.brief = { ...(body.brief || {}), details: `${body.brief?.details || ''}\n\n=== IMAGENS ENVIADAS PELO CLIENTE (são do negócio dele: USE no site nos lugares certos, com estas URLs exatas) ===\n${list}${seen ? `\n\nO que há nas imagens (descrição automática):\n${seen}` : ''}` };
+      if (!seen) notes.push(`Guardei ${own.length === 1 ? 'a imagem' : 'as imagens'} e o site vai usar ${own.length === 1 ? 'ela' : 'elas'}, mas não consegui "ver" o conteúdo (nenhum modelo com visão respondeu nesta conta), então a escolha de onde colocar fica pelo nome do arquivo.`);
     }
     const brief = cleanBrief(body.brief ?? {});
     if (!brief) throw bad('Escreva o que você quer no site.');
     brief.ai = ai.selection(body);
+    brief.assets = own.slice(0, 8).map(({ url, kind }) => ({ url, kind }));
     const created = await tx(async () => {
       // Sem nome ainda (pedido livre): link provisório até a IA ler o pedido.
       const slug = brief.businessName ? await uniqueSlug(brief.businessName) : `site-${crypto.randomUUID().slice(0, 8)}`;
@@ -893,8 +934,14 @@ r.post('/', async (req, res) => {
   // secoes/*.html, paginas/*.html, estilos.css, script.js). O servidor aplica
   // cada operação conferindo o arquivo, monta as páginas, grava, confere o que
   // ficou gravado e só então diz que mudou — e diz exatamente o que mudou.
-  const instruction = E.cleanUserText(body.instruction);
+  let instruction = E.cleanUserText(body.instruction);
   if (!instruction) throw bad('Diga o que você quer mudar.');
+  const userInstruction = instruction; // o que a pessoa escreveu: é o que fica no histórico
+  const sent = await ownImages(user, body.assets);
+  if (sent.length) {
+    const seen = await describeOwn(sent);
+    instruction += `\n\n=== IMAGENS ENVIADAS PELO CLIENTE NESTE PEDIDO (são dele; use as URLs EXATAS em <img src> ou url() onde o pedido indicar) ===\n${sent.map((a, i) => `${i + 1}. ${a.kind === 'logo' ? 'LOGO' : 'foto'} "${a.name || 'sem nome'}" → ${a.url}`).join('\n')}${seen ? `\n\nO que há nas imagens (descrição automática):\n${seen}` : ''}`;
+  }
   if (site.status !== 'ready') throw new HttpError(409, 'Espere o site terminar de ser gerado.');
   const editId = crypto.randomUUID().slice(0, 8);
   // Alterar HTML em modo livre é escrever código: usa o mesmo modelo de código das seções (o criador de sites "ótimo"), não o modelo do nível.
@@ -1034,7 +1081,7 @@ r.post('/', async (req, res) => {
         const next = await saveSite(site, { brief: nextBrief, plan: nextPlan, parts: applied.parts, files: applied.files, html, pages_html: pagesHtml });
         if (!next) return null;
         await syncProjectFiles(site.id, html, pagesHtml);
-        await versionInsert(site, user.id, { kind: 'edit', instruction, actions: [...edit.actions, ...report], plan: nextPlan, parts: applied.parts, files: applied.files });
+        await versionInsert(site, user.id, { kind: 'edit', instruction: userInstruction, actions: [...edit.actions, ...report], plan: nextPlan, parts: applied.parts, files: applied.files });
         return next;
       });
       if (!saved) {

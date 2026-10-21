@@ -1901,3 +1901,5 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .stu-stages>summary{align-items:center}
 .stu-stages .stg{grid-template-columns:18px minmax(0,1fr) auto;align-items:start}.stu-stages .stg>span{overflow-wrap:anywhere}
 @media(max-width:760px){.stu-stages{position:static!important;margin:8px 0 12px;box-shadow:none}.stu-stages>summary span{font-size:.78rem}}
+.stu-composer .ap-files{padding:0}.stu-composer .ap-attach{min-width:36px;justify-content:center}
+.stu-composer .ap-ghost{color:var(--mut)}.stu-att{display:block;font-size:11px;opacity:.75;margin-top:2px}

@@ -94,7 +94,7 @@ http.createServer((req, res) => {
     const body = JSON.parse(raw || '{}');
     const stage = stageOf(body);
     const lastUser = body.messages?.filter((m) => m.role === 'user').pop()?.content || '';
-    seen.push({ stage, hasRefs: /REFERÊNCIAS DE DESIGN/.test(lastUser), refTitles: [...lastUser.matchAll(/^### (.+?) — usar SÓ/gm)].map((m) => m[1]), model: body.model, max_tokens: body.max_tokens, temperature: body.temperature, reasoning: body.reasoning_effort || body.reasoning || body.thinking || null, system: (body.messages?.[0]?.content || '').slice(0, 120) });
+    seen.push({ stage, userHasImages: /IMAGENS ENVIADAS PELO CLIENTE/.test(lastUser) && (lastUser.match(/→ (\/u\/[a-f0-9]{24}\.\w+)/)?.[1] || true), hasRefs: /REFERÊNCIAS DE DESIGN/.test(lastUser), refTitles: [...lastUser.matchAll(/^### (.+?) — usar SÓ/gm)].map((m) => m[1]), model: body.model, max_tokens: body.max_tokens, temperature: body.temperature, reasoning: body.reasoning_effort || body.reasoning || body.thinking || null, system: (body.messages?.[0]?.content || '').slice(0, 120) });
     const text = textFor(stage, body);
     const usage = { prompt_tokens: Math.round(JSON.stringify(body.messages || []).length / 4), completion_tokens: Math.round(text.length / 4) };
     if (!body.stream) { res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ choices: [{ message: { content: text }, finish_reason: 'stop' }], usage })); return; }

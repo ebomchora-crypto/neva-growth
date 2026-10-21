@@ -23,6 +23,10 @@
       "destination": "/api"
     },
     {
+      "source": "/u/(.*)",
+      "destination": "/api"
+    },
+    {
       "source": "/preview/(.*)",
       "destination": "/api"
     },

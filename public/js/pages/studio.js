@@ -2,6 +2,7 @@ import { api, ApiError } from '../api.js';
 import { h, mount, toast, fail, icon, modal, confirmBox, dtt, debounce } from '../ui.js';
 import { modelSelector } from '../model-selector.js';
 import { diffReview, hunksOf } from '../diff-review.js';
+import { attachControls, composeDetails } from '../attach.js';
 
 // A IA vai contando o que faz, como o Claude: frases curtas (com variações) ligadas às etapas reais da criação.
 const pick = (list) => list[Math.floor(Math.random() * list.length)];
@@ -182,7 +183,11 @@ export default {
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); edit(input.value); } });
     const st0 = await api.get('/integrations/status').catch(() => ({ ai: {} }));
     const selector = modelSelector({ models: st0.ai?.models, defaultModel: st0.ai?.defaultModel, theme: 'light', placement: 'up' });
-    const composer = h('div', { class: 'stu-composer' }, input, h('div', { class: 'row' }, selector.el, h('span', { class: 'grow' }), stopBtn, sendBtn));
+    const att = attachControls({ disabled: !canWrite, label: false, upload: (dataUrl, name) => api.post('/code-maker/images', { dataUrl, name }) });
+    input.addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); att.take(f); } });
+    const composer = h('div', { class: 'stu-composer' }, input, att.chips, h('div', { class: 'row' }, att.button, selector.el, h('span', { class: 'grow' }), stopBtn, sendBtn), att.picker);
+    composer.addEventListener('dragover', (e) => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
+    composer.addEventListener('drop', (e) => { if (e.dataTransfer?.files?.length) { e.preventDefault(); att.take(e.dataTransfer.files); } });
 
     // Narração ao vivo: cada entrada é uma frase ("say") ou uma ação em andamento ("act", em itálico com indicador).
     let log = []; let editLog = [];
@@ -219,7 +224,8 @@ export default {
       } catch { review = null; }
     }
 
-    const bubbleUser = (text, when) => h('div', { class: 'stu-msg me' }, h('p', text), when && h('time', dtt(when)));
+    // O histórico guarda o pedido completo (com o texto dos anexos); na conversa só aparece o que a pessoa escreveu.
+    const bubbleUser = (text, when) => { const cut = String(text).indexOf('\n\n=== '); const shown = cut > 0 ? String(text).slice(0, cut) : text; return h('div', { class: 'stu-msg me' }, h('p', shown), cut > 0 && h('small', { class: 'stu-att' }, '+ arquivos anexados'), when && h('time', dtt(when))); };
     const list = (items, cls = '') => items.length ? h('ul', { class: 'stu-list ' + cls }, items.map((a) => h('li', a))) : null;
     const secs = (ms) => (ms == null ? '' : ms < 950 ? '<1 s' : `${Math.round(ms / 1000)} s`);
     let stagesOpen = null;
@@ -374,20 +380,23 @@ export default {
     }
 
     async function edit(text) {
-      const instruction = String(text || '').trim();
-      if (!instruction || busy || site.status !== 'ready') return;
+      const typed = String(text || '').trim();
+      if ((!typed && !att.files.length) || busy || site.status !== 'ready') return;
+      if (!att.ready()) { toast('Espere o envio das imagens terminar.', 'err'); return; }
+      const assets = att.assets(); const attached = att.files.slice();
+      const instruction = composeDetails(typed || 'Use os arquivos anexados para alterar o site.', attached);
       busy = true; controller?.abort(); controller = new AbortController(); const signal = controller.signal;
-      error = null; phase = 'editing'; pending = instruction; editText = ''; input.value = ''; review = null; editLog = [];
+      error = null; phase = 'editing'; pending = typed || `(${attached.length} anexo(s))`; editText = ''; input.value = ''; review = null; editLog = [];
       say(editLog, pick(SAY.editStart));
       let reading = act(editLog, pick(ACT.read)); let context = null; let exec = null;
       try {
-        await streamCM({ action: 'edit', site_id: id, instruction, ...selector.get() }, (t) => {
+        await streamCM({ action: 'edit', site_id: id, instruction, assets, ...selector.get() }, (t) => {
           if (/<etapa>analise<\/etapa>/.test(t) && !context) { reading?.done(); reading = null; context = act(editLog, pick(ACT.context)); }
           const body = noEtapa(t);
           if (!exec && body.trim()) { reading?.done(); reading = null; context?.done(); exec = act(editLog, pick(ACT.exec)); }
           editText = body; drawThread();
         }, signal, () => act(editLog, pick(ACT.more)).done());
-        reading?.done(); context?.done(); exec?.done();
+        reading?.done(); context?.done(); exec?.done(); att.clear();
         const check = act(editLog, pick(ACT.check));
         await refresh(); await loadReview(); loadPreview(); check.done();
         const done = versions.find((v) => v.kind === 'edit' && v.instruction === instruction);

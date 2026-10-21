@@ -314,6 +314,31 @@ test('alteração em site de modo livre usa o modelo de código (o mesmo que esc
     await run("DELETE FROM app_settings WHERE key='NEVA_CODE_MODEL'"); await cfg.refresh(true);
   }
 });
+test('fotos enviadas pelo cliente: ficam guardadas, são servidas em /u/<id>, entram no site como fotos do negócio e chegam ao pedido de alteração', async () => {
+  const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+  assert.equal((await call('POST', '/api/code-maker/images', { dataUrl: 'data:text/html;base64,PGI+', name: 'x.html' })).status, 400, 'só PNG, JPG e WebP');
+  const up = await call('POST', '/api/code-maker/images', { dataUrl: png, name: 'fachada.png' });
+  assert.equal(up.status, 200); assert.match(up.body.url, /^\/u\/[a-f0-9]{24}\.png$/);
+  const pub = await fetch(base + up.body.url);
+  assert.equal(pub.status, 200); assert.equal(pub.headers.get('content-type'), 'image/png'); assert.ok((await pub.arrayBuffer()).byteLength > 20, 'público, sem login');
+  assert.equal((await fetch(base + '/u/' + '0'.repeat(24) + '.png')).status, 404);
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site da Padaria Quatro em Recife, pedidos pelo WhatsApp.' }, assets: [{ url: up.body.url, name: 'fachada.png', kind: 'photo' }, { url: '/u/' + 'f'.repeat(24) + '.png', kind: 'photo' }, { url: 'https://evil.example/x.png', kind: 'photo' }] });
+  const id = created.body.site.id;
+  const row = await all('SELECT brief FROM code_sites WHERE project_id=?', id);
+  const brief = JSON.parse(row[0].brief);
+  assert.deepEqual(brief.assets, [{ url: up.body.url, kind: 'photo' }], 'só imagens nossas e do próprio usuário');
+  assert.match(brief.details, /IMAGENS ENVIADAS PELO CLIENTE[\s\S]*fachada\.png/);
+  await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
+  const site = (await call('GET', '/api/code-maker/' + id)).body.site;
+  for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  const before = (await seen()).length;
+  await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Use minha foto no topo', assets: [{ url: up.body.url, name: 'fachada.png', kind: 'photo' }] });
+  const edit = (await seen()).slice(before).find((c) => c.stage === 'edit');
+  assert.equal(edit.userHasImages, up.body.url, 'a URL da foto vai no pedido de alteração');
+  const v = await all("SELECT instruction FROM site_versions WHERE project_id=? AND kind='edit' ORDER BY id DESC LIMIT 1", id);
+  assert.equal(v[0]?.instruction, 'Use minha foto no topo', 'o histórico guarda só o que a pessoa escreveu');
+});
+
 test('<antes> fechado com </depois> é lido como o modelo quis dizer', () => {
   const edit = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nTexto velho\n</depois>\n<depois>\nTexto novo\n</depois>\n</editar>');
   assert.equal(edit.invalid, 0); assert.equal(edit.operations.length, 1);

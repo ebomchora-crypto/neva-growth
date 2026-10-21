@@ -34,6 +34,12 @@ function createApp() {
   app.get('/healthz', (_req, res) => res.json({ ok: true }));
   // Sites publicados (públicos) e preview (autenticado)
   const { router: projects, previewRouter, publicRouter } = require('./routes/projects');
+  app.get(/^\/u\/([a-f0-9]{24})\.(?:jpg|png|webp)$/, async (req, res) => {
+    const row = await require('./lib/db').get('SELECT mime,data FROM site_images WHERE id=?', req.params[0]);
+    if (!row) return res.status(404).type('text').send('Imagem não encontrada.');
+    res.set({ 'content-type': row.mime, 'cache-control': 'public, max-age=31536000, immutable', 'x-content-type-options': 'nosniff' });
+    res.send(Buffer.from(row.data, 'base64'));
+  });
   app.use('/s', publicRouter);
   app.use('/preview', previewRouter);
 

@@ -328,6 +328,14 @@ DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.build_events FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.build_events FROM authenticated'; END IF;
 END $$;
+` }, { v: 13, name: 'v13-imagens-enviadas-pelo-cliente', sql: `
+CREATE TABLE IF NOT EXISTS site_images (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL, ws INTEGER NOT NULL DEFAULT 1, name TEXT, mime TEXT NOT NULL, data TEXT NOT NULL, bytes INTEGER NOT NULL DEFAULT 0, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_site_images_user ON site_images(user_id);
+ALTER TABLE public.site_images ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.site_images FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.site_images FROM authenticated'; END IF;
+END $$;
 ` }];
 
 async function migrate() {

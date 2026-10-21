@@ -3,7 +3,8 @@
 // e 1.5, cada um com seus níveis de raciocínio). Sem anexos, comandos "/" nem faixa promocional: nada que não funcione aqui.
 // A seleção é guardada em localStorage na mesma chave do seletor do Studio, então os dois sempre concordam.
 import { h, icon, toast } from './ui.js';
-import { ACCEPT, LIMITS, readAttachment, sizeLabel } from './attach.js';
+import { attachControls } from './attach.js';
+import { api } from './api.js';
 
 const KEY = 'neva-ai-selection';
 const svg = (paths, cls = '', sw = 1.8) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', String(sw)); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = paths; return s; };
@@ -72,7 +73,7 @@ export function aiPrompt({ models, defaultModel, placeholder = 'Descreva o site 
     modelMenu.paint(); effortMenu.paint();
   }
 
-  const canSend = () => (field.value.trim().length > 0 || files.length > 0) && !disabled;
+  const canSend = () => (field.value.trim().length > 0 || att.files.length > 0) && !disabled;
   const grow = () => { field.style.height = '56px'; field.style.height = Math.max(56, Math.min(280, field.scrollHeight)) + 'px'; send.disabled = !canSend(); send.toggleAttribute('data-ready', canSend()); };
   field.addEventListener('input', grow);
   const coarse = matchMedia('(pointer: coarse)').matches; // no celular, Enter quebra linha (o pedido é longo): enviar é o botão
@@ -84,39 +85,22 @@ export function aiPrompt({ models, defaultModel, placeholder = 'Descreva o site 
   });
   window.addEventListener('resize', grow);
 
-  // Anexos: chips com nome, tamanho e remover; a leitura (texto/PDF/Word/imagem) acontece aqui no navegador.
-  let files = [];
-  const chips = h('div', { class: 'ap-files', hidden: true });
-  const picker = h('input', { type: 'file', multiple: true, accept: ACCEPT, style: 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none', tabindex: '-1', 'aria-hidden': 'true' });
-  const attachBtn = h('button', { type: 'button', class: 'ap-ghost ap-attach', 'aria-label': 'Anexar arquivos', title: 'Anexar arquivos (texto, Word, PDF ou imagem)', disabled }, clip(), h('span', { class: 'ap-attach-t' }, 'Anexar'));
-  const drawFiles = () => {
-    chips.hidden = !files.length; grow();
-    chips.replaceChildren(...files.map((f, i) => h('span', { class: 'ap-file' + (f.kind === 'image' ? ' img' : '') }, f.kind === 'image' ? h('img', { src: f.dataUrl, alt: '' }) : h('i', { 'aria-hidden': 'true' }, 'DOC'),
-      h('b', { title: f.name }, f.name), h('small', sizeLabel(f.size)), h('button', { type: 'button', 'aria-label': `Remover ${f.name}`, onclick: () => { files.splice(i, 1); drawFiles(); } }, '×'))));
-  };
-  const take = async (list) => {
-    for (const file of [...list]) {
-      if (files.length >= LIMITS.files) { toast(`No máximo ${LIMITS.files} arquivos por pedido.`, 'err'); break; }
-      if (files.filter((f) => f.kind === 'image').length >= LIMITS.images && /^image\//.test(file.type)) { toast(`No máximo ${LIMITS.images} imagens por pedido.`, 'err'); continue; }
-      attachBtn.classList.add('busy');
-      try { files.push(await readAttachment(file)); drawFiles(); } catch (e) { toast(e.message, 'err'); }
-    }
-    attachBtn.classList.remove('busy'); picker.value = '';
-  };
-  attachBtn.addEventListener('click', () => picker.click());
-  picker.addEventListener('change', () => take(picker.files));
-  field.addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); take(f); } });
-  const card = h('div', { class: 'ap-card' }, field, chips, h('div', { class: 'ap-bar' }, attachBtn, modelMenu.el, effortMenu.el, h('span', { class: 'grow' }), send), picker);
+  // Anexos (texto, Word, PDF, imagens): imagens vão para o servidor na hora e voltam com a URL que o site vai usar.
+  const att = attachControls({ disabled, upload: (dataUrl, name) => api.post('/code-maker/images', { dataUrl, name }), onChange: () => grow() });
+  const card = h('div', { class: 'ap-card' }, field, att.chips, h('div', { class: 'ap-bar' }, att.button, modelMenu.el, effortMenu.el, h('span', { class: 'grow' }), send), att.picker);
+  field.addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); att.take(f); } });
   ['dragenter', 'dragover'].forEach((ev) => card.addEventListener(ev, (e) => { if (disabled || !e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); card.classList.add('drop'); }));
   ['dragleave', 'drop'].forEach((ev) => card.addEventListener(ev, () => card.classList.remove('drop')));
-  card.addEventListener('drop', (e) => { if (disabled || !e.dataTransfer?.files?.length) return; e.preventDefault(); take(e.dataTransfer.files); });
+  card.addEventListener('drop', (e) => { if (disabled || !e.dataTransfer?.files?.length) return; e.preventDefault(); att.take(e.dataTransfer.files); });
   const el = h('div', { class: 'ap-shell' }, card);
   paint(); requestAnimationFrame(grow);
   return {
     el, card, field,
     get: () => ({ model: sel.model, effort: sel.effort }),
-    files: () => files.slice(),
-    clearFiles() { files = []; drawFiles(); },
+    files: () => att.files.slice(),
+    assets: () => att.assets(),
+    attachReady: () => att.ready(),
+    clearFiles: () => att.clear(),
     setValue(v) { field.value = v; grow(); },
     grow,
     focus: () => field.focus(),
