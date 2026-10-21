@@ -3,6 +3,7 @@ import { h, mount, brl, dt, dtt, money, toast, fail, pills, icon, heroArt } from
 import { riseMoney, still } from '../motion.js';
 import { openSummary } from '../summary-card.js';
 import { openInsight } from '../insight.js';
+import { tiltCard } from '../tilt-card.js';
 
 const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3 meses'], ['6m', '6 meses'], ['1a', '1 ano']];
 const SVG = 'http://www.w3.org/2000/svg';
@@ -90,6 +91,8 @@ export default {
             h('div', { class: 'recent' }, d.recentSales.length ? h('ul', { class: 'list-plain' }, d.recentSales.map((s) => h('li', h('span', s.description, h('div', { class: 'sm mut' }, s.client_name || '')), h('b', money(s.amount)))))
               : h('div', { class: 'empty' }, h('b', 'Nenhuma venda registrada'), h('span', 'Seus resultados aparecerão aqui.'), canWrite && h('a', { class: 'npill', href: '#/vendas', style: 'margin-top:14px' }, 'Registrar primeira venda'))))));
       drawBar();
+      // Card da carteira com inclinação 3D e brilho (porte do TiltCard); a cada redesenho o card é novo, então liga de novo.
+      const wallet = box.querySelector('.cardvis'); if (wallet) tiltCard(wallet, { max: 10 });
     }
     mount(box, area);
     const drawBar = () => { const bar = box.querySelector('#periodbar'); if (bar) mount(bar, h('div', { class: 'periodbar' }, pills({ items: PERIODS, value: period, onChange: (v) => { period = v; try { sessionStorage.setItem('dashPeriod', v); } catch { /* ok */ } load().catch(fail); } }))); };

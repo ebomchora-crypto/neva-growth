@@ -1689,3 +1689,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .side .brand i.logo{background:#fff;padding:5px;box-shadow:0 4px 14px rgba(8,30,70,.25)}
 .auth-form .brand i.logo{width:38px;height:38px}
 .mk i.logo{background:transparent;width:22px;height:22px}.mk i.logo img{width:100%;height:100%;object-fit:contain}
+
+/* Card da carteira: recorta o brilho do TiltCard no arredondamento e dá profundidade à inclinação */
+.cardstack{perspective:1000px}.cardvis{overflow:hidden;transition:box-shadow .25s}.cardvis:hover{box-shadow:0 26px 40px rgba(0,0,0,.3)}
+.cardvis .mk i.logo{background:#fff;border:0;padding:4px;width:32px;height:32px;box-shadow:0 4px 12px rgba(0,0,0,.3)}
