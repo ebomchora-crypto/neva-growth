@@ -66,6 +66,7 @@ function measure() {
 // Roda dentro da página: texto visível com cor, tamanho e retângulo (em coordenadas da página).
 function collectText() {
   const out = [];
+  const pathOf = (el) => { const parts = []; for (let n = el; n && n.nodeType === 1 && n !== document.body; n = n.parentElement) { if (n.id && /^[A-Za-z][\w-]*$/.test(n.id)) { parts.unshift('#' + n.id); break; } const sib = [...n.parentElement.children].filter((c) => c.tagName === n.tagName); parts.unshift(`${n.tagName.toLowerCase()}:nth-of-type(${sib.indexOf(n) + 1})`); } return parts.join('>'); };
   const parse = (s) => { const m = s.match(/rgba?\(([^)]+)\)/); if (!m) return null; const [r, g, b, a = 1] = m[1].split(/[ ,/]+/).filter(Boolean).map(Number); return { r, g, b, a }; };
   document.querySelectorAll('p,li,a,button,span,h1,h2,h3,h4,summary,label,small,td,dd,dt,div').forEach((el) => {
     const own = [...el.childNodes].filter((n) => n.nodeType === 3 && n.textContent.trim().length > 1);
@@ -77,7 +78,7 @@ function collectText() {
     if (tr.width < 6 || tr.height < 6) return;
     if (tr.bottom + scrollY <= 0 || tr.right <= 0 || tr.top + scrollY < 0 || el.closest('.sr-only,[class*="skip"]')) return; // fora da tela (skip-link) não conta
     const size = parseFloat(cs.fontSize);
-    out.push({ section: el.closest('main>section,section')?.id || null, el: `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`, text: own[0].textContent.trim().slice(0, 30), fg, size, bold: Number(cs.fontWeight) >= 700, x: tr.left + scrollX, y: tr.top + scrollY, w: tr.width, h: tr.height });
+    out.push({ path: pathOf(el), section: el.closest('main>section,section')?.id || null, el: `${el.tagName.toLowerCase()}${el.className && typeof el.className === 'string' ? '.' + el.className.split(/\s+/)[0] : ''}`, text: own[0].textContent.trim().slice(0, 30), fg, size, bold: Number(cs.fontWeight) >= 700, x: tr.left + scrollX, y: tr.top + scrollY, w: tr.width, h: tr.height });
   });
   return out.slice(0, 400);
 }
@@ -99,13 +100,13 @@ async function pixelContrast({ shot, items }) {
     if (w < 4 || h < 4) continue;
     const data = ctx.getImageData(x0, y0, w, h).data;
     const stepX = Math.max(1, Math.floor(w / 28)), stepY = Math.max(1, Math.floor(h / 8));
-    let n = 0, below = 0; const ratios = [];
+    let n = 0, below = 0, sumL = 0; const ratios = [];
     for (let yy = 0; yy < h; yy += stepY) for (let xx = 0; xx < w; xx += stepX) {
       const i = (yy * w + xx) * 4; const l = lum(data[i], data[i + 1], data[i + 2]);
-      const ratio = (Math.max(l, lf) + 0.05) / (Math.min(l, lf) + 0.05); ratios.push(ratio); n++; if (ratio < need) below++;
+      const ratio = (Math.max(l, lf) + 0.05) / (Math.min(l, lf) + 0.05); ratios.push(ratio); sumL += l; n++; if (ratio < need) below++;
     }
     ratios.sort((a, b) => a - b);
-    if (n && below / n >= 0.2) bad.push({ section: it.section, light: lf > 0.4, el: it.el, text: it.text, need, p10: Math.round(ratios[Math.floor(n * 0.1)] * 100) / 100, share: Math.round((below / n) * 100) });
+    if (n && below / n >= 0.2) bad.push({ path: it.path, bgLum: Math.round((sumL / n) * 1000) / 1000, section: it.section, light: lf > 0.4, el: it.el, text: it.text, need, p10: Math.round(ratios[Math.floor(n * 0.1)] * 100) / 100, share: Math.round((below / n) * 100) });
   }
   return bad;
 }
