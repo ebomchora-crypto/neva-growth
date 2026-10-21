@@ -1737,3 +1737,9 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .mi-extra .bdetails{margin:0}.mi-extra .bdetails.hide{display:none}
 .mi-extra .bideas.mi-ideas{display:flex;flex-direction:row;flex-wrap:wrap;gap:8px;justify-content:center;align-items:center;border:0;background:none;padding:0}
 .mi-extra .mi-ideas .bidea{flex:0 0 auto;width:auto;min-width:0}
+
+/* Card da carteira sem os cartões fantasmas atrás */
+.cardstack{padding-top:0}.cardstack .ghost{display:none}
+
+/* Fundo topográfico (topo-bg.js): fixo, atrás de tudo, sem capturar cliques */
+#topo-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;color:rgb(47,123,189);opacity:0;transition:opacity .8s ease-out;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent)}

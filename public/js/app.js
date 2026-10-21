@@ -3,10 +3,14 @@ import { h, mount, icon, toast, fail, debounce, dtt, mascotImg } from './ui.js';
 import { drapeBg } from './drape-bg.js';
 import { pushNew, resetPush } from './push.js';
 import { openTips } from './tips.js';
-import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill } from './motion.js';
+import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill, motionEnabled } from './motion.js';
+import { topoBackground } from './topo-bg.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
 initMotion();
+// Fundo topográfico vivo, fixo atrás do app inteiro (linhas finas em azul da Neva). Respeita o interruptor de animações.
+{ const topo = document.createElement('canvas'); topo.id = 'topo-bg'; topo.setAttribute('aria-hidden', 'true'); document.body.prepend(topo);
+  const on = typeof motionEnabled === 'function' ? motionEnabled() : true; topoBackground(topo, { speed: on ? 1 : 0, interactive: on, minorAlpha: 0.34, majorAlpha: 0.62 }); }
 const root = document.getElementById('app');
 const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m));
 
