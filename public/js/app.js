@@ -138,7 +138,7 @@ function authScreen(mode, st = {}, swapped = false) {
   const alabel = rev ? 'COMECE SUA OPERAÇÃO' : forgot || reset ? 'RECUPERAR ACESSO' : 'ACESSE SUA CONTA';
   const title = rev ? ['Crie seu ', 'acesso.'] : forgot ? ['Esqueceu a ', 'senha?'] : reset ? ['Crie uma nova ', 'senha.'] : ['Entre na ', 'plataforma.'];
   const sub = setup ? 'Primeiro acesso: configure a conta do administrador para começar com uma operação organizada.' : signup ? 'Configure sua identidade e comece com uma operação organizada.' : forgot ? 'Vamos ajudar você a voltar para a sua central.' : reset ? 'Escolha uma senha nova para voltar a acessar a sua central.' : 'Use suas credenciais para abrir a sua central Neva Growth.';
-  const left = h('section', { class: 'auth-form' }, h('div', { class: 'acard' }, h('div', { class: 'brand' }, h('i', 'N'), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), ' ' + alabel),
+  const left = h('section', { class: 'auth-form' }, h('div', { class: 'acard' }, h('div', { class: 'brand' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128, decoding: 'async' })), 'Neva Growth'), h('div', { class: 'alabel' }, h('span', '/'), ' ' + alabel),
     h('h1', title[0], h('em', title[1])), h('p', { class: 'asub' }, sub), form, foot));
   const right = h('section', { class: 'auth-art' }, h('i', { class: 'wave w1' }), h('i', { class: 'wave w2' }), h('i', { class: 'wave w3' }), h('div', { class: 'dust', 'aria-hidden': 'true' }, Array.from({ length: 14 }, (_, i) => h('i', { style: `left:${(i * 37 + 8) % 92}%;top:${(i * 53 + 10) % 88}%;--s:${4 + (i % 4) * 2}px` }))),
     h('div', { class: 'aart-in' }, h('div', { class: 'akick' }, 'NEVA GROWTH / OPERATING SYSTEM'), h('h2', rev ? 'Comece sua ' : forgot || reset ? 'Acesso ' : 'Bem-vindo ', h('em', rev ? 'operação.' : forgot || reset ? 'seguro.' : 'de volta.')),
@@ -217,7 +217,7 @@ function shell() {
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); resetPush(); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
   const navLink = (r) => h('a', { href: '#/' + r.path, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
-  side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', 'N'), h('span', { class: 'lbl' }, 'Neva Growth')),
+  side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128, decoding: 'async' })), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),
     h('div', { class: 'railfoot' }, cfg && navLink(cfg), h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair'))));
   const hidden = () => state.me?.settings.hide_values === '1';
