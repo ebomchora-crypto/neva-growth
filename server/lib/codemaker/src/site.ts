@@ -184,8 +184,27 @@ const PHOTOS: Record<string, Photo[]> = {
     { id: '1487412947147-5cebf100ffc2', about: 'maquiagem sendo aplicada (rosto em close)' },
     { id: '1516975080664-ed2fc6a32937', about: 'pincéis de maquiagem na bancada' },
   ],
-  comida: [
-    { id: '1517248135467-4c7edcad34c4', about: 'salão de restaurante aconchegante (hero)' },
+  // Verificadas uma a uma (URL responde 200 e o conteúdo é o descrito).
+  hamburgueria: [
+    { id: '1550317138-10000687a72b', about: 'hambúrguer com cheddar derretido e bacon, fundo escuro (hero)' },
+    { id: '1568901346375-23c9450c58cd', about: 'smash duplo com molho e picles, fundo escuro' },
+    { id: '1553979459-d2229ba7433b', about: 'hambúrguer duplo alto com bacon e cheddar sobre tábua' },
+    { id: '1572802419224-296b0aeee0d9', about: 'smash duplo com cheddar, pão de gergelim escuro' },
+    { id: '1550547660-d9450f859349', about: 'dois burgers com refrigerante e cesta, luz quente' },
+    { id: '1551782450-a2132b4ba21d', about: 'burger com cesta de fritas em tábua redonda' },
+    { id: '1561758033-d89a9ad46330', about: 'fritas rústicas ao lado de um smash com cheddar' },
+    { id: '1571091718767-18b5b1457add', about: 'cheeseburger com alface e tomate sobre madeira' },
+    { id: '1586190848861-99aa4a171e90', about: 'cheeseburger com bacon e alface, fundo preto' },
+    { id: '1594212699903-ec8a3eca50f5', about: 'burger com copo metálico de fritas' },
+    { id: '1603064752734-4c48eff53d05', about: 'cheeseburger com cebola roxa, close frontal' },
+    { id: '1606755962773-d324e0a13086', about: 'sanduíche de frango crocante com molho rosé' },
+    { id: '1573080496219-bb080dd4f877', about: 'fritas com ervas em papel jornal (acompanhamento)' },
+    { id: '1630384060421-cb20d0e0649d', about: 'fritas em cesto de arame (acompanhamento)' },
+    { id: '1630431341973-02e1b662ec35', about: 'fritas em prato vistas de cima (acompanhamento)' },
+    { id: '1544025162-d76694265947', about: 'costela na tábua com fritas e molho (grelha)' },
+    { id: '1529692236671-f1f6cf9683ba', about: 'carne grelhada fatiada sendo cortada (grelha)' },
+  ],
+  comida: [    { id: '1517248135467-4c7edcad34c4', about: 'salão de restaurante aconchegante (hero)' },
     { id: '1414235077428-338989a2e8c0', about: 'prato sendo servido, taças' },
     { id: '1559339352-11d035aa65de', about: 'área externa de restaurante com vista' },
     { id: '1504674900247-0877df9cc836', about: 'pratos vistos de cima' },
@@ -355,6 +374,7 @@ const PHOTO_GROUPS: { group: string; match: string[] }[] = [
   { group: 'reabilitacao', match: ['fisio', 'rpg', 'reabilita', 'quiroprax', 'osteopat', 'pilates clinico'] },
   { group: 'saude', match: ['clinic', 'psicolog', 'nutri', 'medic', 'saude', 'consultorio', 'fono', 'laborat'] },
   { group: 'auto', match: ['oficina', 'mecanic', 'auto', 'funilar', 'borrachar', 'pneu', 'lava', 'moto', 'guincho'] },
+  { group: 'hamburgueria', match: ['hamburg', 'burger', 'smash', 'lanchonete artesanal'] },
   { group: 'comida', match: ['restaurante', 'lanchonete', 'padaria', 'pizzar', 'hamburg', 'cafe', 'bar', 'acai', 'doceria', 'confeitar', 'marmit', 'aliment'] },
   { group: 'juridico', match: ['advoca', 'advogad', 'juridic', 'contab', 'contador'] },
   { group: 'fitness', match: ['academia', 'crossfit', 'pilates', 'personal', 'fitness', 'luta', 'danca', 'yoga'] },
@@ -2645,4 +2665,51 @@ export function buildFreePartMessage(partId: string, plan: SitePlan, brief: Site
     `CATÁLOGO DE FOTOS (únicas imagens permitidas além das do cliente):\n${photos.map((photo) => `- https://images.unsplash.com/photo-${photo.id}?auto=format&fit=crop&w=1600&q=80 — ${photo.about}`).join('\n')}`,
     'Escreva agora a seção, completa, no formato pedido.',
   ].filter(Boolean).join('\n')
+}
+
+// ---------------------------------------------------------------------------
+// Estratégia de imagens: nenhuma foto repetida e nenhuma URL inventada
+// ---------------------------------------------------------------------------
+
+export interface ImageFix {
+  part: string
+  from: string
+  to: string | null
+  reason: 'repetida' | 'fora-do-banco'
+}
+
+/** A IA escreve as seções ao mesmo tempo e pode repetir a mesma foto ou inventar uma URL. Troca cada ocorrência
+ *  repetida (ou fora do banco verificado) por uma foto ainda não usada; sem foto livre, mantém e registra. */
+export function dedupeImages(plan: SitePlan, parts: SiteParts, brief: SiteBrief): { parts: SiteParts; fixes: ImageFix[]; unresolved: number; total: number; unique: number } {
+  const own = (brief.assets ?? []).filter((asset) => asset.kind === 'photo').map((asset) => asset.url)
+  const pool = [...own, ...photosFor(brief.niche).map((photo) => stockUrl(photo.id))]
+  const allowed = new Set(pool.map(photoKey))
+  const stockPattern = /https:\/\/images\.unsplash\.com\/photo-[\w-]+[^"'\s)]*/g
+  const present = new Set<string>()
+  for (const html of Object.values(parts)) for (const m of (html ?? '').matchAll(stockPattern)) present.add(photoKey(m[0]))
+  const free = [...pool.filter((url) => !present.has(photoKey(url))), ...pool]
+  const fixes: ImageFix[] = []
+  const out: SiteParts = { ...parts }
+  let total = 0
+  let unresolved = 0
+  const order = partOrder(plan).filter((id) => typeof out[id] === 'string')
+  // Primeiro marca o que cada seção usa de legítimo (primeira ocorrência), para só trocar o excedente.
+  const used = new Set<string>()
+  for (const id of order) {
+    out[id] = (out[id] as string).replace(stockPattern, (url) => {
+      total += 1
+      const key = photoKey(url)
+      const ok = allowed.has(key)
+      if (ok && !used.has(key)) { used.add(key); return url }
+      const reason: ImageFix['reason'] = ok ? 'repetida' : 'fora-do-banco'
+      const next = free.find((candidate) => !used.has(photoKey(candidate)))
+      if (!next) { unresolved += 1; fixes.push({ part: id, from: url, to: null, reason }); return url }
+      used.add(photoKey(next))
+      const width = url.match(/[?&]w=(\d+)/)?.[1]
+      const replacement = width ? next.replace(/([?&])w=\d+/, `$1w=${width}`) : next
+      fixes.push({ part: id, from: url, to: replacement, reason })
+      return replacement
+    })
+  }
+  return { parts: out, fixes, unresolved, total, unique: used.size }
 }

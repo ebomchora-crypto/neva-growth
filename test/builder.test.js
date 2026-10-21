@@ -492,3 +492,17 @@ test('regressão Brasa Burger: paleta com texto da cor do fundo é consertada (t
   assert.ok(ratio(plan.palette.muted, plan.palette.paper) >= 4.5, 'texto secundário x fundo');
   assert.ok(Array.isArray(plan.paletteFixes) && plan.paletteFixes.length > 0, 'correções registradas');
 });
+
+test('regressão Brasa Burger: a mesma foto em 12 lugares vira fotos diferentes; URL inventada é trocada pelo banco verificado', () => {
+  const brief = { businessName: 'BRASA BURGER', niche: 'hamburgueria artesanal', details: 'x', style: 'auto', assets: [] };
+  const plan = { sections: ['hero', 'menu', 'fogo', 'historia'].map((id) => ({ id, label: id, layout: 'cards-foto', headline: 'h', brief: 'b', bg: 'paper' })) };
+  const one = 'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1600&q=80';
+  const parts = { hero: `<img src="${one}">`, menu: `<img src="${one}"><img src="${one}"><div style="background-image:url(${one})"></div>`, fogo: `<img src="https://images.unsplash.com/photo-0000000000-inventada?w=800">`, historia: `<img src="${one}">` };
+  const ids = E.partOrder(plan);
+  const r = E.dedupeImages(plan, Object.fromEntries(ids.map((id) => [id, parts[id] ?? '<p>x</p>'])), brief);
+  const urls = Object.values(r.parts).flatMap((h) => [...h.matchAll(/photo-[\w-]+/g)].map((m) => m[0]));
+  assert.equal(new Set(urls).size, urls.length, 'nenhuma foto repetida');
+  assert.ok(!urls.includes('photo-0000000000-inventada'), 'URL fora do banco removida');
+  assert.equal(r.unresolved, 0);
+  assert.ok(r.fixes.length >= 4);
+});

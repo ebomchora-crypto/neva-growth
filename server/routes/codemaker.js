@@ -130,6 +130,19 @@ async function mergePart(siteId, partId, html) {
     return parts;
   });
 }
+// Última barreira antes de marcar pronto: nenhuma foto repetida nem URL fora do banco verificado.
+async function finalizeParts(site, plan, parts, userId) {
+  const t0 = Date.now();
+  const r = E.dedupeImages(plan, parts, site.brief);
+  if (r.fixes.length) {
+    await tx(async () => {
+      const row = await get('SELECT parts FROM code_sites WHERE project_id=? FOR UPDATE', site.id);
+      await run("UPDATE code_sites SET parts=?, rev=rev+1, updated_at=datetime('now') WHERE project_id=?", S({ ...J(row?.parts, {}), ...r.parts }), site.id);
+    });
+  }
+  await T.event(site.id, userId, 'assets', { ms: Date.now() - t0, detail: { fotos: r.total, unicas: r.unique, trocadas: r.fixes.filter((f) => f.to).length, semSubstituta: r.unresolved } });
+  return r.parts;
+}
 // Marca pronto só uma vez (true = foi esta chamada que terminou o site).
 async function markReady(siteId, html) {
   const info = await run("UPDATE code_sites SET status='ready', html=?, rev=rev+1, updated_at=datetime('now') WHERE project_id=? AND status='building'", html, siteId);
@@ -662,10 +675,11 @@ r.post('/', async (req, res) => {
       throw new HttpError(409, 'Ainda faltam partes do site. Clique em "Continuar criação".');
     }
     if (site.status !== 'building') await setStatus(site.id, 'building');
-    const html = E.assembleSite(plan, site.parts, { files: site.files });
+    const finalParts = await finalizeParts(site, plan, site.parts, user.id);
+    const html = E.assembleSite(plan, finalParts, { files: site.files });
     if (await markReady(site.id, html)) {
-      await syncProjectFiles(site.id, html, E.assemblePages(plan, site.parts, site.files));
-      await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts: site.parts });
+      await syncProjectFiles(site.id, html, E.assemblePages(plan, finalParts, site.files));
+      await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts: finalParts });
     }
     return res.json({ site: await loadSite(site.id, req) });
   }
@@ -780,11 +794,12 @@ r.post('/', async (req, res) => {
       signal.throwIfAborted();
       const parts = await mergePart(site.id, partId, html);
       if (E.partOrder(plan).every((id) => parts[id])) {
-        const document = E.assembleSite(plan, parts);
+        const finalParts = await finalizeParts(site, plan, parts, user.id);
+        const document = E.assembleSite(plan, finalParts);
         signal.throwIfAborted();
         if (await markReady(site.id, document)) {
           await syncProjectFiles(site.id, document, {});
-          await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts });
+          await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan, parts: finalParts });
         }
       }
       return null;
