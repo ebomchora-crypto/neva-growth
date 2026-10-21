@@ -2,11 +2,13 @@
 // (barras de sinal) e o botão de enviar. Troquei só o que o pedido mandou: a cor (azul da Neva) e os modelos (Neva 1.0, 1.2
 // e 1.5, cada um com seus níveis de raciocínio). Sem anexos, comandos "/" nem faixa promocional: nada que não funcione aqui.
 // A seleção é guardada em localStorage na mesma chave do seletor do Studio, então os dois sempre concordam.
-import { h, icon } from './ui.js';
+import { h, icon, toast } from './ui.js';
+import { ACCEPT, LIMITS, readAttachment, sizeLabel } from './attach.js';
 
 const KEY = 'neva-ai-selection';
 const svg = (paths, cls = '', sw = 1.8) => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', String(sw)); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = paths; return s; };
 const arrowUp = () => svg('<path d="M12 19V5"/><path d="M5.5 11.5L12 5l6.5 6.5"/>', 'ap-ico', 2.25);
+const clip = () => svg('<path d="M21 11.5l-8.6 8.6a5.5 5.5 0 01-7.8-7.8l8.9-8.9a3.7 3.7 0 015.2 5.2l-8.9 8.9a1.8 1.8 0 01-2.6-2.6l8.2-8.2"/>', 'ap-ico', 1.9);
 const chevron = () => svg('<path d="M6 9l6 6 6-6"/>', 'ap-chev', 2);
 const check = () => svg('<path d="M5 12.5l4.5 4.5L19 7.5"/>', 'ap-check', 2.25);
 const bars = (count, level) => h('span', { class: 'ap-bars', 'aria-hidden': 'true' }, Array.from({ length: count }, (_, i) => h('i', { class: i <= level ? 'on' : '', style: `height:${((i + 1) / count) * 100}%` })));
@@ -70,7 +72,7 @@ export function aiPrompt({ models, defaultModel, placeholder = 'Descreva o site 
     modelMenu.paint(); effortMenu.paint();
   }
 
-  const canSend = () => field.value.trim().length > 0 && !disabled;
+  const canSend = () => (field.value.trim().length > 0 || files.length > 0) && !disabled;
   const grow = () => { field.style.height = '56px'; field.style.height = Math.max(56, Math.min(280, field.scrollHeight)) + 'px'; send.disabled = !canSend(); send.toggleAttribute('data-ready', canSend()); };
   field.addEventListener('input', grow);
   const coarse = matchMedia('(pointer: coarse)').matches; // no celular, Enter quebra linha (o pedido é longo): enviar é o botão
@@ -82,12 +84,39 @@ export function aiPrompt({ models, defaultModel, placeholder = 'Descreva o site 
   });
   window.addEventListener('resize', grow);
 
-  const card = h('div', { class: 'ap-card' }, field, h('div', { class: 'ap-bar' }, modelMenu.el, effortMenu.el, h('span', { class: 'grow' }), send));
+  // Anexos: chips com nome, tamanho e remover; a leitura (texto/PDF/Word/imagem) acontece aqui no navegador.
+  let files = [];
+  const chips = h('div', { class: 'ap-files', hidden: true });
+  const picker = h('input', { type: 'file', multiple: true, accept: ACCEPT, style: 'position:absolute;width:1px;height:1px;opacity:0;pointer-events:none', tabindex: '-1', 'aria-hidden': 'true' });
+  const attachBtn = h('button', { type: 'button', class: 'ap-ghost ap-attach', 'aria-label': 'Anexar arquivos', title: 'Anexar arquivos (texto, Word, PDF ou imagem)', disabled }, clip(), h('span', { class: 'ap-attach-t' }, 'Anexar'));
+  const drawFiles = () => {
+    chips.hidden = !files.length; grow();
+    chips.replaceChildren(...files.map((f, i) => h('span', { class: 'ap-file' + (f.kind === 'image' ? ' img' : '') }, f.kind === 'image' ? h('img', { src: f.dataUrl, alt: '' }) : h('i', { 'aria-hidden': 'true' }, 'DOC'),
+      h('b', { title: f.name }, f.name), h('small', sizeLabel(f.size)), h('button', { type: 'button', 'aria-label': `Remover ${f.name}`, onclick: () => { files.splice(i, 1); drawFiles(); } }, '×'))));
+  };
+  const take = async (list) => {
+    for (const file of [...list]) {
+      if (files.length >= LIMITS.files) { toast(`No máximo ${LIMITS.files} arquivos por pedido.`, 'err'); break; }
+      if (files.filter((f) => f.kind === 'image').length >= LIMITS.images && /^image\//.test(file.type)) { toast(`No máximo ${LIMITS.images} imagens por pedido.`, 'err'); continue; }
+      attachBtn.classList.add('busy');
+      try { files.push(await readAttachment(file)); drawFiles(); } catch (e) { toast(e.message, 'err'); }
+    }
+    attachBtn.classList.remove('busy'); picker.value = '';
+  };
+  attachBtn.addEventListener('click', () => picker.click());
+  picker.addEventListener('change', () => take(picker.files));
+  field.addEventListener('paste', (e) => { const f = [...(e.clipboardData?.files || [])]; if (f.length) { e.preventDefault(); take(f); } });
+  const card = h('div', { class: 'ap-card' }, field, chips, h('div', { class: 'ap-bar' }, attachBtn, modelMenu.el, effortMenu.el, h('span', { class: 'grow' }), send), picker);
+  ['dragenter', 'dragover'].forEach((ev) => card.addEventListener(ev, (e) => { if (disabled || !e.dataTransfer?.types?.includes('Files')) return; e.preventDefault(); card.classList.add('drop'); }));
+  ['dragleave', 'drop'].forEach((ev) => card.addEventListener(ev, () => card.classList.remove('drop')));
+  card.addEventListener('drop', (e) => { if (disabled || !e.dataTransfer?.files?.length) return; e.preventDefault(); take(e.dataTransfer.files); });
   const el = h('div', { class: 'ap-shell' }, card);
   paint(); requestAnimationFrame(grow);
   return {
     el, card, field,
     get: () => ({ model: sel.model, effort: sel.effort }),
+    files: () => files.slice(),
+    clearFiles() { files = []; drawFiles(); },
     setValue(v) { field.value = v; grow(); },
     grow,
     focus: () => field.focus(),

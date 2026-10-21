@@ -222,17 +222,22 @@ export default {
     const bubbleUser = (text, when) => h('div', { class: 'stu-msg me' }, h('p', text), when && h('time', dtt(when)));
     const list = (items, cls = '') => items.length ? h('ul', { class: 'stu-list ' + cls }, items.map((a) => h('li', a))) : null;
     const secs = (ms) => (ms == null ? '' : ms < 950 ? '<1 s' : `${Math.round(ms / 1000)} s`);
+    let stagesOpen = null;
     const stagePanel = () => {
       if (!stages) return null;
       const doneN = stages.stages.filter((st) => st.status === 'done' || st.status === 'skipped').length;
       const cur = stages.stages.find((st) => st.status === 'running' || st.status === 'error');
       const rows = stages.stages.map((st) => {
-        const extra = st.key === 'code' && st.detail ? ` (${st.detail.feitas}/${st.detail.total})` : st.key === 'inspect' && st.status === 'done' && st.detail?.ciclos ? ` · ${st.detail.ciclos} ciclo(s) de correção` : '';
+        const extra = st.key === 'code' && st.detail?.total ? ` (${st.detail.feitas}/${st.detail.total})` : st.key === 'inspect' && st.status === 'done' && st.detail?.ciclos ? ` · ${st.detail.ciclos} ciclo(s) de correção` : '';
         const note = st.status === 'skipped' ? 'não disponível aqui' : st.status === 'error' ? 'falhou' : st.status === 'running' ? 'em andamento' : st.status === 'done' ? secs(st.ms) : '';
         return h('li', { class: 'stg ' + st.status, title: st.status === 'skipped' ? (st.detail?.motivo || '') : '' }, h('i', { 'aria-hidden': 'true' }), h('span', st.label + extra), note && h('small', note));
       });
-      const d = h('details', { class: 'stu-stages' }, h('summary', h('b', 'Etapas da criação'), h('span', stages.finished ? `${doneN} de ${stages.stages.length} concluídas` : cur ? `${cur.label}…` : `${doneN} de ${stages.stages.length}`)), h('ol', rows));
-      d.open = !stages.finished;
+      const pct = Math.round((doneN / stages.stages.length) * 100);
+      const d = h('details', { class: 'stu-stages' }, h('summary', h('b', 'Etapas da criação'), h('span', stages.finished ? `${doneN} de ${stages.stages.length} concluídas` : cur ? `${cur.label}…` : `${doneN} de ${stages.stages.length}`)),
+        h('div', { class: 'stg-bar', role: 'progressbar', 'aria-valuenow': String(pct), 'aria-valuemin': '0', 'aria-valuemax': '100' }, h('i', { style: `width:${pct}%` })), h('ol', rows));
+      // O estado aberto/fechado é do usuário: sobrevive às atualizações (antes o painel reabria sozinho a cada leitura).
+      if (stagesOpen === null) stagesOpen = !stages.finished && !matchMedia('(max-width:760px)').matches;
+      d.open = stagesOpen; d.addEventListener('toggle', () => { stagesOpen = d.open; });
       return d;
     };
     const who = (running) => h('div', { class: 'stu-who' }, h('span', { class: 'stu-dot' + (running ? ' run' : '') }), 'Neva Studio');

@@ -32,7 +32,7 @@ await step('Builder: só o AI Prompt (modelo, raciocínio, enviar) e Otimizar pe
   await page.goto(base + '/#/builder'); await page.waitForSelector('.btabs button.on:has-text("Criar site")'); await page.waitForSelector('.ap-card');
   // nada além do prompt e do botão de otimizar na tela de criação
   const labels = await page.$$eval('.bview:not([hidden]) button', (els) => els.filter((e) => e.offsetParent).map((e) => (e.getAttribute('aria-label') || e.textContent || '').trim().replace(/\s+/g, ' ')));
-  const extra = labels.filter((l) => !/^(Modelo:|Raciocínio:|Criar site|Otimizar pedido)/.test(l));
+  const extra = labels.filter((l) => !/^(Anexar arquivos|Modelo:|Raciocínio:|Criar site|Otimizar pedido)/.test(l));
   if (extra.length) throw new Error('botões a mais na criação: ' + extra.join(' | '));
   await page.click('.ap-model'); await page.waitForSelector('.ap-menu:not(.hide) .ap-item:has-text("Neva 1.5")');
   const modelos = await page.$$eval('.ap-menu:not(.hide) .ap-item b', (e) => e.map((x) => x.textContent)); if (modelos.join() !== 'Neva 1.0,Neva 1.2,Neva 1.5') throw new Error('modelos: ' + modelos);

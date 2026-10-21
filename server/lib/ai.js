@@ -207,5 +207,26 @@ async function complete({ system, messages, maxTokens = 4096, model, effort, noT
   if (!resp.ok) throw new HttpError(502, `Falha na API de IA: ${data?.error?.message || resp.status}`, 'ai_upstream');
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
-module.exports = { family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
+
+// Visão: descreve imagens anexadas ao pedido. Tenta, em ordem, modelos da River que costumam enxergar (e que esta chave libera);
+// o primeiro que responder vale. Sem nenhum, devolve { text: null } e o chamador avisa o usuário (nunca finge que leu).
+const VISION_PREFERENCE = ['Qwen/Qwen3.5-397B-A17B-FP8', 'nvidia/Kimi-K2.6-NVFP4-262K', 'nvidia/Kimi-K2.6-NVFP4', 'nvidia/GLM-5.2-NVFP4-262K'];
+async function describeImages(images) {
+  if (!river() || !images?.length) return { text: null, reason: 'sem-ia' };
+  const available = (await availableModels()) || [];
+  const candidates = [...VISION_PREFERENCE.filter((m) => available.includes(m)), ...available.filter((m) => /(^|[-/_ ])(vl|vision|omni)([-/_ ]|$)/i.test(m) && !VISION_PREFERENCE.includes(m))].slice(0, 3);
+  for (const model of candidates) {
+    try {
+      const resp = await fetch(`${RIVER_URL()}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.get('RIVER_API_KEY')}` },
+        body: JSON.stringify({ model, max_tokens: 1400, temperature: 0.2, messages: [{ role: 'user', content: [
+          { type: 'text', text: 'Descreva em português, de forma objetiva, cada imagem anexada a um pedido de criação de site: o que mostra, textos legíveis (transcreva), cores predominantes, logotipos, estilo visual e qualquer informação útil (nomes, preços, contatos). Numere as imagens (Imagem 1, Imagem 2...). Não invente o que não estiver visível.' },
+          ...images.map((i) => ({ type: 'image_url', image_url: { url: i.dataUrl } }))] }] }), signal: AbortSignal.timeout(45000) });
+      const data = await resp.json().catch(() => ({}));
+      const text = String(data?.choices?.[0]?.message?.content || '').trim();
+      if (resp.ok && text) return { text, model };
+    } catch { /* tenta o próximo */ }
+  }
+  return { text: null, reason: candidates.length ? 'falhou' : 'sem-modelo' };
+}
+module.exports = { describeImages, family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
   availableModels, chooseCodeModel, pickCodeModel, CODE_PREFERENCE, logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };

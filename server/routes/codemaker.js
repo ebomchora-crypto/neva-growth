@@ -619,6 +619,14 @@ r.post('/', async (req, res) => {
   }
 
   if (action === 'create') {
+    // Imagens anexadas: um modelo com visão as descreve e a descrição entra no pedido. Se nenhum enxerga, o usuário é avisado.
+    const notes = [];
+    const images = (Array.isArray(body.images) ? body.images : []).filter((i) => typeof i?.dataUrl === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(i.dataUrl) && i.dataUrl.length < 1.4e6).slice(0, 3);
+    if (images.length) {
+      const seen = await ai.describeImages(images);
+      if (seen.text) body.brief = { ...(body.brief || {}), details: `${body.brief?.details || ''}\n\n=== IMAGENS ANEXADAS PELO CLIENTE (descrição feita por visão computacional; use como referência) ===\n${seen.text}` };
+      else notes.push(`Não consegui ler ${images.length === 1 ? 'a imagem anexada' : 'as imagens anexadas'}: nenhum modelo com visão respondeu nesta conta. O site foi criado só com o seu texto${/arquivo/i.test(body.brief?.details || '') ? ' e os documentos' : ''}.`);
+    }
     const brief = cleanBrief(body.brief ?? {});
     if (!brief) throw bad('Escreva o que você quer no site.');
     brief.ai = ai.selection(body);
@@ -631,7 +639,7 @@ r.post('/', async (req, res) => {
       return { id, slug, name: brief.businessName || 'Novo site', status: 'planning' };
     });
     await recordCall(user.id, 'create');
-    return res.json({ site: created });
+    return res.json({ site: created, attachments: notes });
   }
 
   if (!['plan', 'part', 'edit', 'restore', 'finish', 'review'].includes(action)) throw bad('Ação inválida.');

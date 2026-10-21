@@ -1885,3 +1885,19 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .profit .periodbar .pills{overflow-x:auto;scrollbar-width:none;max-width:100%}.profit .periodbar .pills::-webkit-scrollbar{display:none}
 .profit .top>div:last-child>*{flex:none}
 .profit .top .aibtn{max-width:none!important;overflow:visible!important;white-space:nowrap;padding-right:14px!important}
+/* Anexos do pedido (AI Prompt) */
+.ap-attach{flex:none}.ap-attach .ap-ico{width:16px;height:16px}.ap-attach.busy{opacity:.55;pointer-events:none}
+.ap-files{display:flex;flex-wrap:wrap;gap:8px;padding:2px 14px 8px}
+.ap-file{display:inline-flex;align-items:center;gap:8px;max-width:100%;padding:5px 6px 5px 6px;border-radius:12px;background:rgba(47,123,189,.09);border:1px solid rgba(47,123,189,.2);font-size:.78rem;color:#0e2236}
+.ap-file>i{display:grid;place-items:center;width:30px;height:30px;border-radius:8px;background:var(--grad,#2f7bbd);color:#fff;font-style:normal;font-size:.6rem;font-weight:800;letter-spacing:.04em}
+.ap-file>img{width:30px;height:30px;border-radius:8px;object-fit:cover}
+.ap-file b{font-weight:600;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ap-file small{color:rgba(14,34,54,.55);font-size:11px}
+.ap-file button{display:grid;place-items:center;width:28px;height:28px;border:0;border-radius:50%;background:transparent;color:rgba(14,34,54,.6);font-size:1.1rem;cursor:pointer}.ap-file button:hover{background:rgba(14,34,54,.1)}
+.ap-card.drop{outline:2px dashed var(--ice-500,#4a95d2);outline-offset:-6px}
+@media(max-width:520px){.ap-attach-t{display:none}.ap-attach{min-width:40px;justify-content:center}.ap-file b{max-width:120px}}
+/* Painel de etapas: não cobre o texto no celular, tem barra de progresso e quebra bem */
+.stg-bar{height:6px;border-radius:99px;background:rgba(47,123,189,.14);overflow:hidden;margin:0 0 10px}.stg-bar i{display:block;height:100%;border-radius:inherit;background:var(--grad,#2f7bbd);transition:width .4s ease}
+.stu-stages:not([open])>.stg-bar{margin-bottom:0}
+.stu-stages>summary{align-items:center}
+.stu-stages .stg{grid-template-columns:18px minmax(0,1fr) auto;align-items:start}.stu-stages .stg>span{overflow-wrap:anywhere}
+@media(max-width:760px){.stu-stages{position:static!important;margin:8px 0 12px;box-shadow:none}.stu-stages>summary span{font-size:.78rem}}

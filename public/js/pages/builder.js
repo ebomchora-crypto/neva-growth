@@ -4,6 +4,7 @@ import { generatingOrb } from '../generating-orb.js';
 import { motionEnabled } from '../motion.js';
 import { launchOrb } from '../morph-input.js';
 import { aiPrompt } from '../ai-prompt.js';
+import { composeDetails } from '../attach.js';
 import { h, mount, toast, fail, icon, confirmBox, modal, dtt } from '../ui.js';
 
 const ST = { ready: ['Pronto', 'ok'], building: ['Em criação', 'run'], planning: ['Em criação', 'run'], error: ['Parou no meio', 'bad'] };
@@ -22,10 +23,12 @@ export default {
       placeholder: 'Descreva o site que você quer. Ex.: site para uma clínica odontológica em Curitiba, com tratamentos, depoimentos e botão de agendamento pelo WhatsApp.',
       onSubmit: async (text, sel) => {
         if (creating) return;
-        if (!text.trim()) { prompt.shake(); toast('Escreva o que você quer no site.', 'err'); return; }
+        const files = prompt.files();
+        if (!text.trim() && !files.length) { prompt.shake(); toast('Escreva o que você quer no site.', 'err'); return; }
         creating = true; prompt.setBusy(true);
         try {
-          const r = await launchOrb(prompt.card, () => api.post('/code-maker', { action: 'create', brief: { details: text, style: 'auto' }, ...sel }), { working: 'Criando o projeto', done: 'Abrindo o Studio', radius: 18 });
+          const r = await launchOrb(prompt.card, () => api.post('/code-maker', { action: 'create', brief: { details: composeDetails(text.trim() || 'Crie o site com base nos arquivos anexados.', files), style: 'auto' }, images: files.filter((f) => f.kind === 'image').map((f) => ({ name: f.name, dataUrl: f.dataUrl })), ...sel }), { working: 'Criando o projeto', done: 'Abrindo o Studio', radius: 18 });
+          if (r?.attachments?.length) toast(r.attachments.join(' '), 'ok');
           if (r?.site) location.hash = '#/studio/' + r.site.id;
         } catch (e) { fail(e); } finally { creating = false; prompt.setBusy(false); }
       } });
