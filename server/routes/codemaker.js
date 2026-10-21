@@ -41,7 +41,15 @@ const systemFor = (stage, brief) => `${DC.contextFor(stage, brief).text}\n\n${st
 
 const r = express.Router();
 
-const AI_URL = () => `${(config.get('RIVER_BASE_URL') || 'https://api.river.ai/v1').replace(/\/$/, '')}/chat/completions`;
+// Provedor próprio do Builder (só o Code Maker; o resto da plataforma continua na River). Basta preencher CODEMAKER_API_KEY em
+// app_settings ou nas variáveis de ambiente: URL e modelo têm padrão (Dahl · GLM-5.3-Flash, o mais rápido e completo no teste
+// com o mesmo pedido de topo de site). CODEMAKER_BASE_URL e CODEMAKER_MODEL mudam um deles. Compatível com a API da OpenAI.
+const provider = () => {
+  const key = String(config.get('CODEMAKER_API_KEY') || '').trim();
+  if (!key) return null;
+  return { key, url: String(config.get('CODEMAKER_BASE_URL') || 'https://inference.dahl.global/v1').trim().replace(/\/$/, ''), model: String(config.get('CODEMAKER_MODEL') || 'zai-org/GLM-5.3-Flash').trim() };
+};
+const AI_URL = () => `${(provider()?.url || config.get('RIVER_BASE_URL') || 'https://api.river.ai/v1').replace(/\/$/, '')}/chat/completions`;
 const CALLS_PER_DAY = 600;
 // A função da Vercel tem tempo máximo por chamada; paramos antes e continuamos depois.
 const CALL_BUDGET_MS = Number(process.env.CODE_MAKER_BUDGET_MS) || 115_000;
@@ -656,14 +664,14 @@ r.post('/', async (req, res) => {
   const partial = typeof body.partial === 'string' ? body.partial : '';
   if ((await countToday(user.id)) >= CALLS_PER_DAY) throw new HttpError(429, 'Limite de uso da IA de hoje atingido. Amanhã libera de novo.');
 
-  const apiKey = config.get('RIVER_API_KEY');
+  const apiKey = provider()?.key || config.get('RIVER_API_KEY');
   // Modelo e esforço escolhidos no seletor (ou os guardados na criação do site).
   const sel = ai.selection(body, site.brief?.ai);
-  const model = ai.providerModelFor(sel.model);
+  const model = provider()?.model || ai.providerModelFor(sel.model);
   const metaOf = (kind) => ({ sel, kind, userId: user.id });
   const configuredBudget = Number(config.get('CODE_MAKER_MAX_INPUT_CHARS'));
   const inputBudget = Number.isFinite(configuredBudget) && configuredBudget >= 16000 ? configuredBudget : 90000;
-  if (!apiKey) throw new HttpError(503, 'O Code Maker ainda não foi configurado (preencha RIVER_API_KEY na tabela app_settings).');
+  if (!apiKey) throw new HttpError(503, 'O Code Maker ainda não foi configurado (preencha CODEMAKER_API_KEY ou RIVER_API_KEY na tabela app_settings).');
 
   if (action === 'plan') {
     if (site.plan) throw new HttpError(409, 'Este site já tem um plano. Continue as partes pendentes.');
@@ -780,7 +788,7 @@ r.post('/', async (req, res) => {
       xhigh: '\n\nAntes de responder, confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md (nada inventado, nada genérico, ação clara, texto escaneável e específico deste negócio) e reescreva o que falhar.' }[sel.effort] || '';
     const free = E.isFreeSection(planForAi, partId, site.brief);
     // Escrever código é o trabalho mais exigente: o modelo das seções livres é o melhor liberado para a chave (ai.pickCodeModel; NEVA_CODE_MODEL fixa um, "off" desliga).
-    const writerModel = (free && (await ai.pickCodeModel().catch(() => null))) || model;
+    const writerModel = provider() ? model : (free && (await ai.pickCodeModel().catch(() => null))) || model;
     return streamAi(req, res, {
       apiKey, model: writerModel, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: free ? 'cm_part_livre' : 'cm_part', userId: user.id,
       onFailure: markError,

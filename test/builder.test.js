@@ -441,3 +441,24 @@ test('modelo das seções livres: escolhe o melhor modelo de código liberado pa
   assert.equal(AI.chooseCodeModel(['deepseek-ai/DeepSeek-V4.1-Flash', 'zai-org/GLM-5.3-Flash']), null, 'só modelos pequenos: usa o do nível');
   assert.equal(AI.chooseCodeModel(null), null);
 });
+
+test('provedor do Builder: com CODEMAKER_API_KEY o Code Maker usa URL, chave e modelo próprios; sem ela segue na River', async () => {
+  const cfg = require('../server/lib/config');
+  const before = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site da Padaria Lua em Recife, pedidos pelo WhatsApp.' } });
+  const id = before.body.site.id;
+  await run("INSERT INTO app_settings(key,value) VALUES ('CODEMAKER_API_KEY','chave-do-provedor-de-teste') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value");
+  await run("INSERT INTO app_settings(key,value) VALUES ('CODEMAKER_BASE_URL','http://127.0.0.1:" + MOCK_PORT + "/v1') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value");
+  await run("INSERT INTO app_settings(key,value) VALUES ('CODEMAKER_MODEL','zai-org/GLM-5.3-Flash') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value");
+  await cfg.refresh(true);
+  try {
+    assert.match((await call('POST', '/api/code-maker', { action: 'plan', site_id: id })).body, /<<<OK>>>\s*$/);
+    const calls = await seen();
+    const last = calls.filter((c) => c.stage === 'plan').pop();
+    assert.equal(last.model, 'zai-org/GLM-5.3-Flash', 'o modelo do provedor do Builder é o que vai na chamada');
+    const logged = await all("SELECT provider_model FROM ai_calls WHERE kind='cm_plan' ORDER BY id DESC LIMIT 1");
+    assert.equal(logged[0].provider_model, 'zai-org/GLM-5.3-Flash');
+  } finally {
+    await run("DELETE FROM app_settings WHERE key IN ('CODEMAKER_API_KEY','CODEMAKER_BASE_URL','CODEMAKER_MODEL')");
+    await cfg.refresh(true);
+  }
+});
