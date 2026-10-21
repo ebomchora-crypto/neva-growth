@@ -214,4 +214,4 @@ async function measureReference(url, { shotsDir, name = 'ref', timeout = 25000 }
   } catch (e) { return { ok: false, error: String(e.message || e).slice(0, 140) }; } finally { await browser.close(); }
 }
 
-module.exports = { measureReference, inspectHtml, available, browserPath, VIEWPORTS };
+module.exports = { measureReference, inspectHtml, available, browserPath, VIEWPORTS, launchBrowser };

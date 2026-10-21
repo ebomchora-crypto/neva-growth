@@ -1,3 +1,4 @@
+import { cartRuntime, CART_PROMPT } from './cart.ts'
 import { cleanComposition, compositionCss, compositionFor, compositionMessage, compositionTheme, completeComposition, type Composition } from './composition.ts'
 // Code Maker — o "motor" dos sites, sem Deno nem banco (testado em
 // src/utils/codeMaker.test.mjs). A IA planeja o site e escreve cada parte;
@@ -2524,6 +2525,7 @@ export function assembleSite(
     .join('\n\n')
   // Só o código dos efeitos que aparecem no HTML entra na página.
   const fx = effectsRuntime(body)
+  const cart = cartRuntime(body, plan)
   const head = pageHtml !== null
     ? buildHead({ ...plan, title: `${pageTitle(pageHtml, options.page!)} · ${plan.title}` })
     : buildHead(plan)
@@ -2534,7 +2536,7 @@ ${head}${fx.css ? `\n<style>${fx.css}</style>` : ''}${projectStyle(files)}${proj
 </head>
 <body class="bg-paper text-ink font-body antialiased">
 ${body}
-${BASE_SCRIPT}${fx.js ? `\n<script>${fx.js}</script>` : ''}${projectScript(files)}
+${BASE_SCRIPT}${cart ? `\n${cart}` : ''}${fx.js ? `\n<script>${fx.js}</script>` : ''}${projectScript(files)}
 </body>
 </html>`, files)
 }
@@ -2631,6 +2633,7 @@ DESIGN (cumpra):
 - Verdade: use só fatos do pedido. Depoimento, número, selo, cliente, preço, prêmio ou resultado que o pedido não trouxe NÃO existem: a seção prova valor com processo, explicação, detalhes do serviço e perguntas reais.
 - Imagens: use SOMENTE URLs do catálogo da mensagem (ou das fotos do cliente), com o alt dizendo o que se vê; uma foto só entra se combina com o ramo. Sem foto adequada, faça composição tipográfica e de formas em vez de forçar uma foto errada.
 - O cabeçalho fixo (logo, menu, botão do topo) JÁ EXISTE e flutua sobre a primeira seção: NUNCA repita logo, nome da marca em faixa, menu ou botão do topo dentro do hero; reserve pt-24 no alto para ele. Em tema escuro o hero é ESCURO (fundo bg-paper ou bg-surface sobre a foto), nunca um véu claro/creme por cima da foto. Títulos grandes: leading-none ou maior (nunca leading-[.85]), para as linhas não se sobreporem no celular.
+${CART_PROMPT}
 - Idioma: pt-BR (ou o idioma do plano), específico deste negócio.
 `
 

@@ -20,6 +20,55 @@ function costOf(call, table = prices()) {
   return (call.prompt_tokens * p[0] + call.completion_tokens * p[1]) / 1e6;
 }
 
+
+const STAGES = [
+  ['brief', 'Analisando o briefing'],
+  ['references', 'Buscando referências do ramo'],
+  ['direction', 'Definindo a direção de arte'],
+  ['code', 'Escrevendo as seções'],
+  ['assets', 'Escolhendo fotos sem repetição'],
+  ['inspect', 'Inspecionando celular, tablet e desktop e corrigindo a legibilidade'],
+  ['publish', 'Site pronto'],
+];
+
+/** Progresso de criação derivado do que foi GRAVADO (chamadas de IA, eventos de etapa, plano, seções): sobrevive a
+ *  recarregar a página e não depende de quem está olhando. Sem porcentagem inventada: cada etapa é feita, em andamento,
+ *  pendente, pulada (com o motivo) ou com erro. */
+async function progress(site, partIds = []) {
+  const calls = await all('SELECT kind, ms, ok, created_at FROM ai_calls WHERE site_id=? ORDER BY id', site.id);
+  const events = await all('SELECT stage, status, ms, detail FROM build_events WHERE site_id=? ORDER BY id', site.id);
+  const ev = (stage) => events.filter((e) => e.stage === stage);
+  const detailOf = (e) => { try { return e?.detail ? JSON.parse(e.detail) : null; } catch { return null; } };
+  const sum = (list) => list.reduce((n, x) => n + (x.ms || 0), 0) || null;
+  const callsOf = (re) => calls.filter((c) => re.test(c.kind || ''));
+  const total = partIds.length;
+  const doneParts = partIds.filter((id) => typeof site.parts?.[id] === 'string' ? site.parts[id].trim() : site.parts?.[id]).length;
+  const ready = site.status === 'ready';
+  const inspectEvents = [...ev('inspect'), ...ev('refine'), ...ev('verify')];
+  const skipped = ev('inspect').find((e) => e.status === 'skipped');
+  const verify = ev('verify')[0];
+  const refineCycles = ev('refine').length;
+  const state = {
+    brief: { done: callsOf(/^cm_spec/).some((c) => c.ok) || Boolean(site.plan), ms: sum(callsOf(/^cm_spec/)) },
+    references: { done: ev('references').length > 0 || Boolean(site.plan), ms: sum(ev('references')), detail: detailOf(ev('references')[0]) },
+    direction: { done: Boolean(site.plan), ms: sum(callsOf(/^cm_plan/)) },
+    code: { done: Boolean(site.plan) && total > 0 && doneParts >= total, ms: sum(callsOf(/^cm_part|^cm_review/)), detail: { feitas: doneParts, total } },
+    assets: { done: ev('assets').length > 0 || ready, ms: sum(ev('assets')), detail: detailOf(ev('assets')[0]) },
+    inspect: { done: Boolean(verify) || Boolean(skipped) || ready, ms: sum(inspectEvents), skipped: Boolean(skipped) && !verify, detail: skipped ? { motivo: detailOf(skipped)?.motivo || 'indisponível neste ambiente' } : { ciclos: refineCycles, pendencias: detailOf(verify)?.pendencias?.length ?? null } },
+    publish: { done: ready, ms: null },
+  };
+  const failed = site.status === 'error';
+  const working = ['planning', 'building'].includes(site.status);
+  let current = null;
+  const stages = STAGES.map(([key, label]) => {
+    const s = state[key];
+    let status = s.done ? (s.skipped ? 'skipped' : 'done') : 'pending';
+    if (!s.done && current === null) { current = key; status = failed ? 'error' : working ? 'running' : 'pending'; }
+    return { key, label, status, ms: s.ms ?? null, detail: s.detail ?? null };
+  });
+  return { site: site.id, status: site.status, current: ready ? null : current, stages, parts: { done: doneParts, total }, finished: ready };
+}
+
 /** Registra uma etapa que não é IA. `detail` só com números e rótulos curtos. */
 async function event(siteId, userId, stage, { status = 'done', ms = null, detail = null } = {}) {
   try {
@@ -55,4 +104,4 @@ async function timeline(siteId) {
   };
 }
 
-module.exports = { event, timed, timeline, costOf, stageOfKind, prices };
+module.exports = { event, timed, timeline, progress, costOf, stageOfKind, prices };

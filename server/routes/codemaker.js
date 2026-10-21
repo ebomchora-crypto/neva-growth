@@ -535,6 +535,13 @@ r.get('/:id(\\d+)/telemetry', async (req, res) => {
   res.json(await T.timeline(site.id));
 });
 
+// Progresso real da criação (etapas gravadas no banco), para o painel mostrar o que está acontecendo e sobreviver a recarregar.
+r.get('/:id(\\d+)/progress', async (req, res) => {
+  const site = await loadSite(req.params.id, req);
+  if (!site) throw new HttpError(404, 'Site não encontrado.');
+  res.json(await T.progress(site, site.plan ? E.partOrder(site.plan) : []));
+});
+
 r.get('/:id(\\d+)', async (req, res) => {
   const site = await loadSite(req.params.id, req);
   if (!site) throw new HttpError(404, 'Site não encontrado.');

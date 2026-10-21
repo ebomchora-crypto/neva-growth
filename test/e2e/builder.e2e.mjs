@@ -42,6 +42,10 @@ await step('Criar site: narração por etapas, plano, seções e publicação au
   await page.waitForSelector('.stu-log li.say a.stu-link', { timeout: 60000 });
   const text = await page.textContent('.stu-log');
   for (const re of [/criação|criar|montar/i, /plano do site/i, /(criando|escrevendo|montando):/i, /(preparando|juntando|conferindo)/i, /(publicando|colocando no ar)/i, /\/s\/padaria-sol/]) if (!re.test(text)) throw new Error('faltou na narração: ' + re);
+  await page.waitForSelector('.stu-stages', { timeout: 5000 }); await page.evaluate(() => { document.querySelector('.stu-stages').open = true; });
+  await page.waitForFunction(() => document.querySelectorAll('.stu-stages .stg.done, .stu-stages .stg.skipped').length === 7, null, { timeout: 20000 }); // as 7 etapas reais, vindas do servidor
+  const labels = await page.$$eval('.stu-stages .stg span', (els) => els.map((e) => e.textContent));
+  if (!/Analisando o briefing/.test(labels[0]) || !/Escrevendo as seções \(\d+\/\d+\)/.test(labels.join('|'))) throw new Error('etapas com rótulos errados: ' + labels.join(' | '));
   const link = await page.getAttribute('.stu-log a.stu-link', 'href');
   const live = await page.request.get(link); if (live.status() !== 200 || !/Padaria Sol/.test(await live.text())) throw new Error('link publicado não abre');
   await page.screenshot({ path: path.join(out, 'studio-criado.png') });

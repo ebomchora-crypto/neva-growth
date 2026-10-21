@@ -542,3 +542,60 @@ test('hero de tema escuro que usa ink como fundo/véu (creme) é invertido para 
   assert.equal(E.fixDarkHero({ theme: 'light' }, { hero }).changed, false, 'tema claro não muda');
   assert.equal(E.fixDarkHero(plan, { hero: '<section class="bg-paper text-ink"></section>' }).changed, false, 'hero já escuro não muda');
 });
+
+test('pedido online: botões data-cart-add viram carrinho real (extras, observação, retirada/entrega, total) e abrem o WhatsApp com a mensagem', async () => {
+  const QA = require('../server/lib/codemaker/visual-qa');
+  const plan = E.normalizePlan({ title: 'Brasa Burger', description: 'd', direction: 'x', theme: 'dark', palette: { brand: '#ff6b3a', brandDark: '#c2410c', accent: '#F6BD36', ink: '#F3EBDD', paper: '#141311', surface: '#302019', muted: '#A99C8B' }, fonts: { display: 'Anton', body: 'DM Sans' }, sections: [{ id: 'hero', label: 'Início', layout: 'hero-cinema', headline: 'h', brief: 'b', bg: 'paper' }] }, { businessName: 'Brasa Burger', details: 'x', style: 'auto', assets: [] });
+  plan.business = { name: 'Brasa Burger', phone: '5511999998888' };
+  const parts = { hero: '<section id="hero"><div data-cart-item><label><input type="checkbox" data-extra-name="Bacon" data-extra-price="6"> Bacon</label><input data-cart-note><button type="button" data-cart-add data-name="Brasa Original" data-price="32.90">Adicionar</button></div><button type="button" data-cart-open>Pedido (<span data-cart-count>0</span>)</button><h1>t</h1></section>' };
+  const html = E.assembleSite(plan, parts);
+  assert.match(html, /neva-cart:/, 'script do pedido injetado quando há botão de adicionar');
+  assert.ok(!/neva-cart:/.test(E.assembleSite(plan, { hero: '<section id="hero"><h1>t</h1></section>' })), 'sem botão de adicionar, sem script');
+  assert.match(E.cleanFragment('<button data-cart-add data-name="x" data-price="1" onclick="alert(1)">a</button><script>alert(1)</script>'), /data-cart-add/, 'atributos data-* sobrevivem à limpeza');
+  assert.ok(!/onclick|<script/i.test(E.cleanFragment('<button data-cart-add onclick="alert(1)">a</button><script>alert(1)</script>')), 'handler e script da IA continuam removidos');
+  if (!QA.available()) return;
+  const browser = await QA.launchBrowser();
+  try {
+    const page = await (await browser.newContext({ viewport: { width: 390, height: 844 } })).newPage();
+    await page.route('http://site.test/**', (r) => r.fulfill({ contentType: 'text/html', body: html }));
+    await page.goto('http://site.test/', { waitUntil: 'domcontentloaded' });
+    await page.evaluate(() => { window.open = (u) => { window.__opened = u; return {}; }; });
+    await page.fill('[data-cart-note]', 'sem cebola'); await page.check('input[data-extra-name]');
+    await page.click('[data-cart-add]'); await page.click('[data-cart-add]');
+    assert.equal(await page.textContent('[data-cart-count]'), '2');
+    await page.click('[data-cart-open]');
+    await page.click('button:has-text("Entrega")');
+    await page.click('text=Enviar pedido pelo WhatsApp');
+    assert.ok(!(await page.evaluate(() => window.__opened)), 'sem endereço não abre o WhatsApp');
+    await page.fill('textarea', 'Rua A, 10'); await page.click('text=Enviar pedido pelo WhatsApp');
+    const url = decodeURIComponent(await page.evaluate(() => window.__opened));
+    assert.match(url, /^https:\/\/wa\.me\/5511999998888\?text=/);
+    assert.match(url, /1x Brasa Original \(\+ Bacon\) — R\$ 38,90/); assert.match(url, /Obs: sem cebola/); assert.match(url, /1x Brasa Original — R\$ 32,90/);
+    assert.match(url, /Modalidade: Entrega/); assert.match(url, /Endereço: Rua A, 10/); assert.match(url, /\*Total: R\$ 71,80\*/);
+  } finally { await browser.close(); }
+});
+
+test('progresso real: etapas derivadas do que foi gravado (briefing, referências, direção, seções n/m, fotos, inspeção, pronto), sem porcentagem inventada', async () => {
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site da Padaria Trigo Bom em Recife, pedidos pelo WhatsApp.' }, model: 'neva-1-2', effort: 'medium' });
+  const id = created.body.site.id;
+  const first = (await call('GET', `/api/code-maker/${id}/progress`)).body;
+  assert.deepEqual(first.stages.map((s) => s.key), ['brief', 'references', 'direction', 'code', 'assets', 'inspect', 'publish']);
+  assert.equal(first.finished, false); assert.ok(first.stages.every((s) => s.label && !('percent' in s)));
+  assert.notEqual(first.stages.find((s) => s.key === 'direction').status, 'done', 'sem plano a direção de arte ainda não está feita');
+  await call('POST', '/api/code-maker', { action: 'plan', site_id: id, model: 'neva-1-2', effort: 'medium' });
+  const afterPlan = (await call('GET', `/api/code-maker/${id}/progress`)).body;
+  for (const k of ['brief', 'direction']) assert.equal(afterPlan.stages.find((s) => s.key === k).status, 'done', k);
+  assert.equal(afterPlan.current, 'code'); assert.equal(afterPlan.parts.done < afterPlan.parts.total, true);
+  const plan = (await call('GET', '/api/code-maker/' + id)).body.site.plan;
+  const ids = E.partOrder(plan);
+  await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: ids[0], model: 'neva-1-2', effort: 'medium' });
+  const mid = (await call('GET', `/api/code-maker/${id}/progress`)).body;
+  assert.equal(mid.parts.done, 1); assert.equal(mid.stages.find((s) => s.key === 'code').detail.feitas, 1);
+  for (const pid of ids.slice(1)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid, model: 'neva-1-2', effort: 'medium' });
+  const end = (await call('GET', `/api/code-maker/${id}/progress`)).body;
+  assert.equal(end.finished, true); assert.equal(end.current, null);
+  assert.ok(end.stages.every((s) => ['done', 'skipped'].includes(s.status)), JSON.stringify(end.stages.map((s) => [s.key, s.status])));
+  assert.equal(end.stages.find((s) => s.key === 'inspect').status, 'skipped', 'sem navegador/desligada a inspeção aparece como pulada, com motivo');
+  assert.ok(end.stages.find((s) => s.key === 'inspect').detail.motivo);
+  assert.equal((await call('GET', '/api/code-maker/999999/progress')).status, 404);
+});

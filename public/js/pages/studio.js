@@ -112,6 +112,13 @@ export default {
     const canWrite = ctx.user.role !== 'viewer';
     let phase = 'idle'; let planText = ''; let editText = ''; let pending = null; let error = null;
     let progress = {}; let controller = null; let busy = false; let disposed = false;
+    // Etapas reais da criação (vêm do servidor, derivadas do que foi gravado): sobrevivem a recarregar a página.
+    let stages = null; let stageTimer = null;
+    async function loadStages() { try { stages = await api.get(`/code-maker/${id}/progress`); } catch { /* mantém o último estado */ } if (!disposed) drawThread(); return stages; }
+    function pollStages() {
+      clearInterval(stageTimer); loadStages();
+      stageTimer = setInterval(async () => { if (disposed) return clearInterval(stageTimer); const st = await loadStages(); if (st?.finished || st?.status === 'error') clearInterval(stageTimer); }, 2500);
+    }
     let page = ''; let scrollY = 0; let device = 'desktop';
 
     // ---- prévia
@@ -214,6 +221,20 @@ export default {
 
     const bubbleUser = (text, when) => h('div', { class: 'stu-msg me' }, h('p', text), when && h('time', dtt(when)));
     const list = (items, cls = '') => items.length ? h('ul', { class: 'stu-list ' + cls }, items.map((a) => h('li', a))) : null;
+    const secs = (ms) => (ms == null ? '' : ms < 950 ? '<1 s' : `${Math.round(ms / 1000)} s`);
+    const stagePanel = () => {
+      if (!stages) return null;
+      const doneN = stages.stages.filter((st) => st.status === 'done' || st.status === 'skipped').length;
+      const cur = stages.stages.find((st) => st.status === 'running' || st.status === 'error');
+      const rows = stages.stages.map((st) => {
+        const extra = st.key === 'code' && st.detail ? ` (${st.detail.feitas}/${st.detail.total})` : st.key === 'inspect' && st.status === 'done' && st.detail?.ciclos ? ` · ${st.detail.ciclos} ciclo(s) de correção` : '';
+        const note = st.status === 'skipped' ? 'não disponível aqui' : st.status === 'error' ? 'falhou' : st.status === 'running' ? 'em andamento' : st.status === 'done' ? secs(st.ms) : '';
+        return h('li', { class: 'stg ' + st.status, title: st.status === 'skipped' ? (st.detail?.motivo || '') : '' }, h('i', { 'aria-hidden': 'true' }), h('span', st.label + extra), note && h('small', note));
+      });
+      const d = h('details', { class: 'stu-stages' }, h('summary', h('b', 'Etapas da criação'), h('span', stages.finished ? `${doneN} de ${stages.stages.length} concluídas` : cur ? `${cur.label}…` : `${doneN} de ${stages.stages.length}`)), h('ol', rows));
+      d.open = !stages.finished;
+      return d;
+    };
     const who = (running) => h('div', { class: 'stu-who' }, h('span', { class: 'stu-dot' + (running ? ' run' : '') }), 'Neva Studio');
     function drawThread() {
       const plan = site.plan;
@@ -226,6 +247,7 @@ export default {
         return h('li', { class: 'stu-part ' + st }, h('i', { 'aria-hidden': 'true' }), h('span', partLabel(plan, pid)), h('small', { done: 'pronta', writing: 'escrevendo…', queued: 'na fila', error: 'falhou' }[st]));
       };
       const createBlock = h('div', { class: 'stu-msg ai' }, who(phase === 'planning' || phase === 'building'),
+        (creating || log.length > 0) && stagePanel(),
         log.length ? narration(log) : !plan && site.status !== 'ready' && h('p', 'Vou planejar a direção de arte, as cores, as fontes e as seções do seu site.'),
         !log.length && planActions.length ? h('div', { class: 'stu-plan' }, h('b', 'Plano do site'), list(planActions)) : null,
         log.length && phase === 'planning' && planActions.length ? h('div', { class: 'stu-plan' }, h('b', 'Plano do site'), list(planActions)) : null,
@@ -304,7 +326,7 @@ export default {
     // Gera o site do zero ou continua de onde parou (plano pronto, partes faltando).
     async function generate() {
       if (busy || !canWrite) return;
-      busy = true; controller?.abort(); controller = new AbortController(); const signal = controller.signal;
+      busy = true; controller?.abort(); controller = new AbortController(); const signal = controller.signal; pollStages();
       error = null; progress = {}; log = [];
       say(log, pick(site.plan ? SAY.resume : SAY.start));
       try {
@@ -341,7 +363,7 @@ export default {
       } catch (e) {
         if (e.name !== 'AbortError') { error = e.message; await refresh().catch(() => {}); }
       } finally {
-        busy = false; if (!signal.aborted) phase = 'idle';
+        busy = false; if (!signal.aborted) phase = 'idle'; await loadStages();
         if (!disposed) { drawThread(); loadPreview(); }
       }
     }
@@ -419,7 +441,8 @@ export default {
     loadPreview();
     if (site.status === 'ready') loadReview().then(() => { if (!disposed) drawThread(); });
     // Como no Lovable: abriu um site ainda não terminado, a criação começa (ou continua) sozinha.
+    loadStages();
     if (site.status !== 'ready' && canWrite) generate();
-    return () => { disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); clearTimeout(previewTimer); window.removeEventListener('message', onMsg); };
+    return () => { disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); clearTimeout(previewTimer); clearInterval(stageTimer); window.removeEventListener('message', onMsg); };
   }
 };
