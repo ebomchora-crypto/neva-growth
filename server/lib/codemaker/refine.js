@@ -13,23 +13,17 @@ const LIGHT = '#f6f2ea';
 function contrastRules(items, known) {
   const rules = [];
   for (const item of items) {
-    if (!item.path || rules.length >= 60) continue;
-    const level = known.get(item.path) || 0;
-    if (level >= 2) continue;
-    // Escolhe o tom (escuro ou claro) que falha em MENOS pixels do fundo medido; se ainda falha em muitos e o texto é
-    // pequeno, 2ª tentativa com véu escuro atrás dele. Título grande não ganha véu (vira uma caixa enorme).
-    const color = (item.darkBad ?? 50) <= (item.lightBad ?? 50) ? DARK : LIGHT;
-    const best = Math.min(item.darkBad ?? 50, item.lightBad ?? 50);
-    const scrim = !item.big && (level === 1 || best >= 20);
-    if (level === 1 && item.big) continue;
-    known.set(item.path, scrim ? 2 : level + 1);
-    rules.push(scrim ? { path: item.path, scrim: true } : { path: item.path, color });
+    if (!item.path || known.has(item.path) || rules.length >= 60) continue;
+    known.set(item.path, 1);
+    // Só recolore o texto (escuro ou claro, o que falha em menos pixels do fundo medido). Sem véu nem caixa: isso
+    // estragava botões e rótulos. O que a troca de cor não resolve fica registrado como pendência.
+    const dark = item.darkBad ?? 50, light = item.lightBad ?? 50;
+    if (Math.min(dark, light) >= (item.share ?? 100)) continue; // não melhora: não mexe
+    rules.push({ path: item.path, color: dark <= light ? DARK : LIGHT });
   }
   return rules;
 }
-const cssFor = (rule) => (rule.scrim
-  ? `${rule.path}{color:${LIGHT}!important;-webkit-text-fill-color:${LIGHT}!important;background:rgba(10,9,8,.74)!important;padding:.12em .45em;-webkit-box-decoration-break:clone;box-decoration-break:clone;text-shadow:none!important}`
-  : `${rule.path}{color:${rule.color}!important;-webkit-text-fill-color:${rule.color}!important;text-shadow:none!important}`);
+const cssFor = (rule) => `${rule.path}{color:${rule.color}!important;-webkit-text-fill-color:${rule.color}!important}`;
 
 /** @param {{plan:object, parts:object, assemble:(plan:object, parts:object)=>string, inspect?:Function, onStep?:Function, shotsDir?:string}} o */
 async function refineVisually({ plan, parts, assemble, inspect = QA.inspectHtml, onStep = () => {}, shotsDir }) {

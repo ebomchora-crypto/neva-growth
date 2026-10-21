@@ -126,7 +126,16 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
       const page = await ctx.newPage();
       await page.setContent(html, { waitUntil: 'networkidle', timeout }).catch(() => {});
       await page.waitForTimeout(600);
+      // Imagens lazy não carregam numa captura de página inteira: força o carregamento antes de medir e fotografar.
+      await page.evaluate(async () => {
+        document.querySelectorAll('img[loading="lazy"]').forEach((img) => { img.loading = 'eager'; });
+        await Promise.race([Promise.all([...document.images].map((img) => (img.complete ? 1 : new Promise((done) => { img.onload = img.onerror = done; })))), new Promise((done) => setTimeout(done, 9000))]);
+      });
+      // Rola a página inteira: imagens longe da tela só são decodificadas/pintadas quando passam por ela.
+      await page.evaluate(async () => { const step = Math.max(300, innerHeight * 0.8); for (let y = 0; y < document.documentElement.scrollHeight; y += step) { scrollTo(0, y); await new Promise((r) => setTimeout(r, 90)); } scrollTo(0, 0); });
+      await page.waitForTimeout(500);
       await page.evaluate(() => document.querySelectorAll('.reveal').forEach((e) => e.classList.add('is-visible')));
+      await page.waitForTimeout(900); // a transição de entrada (0,6 s) precisa acabar antes de medir e fotografar
       const m = await page.evaluate(measure);
       if (shotsDir) { fs.mkdirSync(shotsDir, { recursive: true }); await page.screenshot({ path: `${shotsDir}/${name}-${vp.name}.png`, fullPage: vp.name !== 'desktop' || true }); }
       // Contraste por pixels reais: apaga o texto, captura a página e amostra o que fica atrás de cada texto.
