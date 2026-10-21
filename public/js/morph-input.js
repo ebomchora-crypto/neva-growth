@@ -24,39 +24,20 @@ const sparkIcon = () => {
   return s;
 };
 
-/**
- * @param {{ field: HTMLTextAreaElement, tools?: Node[], send: HTMLButtonElement, maxHeight?: number }} o
- * @returns {{ el: HTMLElement, grow(): void, shake(): void, launch<T>(task: () => Promise<T>, labels?: {working?: string, done?: string}): Promise<T> }}
- */
-export function morphInput({ field, tools = [], send, maxHeight = 260 }) {
-  send.classList.add('mi-send'); send.replaceChildren(sendIcon());
-  const bar = h('div', { class: 'mi-bar' }, tools, h('span', { class: 'grow' }), send);
-  const pill = h('div', { class: 'mi-pill' }, h('div', { class: 'mi-row' }, sparkIcon(), field), bar);
-  const el = h('div', { class: 'mi-wrap' }, h('i', { class: 'mi-glow', 'aria-hidden': 'true' }), pill);
-
-  field.classList.add('mi-field'); field.rows = 1;
-  const grow = () => { field.style.height = 'auto'; field.style.height = Math.min(maxHeight, field.scrollHeight) + 'px'; send.toggleAttribute('data-ready', field.value.trim().length > 0); };
-  field.addEventListener('input', grow);
-  requestAnimationFrame(grow);
-
-  const shake = () => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: 260, easing: EASE.out });
-  };
-
-  let running = false;
-  async function launch(task, labels = {}) {
-    if (running) return undefined;
-    running = true;
+const RUNNING = new WeakSet();
+/** Pílula/cartão -> bola -> orbe no centro enquanto `task` roda; devolve o resultado (ou volta ao lugar e lança o erro). */
+export async function launchOrb(pill, task, labels = {}) {
+    if (RUNNING.has(pill)) return undefined;
+    RUNNING.add(pill);
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const r = pill.getBoundingClientRect();
+    const r = pill.getBoundingClientRect(); const rad = labels.radius ?? 30;
     const veil = h('div', { class: 'mi-veil' });
     const label = h('div', { class: 'mi-label', role: 'status', 'aria-live': 'polite' });
     const setLabel = (t, done) => { label.replaceChildren(...[h('span', { class: done ? 'mi-lab-done' : 'mi-lab-t' }, t), done ? null : h('span', { class: 'mi-dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'))].filter(Boolean)); };
     setLabel(labels.working || 'Criando o projeto');
     const glass = h('div', { class: 'mi-fly-glass' }); const core = h('div', { class: 'mi-fly-core' });
     const fly = h('div', { class: 'mi-fly', 'aria-hidden': 'true' }, glass, core);
-    Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' });
+    Object.assign(fly.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: rad + 'px' });
     document.body.append(veil, fly, label);
     pill.style.visibility = 'hidden'; pill.style.pointerEvents = 'none';
     veil.animate([{ opacity: 0 }, { opacity: 1 }], { duration: reduce ? 150 : 350, fill: 'forwards', easing: EASE.out });
@@ -71,7 +52,7 @@ export function morphInput({ field, tools = [], send, maxHeight = 260 }) {
         const ballL = r.left + r.width / 2 - 30, ballT = r.top + r.height / 2 - 30;
         glass.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 560, fill: 'forwards', easing: EASE.out });
         core.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 520, delay: 240, fill: 'forwards', easing: EASE.out });
-        await fly.animate([{ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: '30px' }, { left: ballL + 'px', top: ballT + 'px', width: '60px', height: '60px', borderRadius: '30px' }], { duration: 480, fill: 'forwards', easing: EASE.io }).finished;
+        await fly.animate([{ left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: r.height + 'px', borderRadius: rad + 'px' }, { left: ballL + 'px', top: ballT + 'px', width: '60px', height: '60px', borderRadius: '30px' }], { duration: 480, fill: 'forwards', easing: EASE.io }).finished;
         await fly.animate([{ left: ballL + 'px', top: ballT + 'px', width: '60px', height: '60px', borderRadius: '30px' }, { left: cx + 'px', top: cy + 'px', width: ORB + 'px', height: ORB + 'px', borderRadius: ORB / 2 + 'px' }], { duration: 720, fill: 'forwards', easing: EASE.io }).finished;
       }
       orb = generatingOrb({ size: ORB - 8, showText: false }); orb.setRunning(true); orb.el.classList.add('mi-orb');
@@ -96,8 +77,31 @@ export function morphInput({ field, tools = [], send, maxHeight = 260 }) {
       if (!reduce) { await fly.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }).finished.catch(() => {}); }
       cleanup(); pill.style.visibility = ''; pill.style.pointerEvents = '';
       throw error;
-    } finally { running = false; }
+    } finally { RUNNING.delete(pill); }
   }
+
+
+/**
+ * @param {{ field: HTMLTextAreaElement, tools?: Node[], send: HTMLButtonElement, maxHeight?: number }} o
+ * @returns {{ el: HTMLElement, grow(): void, shake(): void, launch<T>(task: () => Promise<T>, labels?: {working?: string, done?: string}): Promise<T> }}
+ */
+export function morphInput({ field, tools = [], send, maxHeight = 260 }) {
+  send.classList.add('mi-send'); send.replaceChildren(sendIcon());
+  const bar = h('div', { class: 'mi-bar' }, tools, h('span', { class: 'grow' }), send);
+  const pill = h('div', { class: 'mi-pill' }, h('div', { class: 'mi-row' }, sparkIcon(), field), bar);
+  const el = h('div', { class: 'mi-wrap' }, h('i', { class: 'mi-glow', 'aria-hidden': 'true' }), pill);
+
+  field.classList.add('mi-field'); field.rows = 1;
+  const grow = () => { field.style.height = 'auto'; field.style.height = Math.min(maxHeight, field.scrollHeight) + 'px'; send.toggleAttribute('data-ready', field.value.trim().length > 0); };
+  field.addEventListener('input', grow);
+  requestAnimationFrame(grow);
+
+  const shake = () => {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    pill.animate([{ transform: 'translateX(0)' }, { transform: 'translateX(-6px)' }, { transform: 'translateX(6px)' }, { transform: 'translateX(-3px)' }, { transform: 'translateX(0)' }], { duration: 260, easing: EASE.out });
+  };
+
+  const launch = (task, labels) => launchOrb(pill, task, labels);
 
   return { el, grow, shake, launch };
 }

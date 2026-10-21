@@ -28,16 +28,22 @@ async function step(name, fn) {
 
 await page.request.post(base + '/api/auth/setup', { data: { name: 'Arthur Teste', email: 'a@x.com', password: 'senha-forte-1' }, headers: { 'x-requested-with': 'neva' } });
 
-await step('Builder: abas Criar / Meus sites e seletor de modelo com trilho de esforço', async () => {
-  await page.goto(base + '/#/builder'); await page.waitForSelector('.btabs button.on:has-text("Criar site")');
-  await page.click('.ms-trigger'); await page.waitForSelector('.ms-panel:not(.hide) .ms-opt:has-text("Neva 1.5")');
-  await page.click('.ms-opt:has-text("Neva 1.5")'); await page.focus('.ms-track'); await page.keyboard.press('End');
-  await page.waitForSelector('.ms-hint:has-text("Sem economia de raciocínio")'); await page.keyboard.press('Escape');
-  const label = await page.textContent('.ms-trigger'); if (!/Neva 1\.5.*Máximo/.test(label)) throw new Error('seleção não aplicada: ' + label);
+await step('Builder: só o AI Prompt (modelo, raciocínio, enviar) e Otimizar pedido; menus com os modelos da Neva', async () => {
+  await page.goto(base + '/#/builder'); await page.waitForSelector('.btabs button.on:has-text("Criar site")'); await page.waitForSelector('.ap-card');
+  // nada além do prompt e do botão de otimizar na tela de criação
+  const labels = await page.$$eval('.bview:not([hidden]) button', (els) => els.filter((e) => e.offsetParent).map((e) => (e.getAttribute('aria-label') || e.textContent || '').trim().replace(/\s+/g, ' ')));
+  const extra = labels.filter((l) => !/^(Modelo:|Raciocínio:|Criar site|Otimizar pedido)/.test(l));
+  if (extra.length) throw new Error('botões a mais na criação: ' + extra.join(' | '));
+  await page.click('.ap-model'); await page.waitForSelector('.ap-menu:not(.hide) .ap-item:has-text("Neva 1.5")');
+  const modelos = await page.$$eval('.ap-menu:not(.hide) .ap-item b', (e) => e.map((x) => x.textContent)); if (modelos.join() !== 'Neva 1.0,Neva 1.2,Neva 1.5') throw new Error('modelos: ' + modelos);
+  await page.click('.ap-menu:not(.hide) .ap-item:has-text("Neva 1.5")');
+  await page.click('.ap-effort'); await page.waitForSelector('.ap-menu:not(.hide) .ap-item:has-text("Máximo")'); await page.click('.ap-menu:not(.hide) .ap-item:has-text("Máximo")');
+  const m = await page.textContent('.ap-model'); const e = await page.textContent('.ap-effort'); if (!/Neva 1\.5/.test(m) || !/Máximo/.test(e)) throw new Error('seleção não aplicada: ' + m + ' / ' + e);
+  await page.screenshot({ path: path.join(out, 'builder-ai-prompt.png') });
 });
 await step('Criar site: narração por etapas, plano, seções e publicação automática com link', async () => {
   await page.fill('textarea[aria-label="O que você quer no site"]', 'Site para a Padaria Sol em Recife, pães de fermentação natural, pedidos pelo WhatsApp.');
-  await page.click('.mi-send'); await page.waitForSelector('.mi-fly', { timeout: 5000 }); await page.screenshot({ path: path.join(out, 'builder-orbe.png') }); await page.waitForURL(/#\/studio\/\d+/);
+  await page.click('.ap-send'); await page.waitForSelector('.mi-fly', { timeout: 5000 }); await page.screenshot({ path: path.join(out, 'builder-orbe.png') }); await page.waitForURL(/#\/studio\/\d+/);
   await page.waitForSelector('.stu-log li.act'); // ação em andamento aparece logo
   await page.waitForSelector('.stu-log li.say a.stu-link', { timeout: 60000 });
   const text = await page.textContent('.stu-log');
