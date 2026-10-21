@@ -99,14 +99,23 @@ r.get('/live', async (req, res) => {
     recent: t.slice(0, 8).map(({ id, description, amount, client_name }) => ({ id, description, amount, client_name })) });
 });
 
+// Aceita variações de chave que o modelo às vezes inventa (proximo_caso, proxima_acao...) e nunca falha por causa de uma chave faltando.
 function parseSummary(raw) {
   const m = String(raw).match(/\{[\s\S]*\}/); if (!m) return null;
   try {
     const d = JSON.parse(m[0]); const str = (v, n) => String(v ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
-    const pontos = (Array.isArray(d.pontos) ? d.pontos : []).slice(0, 3).map((p) => ({ rotulo: str(p?.rotulo, 30), texto: str(p?.texto, 140) })).filter((p) => p.texto);
-    const out = { titulo: str(d.titulo, 80), destaque: str(d.destaque, 200), pontos, proximo_passo: str(d.proximo_passo, 180) };
-    return out.titulo && out.destaque && pontos.length && out.proximo_passo ? out : null;
+    const pontos = (Array.isArray(d.pontos) ? d.pontos : []).slice(0, 3).map((p) => ({ rotulo: str(p?.rotulo ?? p?.titulo, 30), texto: str(p?.texto ?? p?.descricao, 140) })).filter((p) => p.texto);
+    const nextKey = Object.keys(d).find((k) => /^(pr[oó]xim|acao|ação|recomenda)/i.test(k) && typeof d[k] === 'string');
+    const out = { titulo: str(d.titulo ?? d.title, 80), destaque: str(d.destaque ?? d.resumo, 200), pontos, proximo_passo: str(d.proximo_passo ?? (nextKey && d[nextKey]), 180) };
+    return out.titulo && out.destaque && pontos.length ? out : null;
   } catch { return null; }
+}
+// Último recurso, sem IA: um resumo montado só com os números, para a tela nunca mostrar JSON.
+function fallbackSummary(m, open) {
+  const brl = (v) => 'R$ ' + Math.round(v || 0).toLocaleString('pt-BR');
+  const base = m.sales ? 'Repita o que mais vendeu neste período e cobre as oportunidades abertas.' : 'Registre novas oportunidades e retome o contato com clientes para gerar a primeira venda.';
+  return { titulo: m.sales ? `Lucro de ${brl(m.profit)} no período` : 'Sem vendas pagas no período', destaque: m.sales ? `${m.sales} ${m.sales === 1 ? 'venda paga' : 'vendas pagas'}, com receita de ${brl(m.revenue)}.` : 'Nenhuma venda paga neste período.',
+    pontos: [{ rotulo: 'Receita', texto: `${brl(m.revenue)} no período.` }, { rotulo: 'Vendas', texto: `${m.sales} pagas, ticket médio de ${brl(m.ticket)}.` }, { rotulo: 'Em aberto', texto: `${open?.n || 0} oportunidades, somando ${brl(open?.v)}.` }], proximo_passo: base };
 }
 
 // Resumo do período escrito por IA a partir dos números reais (exige RIVER_API_KEY)
@@ -119,10 +128,12 @@ r.post('/summary', async (req, res) => {
   const raw = await ai.complete({ model: 'neva-1-0', effort: 'low', kind: 'summary', userId: req.user.id, maxTokens: 650,
     system: `Você é analista comercial de um pequeno negócio brasileiro. Leia os números do período e responda SOMENTE com JSON válido, sem markdown e sem texto fora do JSON:
 {"titulo":"até 7 palavras, com o número principal (ex.: Lucro de R$ 11.250, 23% acima do período anterior)","destaque":"UMA frase de até 22 palavras com o que mais importa neste período","pontos":[{"rotulo":"2 a 3 palavras","texto":"uma frase curta com um número"},{"rotulo":"...","texto":"..."},{"rotulo":"...","texto":"..."}],"proximo_passo":"UMA ação concreta de até 20 palavras, ligada aos números (cobrar oportunidade aberta, repetir o que vendeu mais, etc.)"}
+Use exatamente estas chaves: titulo, destaque, pontos, proximo_passo.
 Regras: use SOMENTE os números fornecidos, no formato brasileiro (R$ 1.234, 23%); se algo for zero ou ausente, diga isso com franqueza (sem inventar); exatamente 3 pontos; nada de "Claro", elogios vazios ou jargão.`,
     messages: [{ role: 'user', content: JSON.stringify({ periodo: m.range, receita: m.revenue, lucro: m.profit, vendas_pagas: m.sales, ticket_medio: m.ticket, variacao_lucro_pct: m.profitVariation, periodo_anterior: m.previous, maiores_vendas: top, oportunidades_abertas: open }) }] });
-  const data = parseSummary(raw);
-  const text = data ? `${data.titulo}\n${data.destaque}\n${data.pontos.map((p) => `- ${p.rotulo}: ${p.texto}`).join('\n')}\nPróximo passo: ${data.proximo_passo}` : String(raw).trim();
+  const data = parseSummary(raw) || fallbackSummary(m, open);
+  if (!data.proximo_passo) data.proximo_passo = fallbackSummary(m, open).proximo_passo;
+  const text = `${data.titulo}\n${data.destaque}\n${data.pontos.map((p) => `- ${p.rotulo}: ${p.texto}`).join('\n')}\nPróximo passo: ${data.proximo_passo}`;
   await S.recordAiUse(req.user, 'summary');
   res.json({ summary: text, data, usage: (await S.usageOf(req.user)).ai });
 });
