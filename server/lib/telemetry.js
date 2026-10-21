@@ -11,7 +11,7 @@ const stageOfKind = (kind = '') => STAGE_OF_KIND.find(([re]) => re.test(kind))?.
 // provedores sem preço informado ficam fora e o custo aparece como null. AI_PRICING_JSON (app_settings) sobrescreve/estende.
 const DEFAULT_PRICES = {
   'deepseek-ai/DeepSeek-V4.1-Flash': [0.12, 0.48], 'deepseek-ai/DeepSeek-V4.1-Flash-1017': [0.12, 0.48],
-  'nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4': [0.07, 0.37], 'zai-org/GLM-5.3-Flash': [0.12, 0.4],
+  'nvidia/NVIDIA-Nemotron-3.5-Super-VL-120B-A12B-NVFP4': [0.07, 0.37], 'zai-org/GLM-5.3-Flash': [0.12, 0.4], 'deepseek-ai/DeepSeek-V4-Flash-0731': [0.12, 0.48],
 };
 function prices() { try { return { ...DEFAULT_PRICES, ...JSON.parse(config.get('AI_PRICING_JSON') || '{}') }; } catch { return DEFAULT_PRICES; } }
 function costOf(call, table = prices()) {

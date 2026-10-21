@@ -44,12 +44,12 @@ const systemFor = (stage, brief) => `${DC.contextFor(stage, brief).text}\n\n${st
 const r = express.Router();
 
 // Provedor próprio do Builder (só o Code Maker; o resto da plataforma continua na River). Basta preencher CODEMAKER_API_KEY em
-// app_settings ou nas variáveis de ambiente: URL e modelo têm padrão (Dahl · GLM-5.3-Flash, o mais rápido e completo no teste
+// app_settings ou nas variáveis de ambiente: URL e modelo têm padrão (Dahl · DeepSeek V4 Flash, ~8x mais rápido que o GLM-5.3-Flash no mesmo pedido (medido)
 // com o mesmo pedido de topo de site). CODEMAKER_BASE_URL e CODEMAKER_MODEL mudam um deles. Compatível com a API da OpenAI.
 const provider = () => {
   const key = String(config.get('CODEMAKER_API_KEY') || '').trim();
   if (!key) return null;
-  return { key, url: String(config.get('CODEMAKER_BASE_URL') || 'https://inference.dahl.global/v1').trim().replace(/\/$/, ''), model: String(config.get('CODEMAKER_MODEL') || 'zai-org/GLM-5.3-Flash').trim() };
+  return { key, url: String(config.get('CODEMAKER_BASE_URL') || 'https://inference.dahl.global/v1').trim().replace(/\/$/, ''), model: String(config.get('CODEMAKER_MODEL') || 'deepseek-ai/DeepSeek-V4-Flash-0731').trim() };
 };
 const AI_URL = () => `${(provider()?.url || config.get('RIVER_BASE_URL') || 'https://api.river.ai/v1').replace(/\/$/, '')}/chat/completions`;
 const CALLS_PER_DAY = 600;
