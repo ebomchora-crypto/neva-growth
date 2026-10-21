@@ -37,7 +37,7 @@ await step('Builder: abas Criar / Meus sites e seletor de modelo com trilho de e
 });
 await step('Criar site: narração por etapas, plano, seções e publicação automática com link', async () => {
   await page.fill('textarea[aria-label="O que você quer no site"]', 'Site para a Padaria Sol em Recife, pães de fermentação natural, pedidos pelo WhatsApp.');
-  await page.click('.cbar button:has-text("Criar site")'); await page.waitForURL(/#\/studio\/\d+/);
+  await page.click('.mi-send'); await page.waitForSelector('.mi-fly', { timeout: 5000 }); await page.screenshot({ path: path.join(out, 'builder-orbe.png') }); await page.waitForURL(/#\/studio\/\d+/);
   await page.waitForSelector('.stu-log li.act'); // ação em andamento aparece logo
   await page.waitForSelector('.stu-log li.say a.stu-link', { timeout: 60000 });
   const text = await page.textContent('.stu-log');

@@ -3,6 +3,7 @@ import { dotField } from '../dot-field.js';
 import { generatingOrb } from '../generating-orb.js';
 import { motionEnabled } from '../motion.js';
 import { modelSelector } from '../model-selector.js';
+import { morphInput } from '../morph-input.js';
 import { h, mount, toast, fail, icon, confirmBox, modal, dtt } from '../ui.js';
 
 // Estilos do Code Maker (mesmas chaves do servidor: auto, dark, minimal, elegant, vibrant).
@@ -40,7 +41,7 @@ export default {
       btnRead.disabled = true; btnRead.textContent = 'Lendo o site…';
       try {
         const r = await api.post('/code-maker', { action: 'read_site', url: siteUrl.value.trim() });
-        brief.value = [brief.value.trim(), r.details].filter(Boolean).join('\n\n');
+        brief.value = [brief.value.trim(), r.details].filter(Boolean).join('\n\n'); mi.grow();
         if (r.name && !form.businessName.value) form.businessName.value = r.name;
         if (r.phone && !form.phone.value) form.phone.value = r.phone;
         toast('Li o site atual e coloquei as informações no pedido.', 'ok');
@@ -55,23 +56,25 @@ export default {
 
     const btnOpt = h('button', { type: 'button', class: 'btn ghost', disabled: !aiOn || !canWrite, onclick: async () => {
       btnOpt.disabled = true; btnOpt.textContent = 'Otimizando…';
-      try { const r = await api.post('/projects/optimize-prompt', { brief: brief.value }); brief.value = r.brief; toast('Pedido otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar pedido'; }
+      try { const r = await api.post('/projects/optimize-prompt', { brief: brief.value }); brief.value = r.brief; mi.grow(); toast('Pedido otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar pedido'; }
     } }, 'Otimizar pedido');
 
     const orb = generatingOrb({ text: 'Neva Studio', size: 150 });
-    const btnCreate = h('button', { type: 'button', class: 'btn', disabled: !aiOn || !canWrite, onclick: async () => {
+    // Botão de enviar da pílula: valida, anima pílula → orbe enquanto o projeto é criado de verdade e abre o Studio.
+    const btnCreate = h('button', { type: 'button', class: 'btn', title: 'Criar site (Ctrl+Enter)', 'aria-label': 'Criar site', disabled: !aiOn || !canWrite, onclick: async () => {
       const d = Object.fromEntries(new FormData(form));
-      if (!brief.value.trim() && !d.businessName.trim()) { brief.focus(); toast('Escreva o que você quer no site.', 'err'); return; }
-      btnCreate.disabled = true; btnCreate.textContent = 'Criando…'; orb.setRunning(true);
+      if (!brief.value.trim() && !d.businessName.trim()) { brief.focus(); mi.shake(); toast('Escreva o que você quer no site.', 'err'); return; }
+      btnCreate.disabled = true;
       try {
-        const r = await api.post('/code-maker', { action: 'create', brief: { ...d, details: brief.value, style }, ...selector.get() });
-        location.hash = '#/studio/' + r.site.id;
-      } catch (e) { fail(e); orb.setRunning(false); btnCreate.disabled = false; btnCreate.textContent = 'Criar site →'; }
-    } }, 'Criar site →');
+        const r = await mi.launch(() => api.post('/code-maker', { action: 'create', brief: { ...d, details: brief.value, style }, ...selector.get() }), { working: 'Criando o projeto', done: 'Abrindo o Studio' });
+        if (r?.site) location.hash = '#/studio/' + r.site.id;
+      } catch (e) { fail(e); } finally { btnCreate.disabled = !aiOn || !canWrite; }
+    } });
+    const mi = morphInput({ field: brief, tools: [plusBtn, selector.el, btnOpt], send: btnCreate });
     brief.addEventListener('keydown', (e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) btnCreate.click(); });
 
-    const ideas = h('div', { class: 'bideas' }, h('b', 'Ideias para começar'),
-      IDEAS.map((i) => h('button', { type: 'button', class: 'bidea', onclick: () => { brief.value = i.p; brief.focus(); } }, h('span', i.t), h('small', i.p))));
+    const ideas = h('div', { class: 'bideas mi-ideas' }, h('b', 'Ideias para começar'),
+      IDEAS.map((i) => h('button', { type: 'button', class: 'bidea', onclick: () => { brief.value = i.p; mi.grow(); brief.focus(); } }, i.t)));
     const status = aiOn
       ? h('span', { class: 'bstatus ok' }, h('i'), 'Só o pedido é obrigatório. A IA planeja, escreve cada seção e publica o site ao vivo.')
       : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: preencha RIVER_API_KEY na tabela app_settings do banco.');
@@ -123,9 +126,7 @@ export default {
 
     const createView = h('div', { class: 'bview' },
       h('div', { class: 'bhero' }, orb.el, h('h1', `O que vamos criar, ${ctx.user.name.split(' ')[0]}?`)),
-      h('div', { class: 'composer' },
-        h('div', { class: 'cleft' }, brief, details, chips, status, h('div', { class: 'cbar' }, plusBtn, selector.el, btnOpt, h('span', { class: 'grow' }), btnCreate)),
-        h('div', { class: 'cright' }, ideas)));
+      h('div', { class: 'mi-stack' }, mi.el, h('div', { class: 'mi-extra' }, details, chips, status, ideas)));
     const sitesView = h('div', { class: 'bview sites' }, h('div', { class: 'bs-head' }, h('h1', 'Meus sites'), h('p', 'Veja, edite e publique os sites criados com a IA.')), sitesBox);
     const tabs = h('div', { class: 'btabs', role: 'tablist', 'aria-label': 'Builder' });
     function setTab(t) {

@@ -210,7 +210,7 @@ await step('Sites: projeto em destaque, editar, publicar, arquivar, filtros', as
   await page.click('.pill:has-text("Arquivado")'); await page.waitForSelector('article:has-text("Studio Aurora")');
 });
 await step('Builder: só o pedido, sem nome obrigatório (IA não configurada = botão desligado)', async () => {
-  await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button:has-text("Criar site")[disabled]'); await page.waitForSelector('button:has-text("Otimizar pedido")[disabled]');
+  await nav('builder'); await page.waitForSelector('text=IA indisponível'); await page.waitForSelector('button[aria-label="Criar site"][disabled]'); await page.waitForSelector('button:has-text("Otimizar pedido")[disabled]');
   await page.waitForSelector('.dotfield canvas'); await page.waitForSelector('.orb'); await page.waitForSelector('.orb-text:has-text("Neva Studio")');
   await page.mouse.move(400, 200); await page.mouse.move(520, 260, { steps: 5 });
   await page.waitForFunction(() => { const c = document.querySelector('.dotfield canvas'); return c && c.width > 0; });
