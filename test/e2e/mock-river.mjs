@@ -70,6 +70,15 @@ function textFor(stage, body) {
     const msgs = body.messages || []; const last = msgs[msgs.length - 1]?.content || '';
     // Simula o formato quebrado do Nemotron: sem o pedido de correção a resposta vem com tag aberta; com ele, vem certa.
     if (/QUEBRAR_FORMATO/.test(msgs.map((m) => m.content).join('\n')) && !/O formato da sua resposta veio quebrado/.test(last)) return '<acoes>\n- Troquei o texto.\n</acoes>\n<editar arquivo="secoes/contato.html">\n<antes>\nFale com a padaria\n</depois>';
+    const all = msgs.map((m) => m.content).join('\n');
+    // Trecho "antes" que não existe no arquivo: sem o pedido de reescrita a resposta erra; com ele, devolve o arquivo inteiro.
+    if (/ANTES_ERRADO/.test(all)) {
+      if (!/não batem exatamente/.test(last)) return '<acoes>\n- Troquei o texto.\n</acoes>\n<editar arquivo="secoes/contato.html">\n<antes>\nTrecho que não existe no arquivo\n</antes>\n<depois>\nOutro\n</depois>\n</editar>';
+      const cur = last.match(/=== secoes\/contato\.html ===\n([\s\S]*)$/)?.[1] || '<section id="contato">x</section>';
+      return `<escrever arquivo="secoes/contato.html">\n${cur.replace('</section>', '<p>REESCRITO</p></section>')}\n</escrever>`;
+    }
+    // Resposta sem nenhuma operação: só com a cobrança ele manda as operações.
+    if (/RESPOSTA_VAZIA/.test(all) && !/não trouxe nenhuma operação/.test(last)) return '<acoes>\n- Vou trocar o texto.\n</acoes>';
     return EDIT;
   }
   if (stage === 'qa') return 'Raciocínio curto.\nRESPOSTA: 301';

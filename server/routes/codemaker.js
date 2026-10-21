@@ -962,11 +962,11 @@ r.post('/', async (req, res) => {
       logEdit('parsed', { edit: editId, operations: edit.operations.length, blocks: edit.blocks.length, invalid: edit.invalid, chars: full.length });
       // Formato quebrado (ex.: <antes> fechado com </depois>): em vez de devolver erro, pede ao modelo para reenviar as operações no formato certo.
       // Medido em produção: o Neva 1.5 errava o fechamento em 3 de 8 pedidos e a pessoa só via "Tente de novo".
-      if (edit.invalid && edit.operations.length === 0 && edit.blocks.length === 0 && editMessages) {
+      if (edit.operations.length === 0 && edit.blocks.length === 0 && editMessages) {
         emit('<etapa>alteracao</etapa>\n');
         try {
           const retry = repairDsml(await completeJson(apiKey, model, '', '', signal, { ...metaOf('cm_edit:formato'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-30000) },
-            { role: 'user', content: 'O formato da sua resposta veio quebrado e nada foi aplicado. Reenvie TODAS as operações de novo, no formato exato: cada <editar arquivo="..."> tem um <antes>...</antes> e um <depois>...</depois> e fecha com </editar>; <criar arquivo="..."> fecha com </criar>; <apagar arquivo="..."/> é de uma linha só. O <antes> fecha SEMPRE com </antes> (nunca com </depois>). Sem comentários fora das tags.' }] }));
+            { role: 'user', content: (edit.invalid ? 'O formato da sua resposta veio quebrado e nada foi aplicado.' : 'Sua resposta não trouxe nenhuma operação e nada foi aplicado.') + ' Reenvie TODAS as operações de novo, no formato exato: cada <editar arquivo="..."> tem um <antes>...</antes> e um <depois>...</depois> e fecha com </editar>; <criar arquivo="..."> fecha com </criar>; <apagar arquivo="..."/> é de uma linha só. O <antes> fecha SEMPRE com </antes> (nunca com </depois>). Sem comentários fora das tags.' }] }));
           const again = E.parseProjectEdit(retry);
           logEdit('format_retry', { edit: editId, operations: again.operations.length, blocks: again.blocks.length, invalid: again.invalid });
           if (again.operations.length || again.blocks.length) { edit = again; full = retry; }
@@ -979,8 +979,26 @@ r.post('/', async (req, res) => {
           ? `Nenhum arquivo foi alterado. ${edit.actions.join(' ').slice(0, 600)}`
           : 'A IA não devolveu nenhuma alteração nos arquivos. Tente explicar de outro jeito.';
       }
-      const applied = E.applyProjectEdit(plan, site.parts, files, edit, { brief, fresh });
-      const failed = applied.results.filter((result) => !result.ok);
+      let applied = E.applyProjectEdit(plan, site.parts, files, edit, { brief, fresh });
+      let failed = applied.results.filter((result) => !result.ok);
+      // Trechos "antes" que não batem com o arquivo (comum em HTML longo): em vez de desistir, pede o arquivo inteiro reescrito
+      // com o pedido aplicado e refaz o conjunto (operações que deram certo + arquivos reescritos).
+      const missed = [...new Set(failed.filter((r) => /não encontrado/.test(r.reason || '')).map((r) => r.path))].filter((path) => tree[path] !== undefined).slice(0, 2);
+      if (missed.length && editMessages) {
+        emit('<etapa>alteracao</etapa>\n');
+        try {
+          const retry = repairDsml(await completeJson(apiKey, model, '', '', signal, { ...metaOf('cm_edit:reescrita'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-20000) },
+            { role: 'user', content: `Os trechos <antes> de ${missed.join(', ')} não batem exatamente com o arquivo, então nada foi aplicado nele. Abaixo está o conteúdo ATUAL e completo de cada arquivo. Reenvie cada um INTEIRO, já com o pedido aplicado e tudo o mais igual, no formato <escrever arquivo="caminho">conteúdo completo</escrever>. Responda só com as tags.\n\n${missed.map((path) => `=== ${path} ===\n${tree[path]}`).join('\n\n')}` }] }));
+          const again = E.parseProjectEdit(retry);
+          const writes = again.operations.filter((op) => op.kind === 'write' && missed.includes(op.path.replace(/#tema$/, '')));
+          logEdit('rewrite_retry', { edit: editId, missed: missed.length, writes: writes.length });
+          if (writes.length) {
+            const keep = edit.operations.filter((_, i) => applied.results[i]?.ok);
+            const combined = E.applyProjectEdit(plan, site.parts, files, { ...edit, operations: [...keep, ...writes] }, { brief, fresh });
+            if (combined.changes.length > applied.changes.length || applied.changes.length === 0) { applied = combined; failed = combined.results.filter((result) => !result.ok); full = `${full}\n${retry}`; }
+          }
+        } catch (error) { if (signal.aborted) throw error; }
+      }
       logEdit('applied', {
         edit: editId, ok: applied.results.length - failed.length, failed: failed.length,
         reasons: failed.map((result) => result.reason), changed: applied.changes.map((change) => `${change.change}:${change.path}`)

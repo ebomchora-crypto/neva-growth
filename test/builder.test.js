@@ -274,6 +274,28 @@ test('alteração com formato quebrado: o servidor pede a correção ao modelo e
   assert.ok(changes.files.some((f) => f.path === 'secoes/contato.html'));
 });
 
+async function builtSite() {
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site para a Padaria Tres em Recife, pedidos pelo WhatsApp.' }, model: 'neva-1-0', effort: 'medium' });
+  const id = created.body.site.id;
+  await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
+  const site = (await call('GET', '/api/code-maker/' + id)).body.site;
+  for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  return id;
+}
+test('alteração cujo trecho "antes" não bate: o servidor pede o arquivo inteiro reescrito e a alteração é aplicada', async () => {
+  const id = await builtSite();
+  const edit = await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Troque a chamada final (ANTES_ERRADO)' });
+  assert.match(edit.body, /<<<OK>>>\s*$/, edit.body.slice(-300));
+  const changes = (await call('GET', `/api/code-maker/${id}/changes`)).body;
+  assert.ok(changes.files.some((f) => f.path === 'secoes/contato.html' && /REESCRITO/.test(f.after)), 'o arquivo reescrito foi gravado');
+});
+test('alteração que volta sem nenhuma operação: o servidor cobra as operações e aplica', async () => {
+  const id = await builtSite();
+  const edit = await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Troque a chamada final (RESPOSTA_VAZIA)' });
+  assert.match(edit.body, /<<<OK>>>\s*$/, edit.body.slice(-300));
+  assert.ok((await call('GET', `/api/code-maker/${id}/changes`)).body.files.length > 0);
+});
+
 test('<antes> fechado com </depois> é lido como o modelo quis dizer', () => {
   const edit = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nTexto velho\n</depois>\n<depois>\nTexto novo\n</depois>\n</editar>');
   assert.equal(edit.invalid, 0); assert.equal(edit.operations.length, 1);
