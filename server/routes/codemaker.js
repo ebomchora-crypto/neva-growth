@@ -123,6 +123,15 @@ async function syncProjectFiles(projectId, html, pagesHtml) {
   await run("UPDATE projects SET updated_at=datetime('now') WHERE id=?", projectId);
 }
 // Junta a parte nova às já salvas (sem perder as que outras chamadas gravaram ao mesmo tempo).
+// Espera entre tentativas. 429 (limite de requisições paralelas da chave): respeita Retry-After; sem ele, 4 s a 12 s,
+// para as outras seções em andamento terminarem em vez de todas insistirem juntas.
+function retryDelay(response, attempt) {
+  if (response.status === 429) {
+    const after = Number(response.headers.get('retry-after'));
+    return (Number.isFinite(after) && after > 0 ? Math.min(after, 30) * 1000 : Math.min(4000 + attempt * 1500, 12000)) + Math.random() * 1500;
+  }
+  return 1500 * 2 ** attempt + Math.random() * 800;
+}
 async function mergePart(siteId, partId, html) {
   return await tx(async () => {
     const row = await get('SELECT parts FROM code_sites WHERE project_id=? FOR UPDATE', siteId);
@@ -283,7 +292,7 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   const maxTokens = meta.raw ? (meta.maxTokens || 900) + (Object.keys(native).length ? 1000 : 0) : ai.withHeadroom(meta.maxTokens || 9000, meta.sel?.effort, native);
   let body = { model, max_tokens: maxTokens, stream: false, temperature: meta.sel ? ai.temperatureOf(meta.sel.model) : undefined,
     ...native, messages: meta.messages || [{ role: 'system', content: system }, { role: 'user', content }] };
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (let attempt = 0; attempt < 9; attempt++) {
     response = await fetch(AI_URL(), {
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -291,8 +300,8 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
       signal
     });
     if (response.status === 400 && ai.hasNative(body)) { ai.markRefused(); body = ai.withoutNative(body); continue; }
-    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 4) break;
-    await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** attempt + Math.random() * 800));
+    if (![429, 500, 502, 503, 504].includes(response.status) || attempt === (response.status === 429 ? 8 : 4)) break;
+    await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
   }
   if (!response.ok) {
     ai.logCall({ siteId: meta.siteId, stage: T.stageOfKind(meta.kind || 'cm_json'), kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, ok: false, note: `HTTP ${response.status}` });
@@ -407,9 +416,9 @@ async function streamAi(req, res, options) {
       });
       // A River recusou o parâmetro nativo de raciocínio: tira e tenta de novo.
       if (response.status === 400 && ai.hasNative(body)) { ai.markRefused(); body = ai.withoutNative(body); await response.body?.cancel().catch(() => {}); continue; }
-      if (![429, 500, 502, 503, 504].includes(response.status) || attempt === 4) break;
+      if (![429, 500, 502, 503, 504].includes(response.status) || attempt === (response.status === 429 ? 8 : 4)) break;
       await response.body?.cancel().catch(() => {});
-      await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** attempt + Math.random() * 800));
+      await new Promise((resolve) => setTimeout(resolve, retryDelay(response, attempt)));
     }
     if (!response.ok || !response.body) {
       console.error('code-maker ai', response.status, await response.text().catch(() => ''));
