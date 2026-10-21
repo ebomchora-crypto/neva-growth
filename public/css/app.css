@@ -1866,3 +1866,8 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 }
 @media(max-width:380px){.searchbtn #searchlbl{font-size:.8rem}}
 @media(max-width:640px){h1 em,h2 em,h3 em,h4 em,.hero em,.lv-big em{font-size:inherit!important}}
+/* Botão "Ao vivo" no celular: só o ponto, centralizado (o rótulo oculto ocupava uma linha da grade e empurrava o ponto para cima) */
+@media(max-width:640px){
+  .topbar2 .livepill{display:inline-flex!important;align-items:center;justify-content:center;gap:0}
+  .topbar2 .livepill span{display:none}
+}
