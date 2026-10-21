@@ -26,7 +26,8 @@ function contrastRules(items, known) {
 const cssFor = (rule) => `${rule.path}{color:${rule.color}!important;-webkit-text-fill-color:${rule.color}!important}`;
 
 /** @param {{plan:object, parts:object, assemble:(plan:object, parts:object)=>string, inspect?:Function, onStep?:Function, shotsDir?:string}} o */
-async function refineVisually({ plan, parts, assemble, inspect = QA.inspectHtml, onStep = () => {}, shotsDir }) {
+async function refineVisually({ plan, parts, assemble, inspect = QA.inspectHtml, onStep = () => {}, shotsDir, budgetMs = Number(process.env.CM_REFINE_BUDGET_MS) || 170000 }) {
+  const startedAt = Date.now();
   if (process.env.CM_RENDER_QA === '0') return { available: false, plan, cycles: [], reason: 'inspeção visual desligada (CM_RENDER_QA=0)' };
   if (inspect === QA.inspectHtml && !QA.available()) return { available: false, plan, cycles: [], reason: 'navegador de inspeção indisponível neste ambiente' };
   const cycles = [];
@@ -44,6 +45,8 @@ async function refineVisually({ plan, parts, assemble, inspect = QA.inspectHtml,
     const rules = contrastRules(contrast, applied);
     const overflow = report.findings.some((f) => f.kind === 'overflow-horizontal') && !applied.has('overflow');
     if (cycle === MAX_CYCLES || (!rules.length && !overflow)) break;
+    // Orçamento de tempo (a função serverless tem teto): só abre outro ciclo se couber inspeção + verificação.
+    if (Date.now() - startedAt + summary.ms * 1.2 > budgetMs) { cycles[cycles.length - 1].parou = 'orçamento de tempo'; break; }
     let css = current.qaCss || '';
     for (const rule of rules) { css += cssFor(rule); }
     if (overflow) { applied.set('overflow', 1); css += 'html,body{overflow-x:clip}'; }

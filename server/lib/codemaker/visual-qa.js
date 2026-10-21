@@ -4,9 +4,19 @@
 const fs = require('node:fs');
 
 const CANDIDATES = [process.env.CM_BROWSER, '/opt/pw-browsers/chromium', '/usr/bin/chromium', '/usr/bin/chromium-browser', '/usr/bin/google-chrome'].filter(Boolean);
-function browserPath() { return CANDIDATES.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null; }
+function browserPath() { if (process.env.CM_PACKED_ONLY === '1') return null; return CANDIDATES.find((p) => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null; }
 function playwright() { try { return require('playwright-core'); } catch { return null; } }
-function available() { return Boolean(browserPath() && playwright()); }
+// Navegador: o instalado na máquina (CM_BROWSER, /opt/pw-browsers…) ou, em servidor serverless (Vercel), o Chromium
+// empacotado de @sparticuz/chromium (baixado do pacote e descompactado em /tmp na primeira chamada).
+function hasPackedChromium() { try { require.resolve('@sparticuz/chromium'); return true; } catch { return false; } }
+function available() { return Boolean(playwright() && (browserPath() || hasPackedChromium())); }
+async function launchBrowser() {
+  const { chromium } = playwright();
+  const local = browserPath();
+  if (local) return chromium.launch({ executablePath: local, args: ['--no-sandbox'] });
+  const packed = require('@sparticuz/chromium');
+  return chromium.launch({ executablePath: await packed.executablePath(), args: packed.args, headless: true });
+}
 
 const VIEWPORTS = [{ name: 'celular', width: 390, height: 844 }, { name: 'tablet', width: 768, height: 1024 }, { name: 'desktop', width: 1440, height: 900 }];
 
@@ -116,14 +126,15 @@ async function pixelContrast({ shot, items }) {
 
 /** Renderiza e mede. `shotsDir` (opcional) salva capturas por largura para a inspeção estética. */
 async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = {}) {
-  if (!available()) return { available: false, reason: browserPath() ? 'playwright-core ausente' : 'nenhum navegador encontrado (defina CM_BROWSER)' };
-  const { chromium } = playwright();
-  const browser = await chromium.launch({ executablePath: browserPath(), args: ['--no-sandbox'] });
+  if (!available()) return { available: false, reason: playwright() ? 'nenhum navegador encontrado (defina CM_BROWSER ou instale @sparticuz/chromium)' : 'playwright-core ausente' };
+  const browser = await launchBrowser();
   const results = []; const findings = [];
   try {
+    // Um contexto só: o Chromium empacotado roda em processo único e cai se o contexto for fechado no meio.
+    const ctx = await browser.newContext({ viewport: { width: VIEWPORTS[0].width, height: VIEWPORTS[0].height }, reducedMotion: 'reduce' });
     for (const vp of VIEWPORTS) {
-      const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height }, reducedMotion: 'reduce' });
       const page = await ctx.newPage();
+      await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.setContent(html, { waitUntil: 'networkidle', timeout }).catch(() => {});
       await page.waitForTimeout(600);
       // Imagens lazy não carregam numa captura de página inteira: força o carregamento antes de medir e fotografar.
@@ -158,9 +169,9 @@ async function inspectHtml(html, { shotsDir, name = 'site', timeout = 30000 } = 
       if (m.small.length) add('medio', 'texto-pequeno', m.small.slice(0, 4).map((s) => `${s.px}px "${s.text}"`).join(' | '));
       if (m.taps.length) add('medio', 'alvo-de-toque', m.taps.slice(0, 4).map((t) => `${t.el} ${t.w}x${t.h}`).join(' | '));
       if (m.emptySections.length) add('medio', 'secao-vazia', m.emptySections.join(', '));
-      await ctx.close();
+      await page.close();
     }
-  } finally { await browser.close(); }
+  } finally { await browser.close().catch(() => {}); }
   const rank = { critico: 3, alto: 2, medio: 1 };
   return { available: true, findings, critical: findings.filter((f) => f.severity === 'critico').length, results, summary: findings.reduce((a, f) => ({ ...a, [f.severity]: (a[f.severity] || 0) + 1 }), {}), worst: findings.sort((a, b) => rank[b.severity] - rank[a.severity])[0] || null };
 }
@@ -172,7 +183,7 @@ const PRIVATE = /^(localhost|.*\.local|.*\.internal|127\.|10\.|192\.168\.|172\.(
 async function measureReference(url, { shotsDir, name = 'ref', timeout = 25000 } = {}) {
   if (!available()) return { ok: false, error: 'sem navegador' };
   const { chromium } = playwright();
-  const browser = await chromium.launch({ executablePath: browserPath(), args: ['--no-sandbox'] });
+  const browser = await launchBrowser();
   try {
     const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, reducedMotion: 'reduce', locale: 'pt-BR' });
     const page = await ctx.newPage();

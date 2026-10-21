@@ -1648,3 +1648,22 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .profit .aibtn:not(.ghost) i{background:#fff;color:var(--ice-600,#2f7bbd);box-shadow:0 2px 8px rgba(10,40,80,.25)}
 .profit .aibtn:not(.ghost) .ico{stroke-width:2.4}
 @media(prefers-reduced-motion:reduce){.ins-wait .orb-l{animation:none}}
+
+
+/* Celular (correções de layout): regras de desktop declaradas depois vencem as de mobile, então as de mobile ficam por último. */
+@media(max-width:1100px){.dash3{grid-template-columns:minmax(0,1fr)!important}.dashgrid{grid-template-columns:minmax(0,1fr)!important}}
+@media(max-width:860px){
+  /* topo: busca ocupa o espaço, botões em tamanho de toque sem estourar a linha */
+  .topbar2{gap:6px;padding:10px 10px 6px}
+  .topbar2{flex-wrap:wrap;row-gap:8px}
+  .topbar2 .searchbtn{order:9;flex:1 1 100%;max-width:none;min-width:0;padding:11px 14px;border-radius:14px}
+  .topbar2 .iconbtn:has(.ico-refresh),.topbar2 button[aria-label="Atualizar dados"]{display:none}
+  .topbar2 .livepill{padding:0;width:42px;height:42px;min-width:42px;display:grid;place-items:center;font-size:0;letter-spacing:0;gap:0}
+  .topbar2 .livepill i{margin:0}
+  .topbar2 .userpill{padding:4px}.topbar2 .userpill .uchev,.topbar2 .userpill .uname{display:none}
+  .topbar2 .iconbtn,.topbar2 .menu-btn{width:42px;height:42px;flex:0 0 auto}
+  /* nada passa da largura da tela */
+  .shell,.main,main,.mainc,.panel,.card{min-width:0;max-width:100%}
+  img,svg,video,canvas{max-width:100%}
+  .walletpanel{width:100%}
+}
