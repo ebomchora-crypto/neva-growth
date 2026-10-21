@@ -1775,3 +1775,58 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .ap-stack .bstatus{background:rgba(10,24,40,.62);color:#fff;padding:8px 12px;border-radius:12px}
 @media(max-width:520px){.ap-ghost{padding:0 8px}.ap-effort-name{display:none}.ap-card textarea.ap-field{padding:12px 14px 2px}}
 @media(prefers-reduced-motion:reduce){.ap-chev,.ap-send,.ap-bars i{transition:none}}
+
+/* ===== Polimento mobile (auditoria 390/360/320 px) =====
+   Fica por último de propósito: várias regras de desktop declaradas mais abaixo no arquivo venciam as de celular. */
+@media(max-width:900px){
+  .sfeat{grid-template-columns:minmax(0,1fr)!important;min-height:0}
+  .sf-win{padding:12px}.sf-view{min-height:220px}
+  .sf-side{padding:20px 18px 18px;gap:14px}
+}
+@media(max-width:640px){
+  /* Dashboard: botões de IA com rótulo (antes colapsavam em 44 px e cortavam o texto) */
+  .aibtn{max-width:none!important;overflow:visible!important;padding:6px 14px 6px 6px!important;color:#fff;gap:8px!important;white-space:nowrap;min-height:38px;font-size:.78rem}
+  .aibtn.ghost{color:var(--ice-700);padding:6px 16px!important}
+  .profit .top>div:last-child{flex-wrap:wrap}
+  .profit .periodbar .pill{min-height:36px;padding:7px 10px}
+  .walletpanel .vt{display:inline-flex;align-items:center;min-height:36px}
+  /* Clientes: cada linha vira um cartão empilhado, sem colunas espremidas */
+  .crow{grid-template-columns:minmax(0,1fr);gap:10px}
+  .crow .ccell.rs{flex-direction:row;align-items:center;justify-content:space-between;width:100%}
+  .crow .racts{display:flex;align-items:center;gap:6px}
+  .dossie{min-height:36px;padding:0 6px;font-size:.8rem}.cdel{width:38px;height:38px}
+  /* Abas e filtros em uma linha só, com rolagem lateral (antes quebravam em duas linhas desencontradas) */
+  .pills,.tabs{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;max-width:100%}
+  .pills::-webkit-scrollbar,.tabs::-webkit-scrollbar{display:none}
+  .pills .pill,.tabs button{flex:none;white-space:nowrap}
+  .tabs button{padding:11px 14px}
+  /* Vendas: etiqueta "SELECIONADO" não corta o nome da venda */
+  .sv-name b{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;white-space:normal}
+  .sv-name b em{flex:none}
+  .sv-chip{min-height:30px}
+  /* Sites: ações do cartão em destaque em uma grade limpa; links pequenos com área de toque */
+  .sf-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
+  .sf-foot>.sf-client{grid-column:1/-1;max-width:none}
+  .sf-foot .sf-btn{width:100%;justify-content:center;min-height:44px}
+  .sf-foot .sf-btn.open{grid-column:1/-1}
+  .sf-more{gap:6px;flex-wrap:wrap}.sf-more a,.sf-more button{display:inline-flex;align-items:center;min-height:36px;padding:0 10px!important;font-size:.84rem}
+  .sf-ext{width:40px;height:40px}
+  /* Prospecção: raio com rótulo e valor em linhas próprias */
+  .range{flex-wrap:wrap}.range>span{flex:1 1 100%}.range input[type=range]{flex:1;min-width:0}.range>span:last-child{flex:none;white-space:nowrap}
+  /* Associação: faixa de status empilhada em vez de 4 colunas estreitas */
+  .mk-pill{flex-wrap:wrap;gap:8px 12px;padding:14px 16px}.mk-pill>div{flex:1 1 calc(100% - 30px)}.mk-pill>span{flex:none}.mk-pill strong{margin-left:auto}
+  /* Vendas ao vivo: o valor grande cabe na largura */
+  .lv-big{gap:8px;flex-wrap:nowrap}.lv-big strong{font-size:min(clamp(3rem,11vh,5rem),13.5vw);white-space:nowrap}.lv-big span{font-size:min(clamp(1.4rem,4.4vh,2rem),6vw)}
+  /* Textos de apoio que eram ilegíveis (8–10 px) */
+  .kicker,.k,.lcat,.dc-chip,.mc-no,.lv-kick,.ex,th,.pg-compact th{font-size:11px!important}
+  small,.sm,em{font-size:max(11px,.72rem)}
+  .tbl th,table th{font-size:11px}
+  /* Alvos de toque mínimos */
+  .dc-ext{width:40px;height:40px}.mk-back,.lv-back{min-height:40px;display:inline-flex;align-items:center}
+  .leaflet-control-zoom a{width:38px!important;height:38px!important;line-height:38px!important}
+  /* Tabelas: a coluna do nome nunca fica com uma palavra por linha */
+  table td:first-child,table th:first-child{min-width:132px}
+  table td:nth-child(2),table th:nth-child(2){min-width:116px}
+}
+@media(max-width:380px){.ap-effort-name{display:none}}
+@media(min-width:381px) and (max-width:520px){.ap-effort-name{display:inline}}
