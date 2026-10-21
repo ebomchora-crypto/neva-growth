@@ -296,6 +296,24 @@ test('alteração que volta sem nenhuma operação: o servidor cobra as operaç�
   assert.ok((await call('GET', `/api/code-maker/${id}/changes`)).body.files.length > 0);
 });
 
+test('alteração em site de modo livre usa o modelo de código (o mesmo que escreve as seções) e pede a seção inteira', async () => {
+  const cfg = require('../server/lib/config');
+  const id = await builtSite();
+  const site = (await call('GET', '/api/code-maker/' + id)).body.site;
+  const free = Object.keys(site.parts || {}).some((pid) => E.isFreeSection(site.plan, pid, site.brief));
+  await run("INSERT INTO app_settings(key,value) VALUES ('NEVA_CODE_MODEL','mock/padrao') ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value");
+  await cfg.refresh(true);
+  try {
+    const before = (await seen()).length;
+    await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Troque a chamada final' });
+    const edits = (await seen()).slice(before).filter((c) => c.stage === 'edit');
+    assert.ok(edits.length);
+    if (free) assert.ok(edits.every((c) => c.model === 'mock/padrao'), 'modo livre: modelo de código nas alterações');
+    assert.match(fs.readFileSync(path.join(__dirname, '..', 'server/lib/codemaker/engine.js'), 'utf8'), /REESCREVA O ARQUIVO INTEIRO/, 'o prompt de alteração manda reescrever a seção inteira');
+  } finally {
+    await run("DELETE FROM app_settings WHERE key='NEVA_CODE_MODEL'"); await cfg.refresh(true);
+  }
+});
 test('<antes> fechado com </depois> é lido como o modelo quis dizer', () => {
   const edit = E.parseProjectEdit('<editar arquivo="secoes/hero.html">\n<antes>\nTexto velho\n</depois>\n<depois>\nTexto novo\n</depois>\n</editar>');
   assert.equal(edit.invalid, 0); assert.equal(edit.operations.length, 1);

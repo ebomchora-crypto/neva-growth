@@ -897,6 +897,8 @@ r.post('/', async (req, res) => {
   if (!instruction) throw bad('Diga o que você quer mudar.');
   if (site.status !== 'ready') throw new HttpError(409, 'Espere o site terminar de ser gerado.');
   const editId = crypto.randomUUID().slice(0, 8);
+  // Alterar HTML em modo livre é escrever código: usa o mesmo modelo de código das seções (o criador de sites "ótimo"), não o modelo do nível.
+  const editModel = provider() ? model : (Object.keys(site.parts || {}).some((pid) => E.isFreeSection(planForAi, pid, site.brief)) && (await ai.pickCodeModel().catch(() => null))) || model;
   const files = site.files ?? {};
   const fresh = [];
   const brief = site.brief;
@@ -908,18 +910,18 @@ r.post('/', async (req, res) => {
   const treeChars = Object.values(tree).reduce((sum, content) => sum + content.length, 0);
 
   const buildMessages = async (signal, emit = () => {}) => {
-    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => specOnce(apiKey, model, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2)));
+    editSpecification = await E.prepareSpecificationContext(instruction, (chunk) => specOnce(apiKey, editModel, chunk, signal, metaOf('cm_spec')), Math.min(24000, Math.floor(inputBudget / 2)));
     // Só o que precisa de servidor fica de fora (spec.ts filtra o resto).
     const limits = editSpecification.limitations.length
       ? `\n\nEstes itens normalmente pedem servidor: ${editSpecification.limitations.join('; ')}. Não recuse nem deixe de fora: entregue a versão funcional que roda no navegador (telas e fluxo completos, dados no localStorage, links de pagamento/WhatsApp/e-mail) e conte numa ação o que foi feito. Faça também todo o resto do pedido.`
       : '';
-    const compacted = instruction.length > inputBudget / 4 ? await compactContext(instruction, Math.floor(inputBudget / 4), apiKey, model, signal) : instruction;
+    const compacted = instruction.length > inputBudget / 4 ? await compactContext(instruction, Math.floor(inputBudget / 4), apiKey, editModel, signal) : instruction;
     // Arquivos que vão inteiros: todos, se cabem; senão a IA escolhe pelo índice.
     const filesBudget = Math.max(12000, Math.floor(inputBudget * 0.62) - compacted.length);
     let chosen = [];
     if (treeChars > filesBudget) {
       try {
-        const picked = await completeJson(apiKey, model, SELECT_SYSTEM, `Pedido:\n${compacted.slice(0, 6000)}\n\nArquivos:\n${E.fileIndex(tree)}`, signal, metaOf('cm_select'));
+        const picked = await completeJson(apiKey, editModel, SELECT_SYSTEM, `Pedido:\n${compacted.slice(0, 6000)}\n\nArquivos:\n${E.fileIndex(tree)}`, signal, metaOf('cm_select'));
         chosen = Array.isArray(picked?.arquivos) ? picked.arquivos.filter((p) => typeof p === 'string') : [];
       } catch (error) {
         logEdit('select_failed', { edit: editId, reason: error instanceof Error ? error.message : 'erro' });
@@ -940,7 +942,7 @@ r.post('/', async (req, res) => {
       if (!notes) {
         emit('<etapa>analise</etapa>\n');
         try {
-          notes = (await completeJson(apiKey, model, system, `${ANALYSIS.edit}${sel.effort === 'xhigh' ? ` ${CRITIQUE}` : ''}\n\n${content}`, signal,
+          notes = (await completeJson(apiKey, editModel, system, `${ANALYSIS.edit}${sel.effort === 'xhigh' ? ` ${CRITIQUE}` : ''}\n\n${content}`, signal,
             { ...metaOf('cm_edit:analise'), raw: true, native: true, maxTokens: ANALYSIS_TOKENS[sel.effort] })).slice(0, 9000);
           await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S({ ...brief, edit_analysis: { key, notes } }), site.id);
         } catch (error) { if (signal.aborted) throw error; notes = ''; }
@@ -954,7 +956,7 @@ r.post('/', async (req, res) => {
   let editMessages = null;
 
   return streamAi(req, res, {
-    apiKey, model, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id, siteId: site.id,
+    apiKey, model: editModel, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id, siteId: site.id,
     prepare: buildMessages,
     messages: [],
     finish: async (full, signal, emit) => {
@@ -965,7 +967,7 @@ r.post('/', async (req, res) => {
       if (edit.operations.length === 0 && edit.blocks.length === 0 && editMessages) {
         emit('<etapa>alteracao</etapa>\n');
         try {
-          const retry = repairDsml(await completeJson(apiKey, model, '', '', signal, { ...metaOf('cm_edit:formato'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-30000) },
+          const retry = repairDsml(await completeJson(apiKey, editModel, '', '', signal, { ...metaOf('cm_edit:formato'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-30000) },
             { role: 'user', content: (edit.invalid ? 'O formato da sua resposta veio quebrado e nada foi aplicado.' : 'Sua resposta não trouxe nenhuma operação e nada foi aplicado.') + ' Reenvie TODAS as operações de novo, no formato exato: cada <editar arquivo="..."> tem um <antes>...</antes> e um <depois>...</depois> e fecha com </editar>; <criar arquivo="..."> fecha com </criar>; <apagar arquivo="..."/> é de uma linha só. O <antes> fecha SEMPRE com </antes> (nunca com </depois>). Sem comentários fora das tags.' }] }));
           const again = E.parseProjectEdit(retry);
           logEdit('format_retry', { edit: editId, operations: again.operations.length, blocks: again.blocks.length, invalid: again.invalid });
@@ -987,7 +989,7 @@ r.post('/', async (req, res) => {
       if (missed.length && editMessages) {
         emit('<etapa>alteracao</etapa>\n');
         try {
-          const retry = repairDsml(await completeJson(apiKey, model, '', '', signal, { ...metaOf('cm_edit:reescrita'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-20000) },
+          const retry = repairDsml(await completeJson(apiKey, editModel, '', '', signal, { ...metaOf('cm_edit:reescrita'), raw: true, maxTokens: MAX_TOKENS.edit[sel.effort], messages: [...editMessages, { role: 'assistant', content: full.slice(-20000) },
             { role: 'user', content: `Os trechos <antes> de ${missed.join(', ')} não batem exatamente com o arquivo, então nada foi aplicado nele. Abaixo está o conteúdo ATUAL e completo de cada arquivo. Reenvie cada um INTEIRO, já com o pedido aplicado e tudo o mais igual, no formato <escrever arquivo="caminho">conteúdo completo</escrever>. Responda só com as tags.\n\n${missed.map((path) => `=== ${path} ===\n${tree[path]}`).join('\n\n')}` }] }));
           const again = E.parseProjectEdit(retry);
           const writes = again.operations.filter((op) => op.kind === 'write' && missed.includes(op.path.replace(/#tema$/, '')));

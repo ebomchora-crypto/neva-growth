@@ -3263,7 +3263,8 @@ FORMATO DA RESPOSTA (sem nada antes ou depois):
 - (2 a 6 itens curtos, 1\xAA pessoa, linguagem simples, contando o que voc\xEA mudou)
 </acoes>
 Depois, as opera\xE7\xF5es nos arquivos (quantas precisar):
-- Trocar um trecho (preferido para texto, link, classe ou um bloco de c\xF3digo), com o c\xF3digo cru, sem escapar aspas:
+- SE\xC7\xD5ES (secoes/*.html) E P\xC1GINAS (paginas/*.html): para qualquer altera\xE7\xE3o (texto, cor, classe, layout, adicionar ou tirar elementos), REESCREVA O ARQUIVO INTEIRO com <escrever arquivo="secoes/guias.html">HTML completo da se\xE7\xE3o, j\xE1 com a altera\xE7\xE3o e tudo o mais igual</escrever>. \xC9 o jeito mais seguro: n\xE3o depende de copiar um trecho exato.
+- Trocar um trecho (use s\xF3 em site.json, estilos.css, script.js e head.html, ou numa mudan\xE7a de uma \xFAnica palavra), com o c\xF3digo cru, sem escapar aspas:
 <editar arquivo="secoes/guias.html">
 <antes>
 trecho EXATO copiado do arquivo atual (\xFAnico nele, com as mesmas aspas e espa\xE7os)

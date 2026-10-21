@@ -1439,7 +1439,8 @@ FORMATO DA RESPOSTA (sem nada antes ou depois):
 - (2 a 6 itens curtos, 1ª pessoa, linguagem simples, contando o que você mudou)
 </acoes>
 Depois, as operações nos arquivos (quantas precisar):
-- Trocar um trecho (preferido para texto, link, classe ou um bloco de código), com o código cru, sem escapar aspas:
+- SEÇÕES (secoes/*.html) E PÁGINAS (paginas/*.html): para qualquer alteração (texto, cor, classe, layout, adicionar ou tirar elementos), REESCREVA O ARQUIVO INTEIRO com <escrever arquivo="secoes/guias.html">HTML completo da seção, já com a alteração e tudo o mais igual</escrever>. É o jeito mais seguro: não depende de copiar um trecho exato.
+- Trocar um trecho (use só em site.json, estilos.css, script.js e head.html, ou numa mudança de uma única palavra), com o código cru, sem escapar aspas:
 <editar arquivo="secoes/guias.html">
 <antes>
 trecho EXATO copiado do arquivo atual (único nele, com as mesmas aspas e espaços)
