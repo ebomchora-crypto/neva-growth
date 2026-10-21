@@ -1878,3 +1878,10 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .sm-art{box-shadow:0 30px 70px rgba(0,0,0,.5),0 0 0 1px rgba(255,255,255,.25)}
 .sm-main{background:linear-gradient(135deg,#eaf4fd,#8fc0ea 55%,#5fa4dc);box-shadow:0 16px 36px rgba(95,164,220,.45)}
 .sm-x{z-index:5;background:rgba(10,29,51,.82);backdrop-filter:blur(6px)}
+/* Painel de lucro: a faixa de botões + períodos quebra de linha em vez de vazar do cartão */
+.profit .top{flex-wrap:wrap!important;row-gap:12px}
+.profit .top>div:last-child{flex-wrap:wrap!important;min-width:0;max-width:100%;justify-content:flex-end}
+.profit .periodbar{max-width:100%;min-width:0}
+.profit .periodbar .pills{overflow-x:auto;scrollbar-width:none;max-width:100%}.profit .periodbar .pills::-webkit-scrollbar{display:none}
+.profit .top>div:last-child>*{flex:none}
+.profit .top .aibtn{max-width:none!important;overflow:visible!important;white-space:nowrap;padding-right:14px!important}
