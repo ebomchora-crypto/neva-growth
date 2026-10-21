@@ -462,3 +462,33 @@ test('provedor do Builder: com CODEMAKER_API_KEY o Code Maker usa URL, chave e m
     await cfg.refresh(true);
   }
 });
+
+test('telemetria: cada chamada fica ligada ao site com etapa, tokens, motivo de encerramento e custo estimado; sem prompts nos registros', async () => {
+  const T = require('../server/lib/telemetry');
+  const created = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site da Mercearia Estrela em Olinda, pedidos pelo WhatsApp.' }, model: 'neva-1-2', effort: 'medium' });
+  const id = created.body.site.id;
+  assert.match((await call('POST', '/api/code-maker', { action: 'plan', site_id: id, model: 'neva-1-2', effort: 'medium' })).body, /<<<OK>>>\s*$/);
+  const plan = (await call('GET', '/api/code-maker/' + id)).body.site.plan;
+  for (const pid of E.partOrder(plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid, model: 'neva-1-2', effort: 'medium' });
+  const tl = (await call('GET', `/api/code-maker/${id}/telemetry`)).body;
+  assert.equal(tl.site, id); assert.ok(tl.totals.calls >= 5);
+  assert.ok(tl.calls.every((c) => c.stage && c.provider_model), 'toda chamada tem etapa e modelo');
+  for (const stage of ['brief', 'direction', 'code']) assert.ok(tl.byStage[stage]?.calls >= 1, stage);
+  assert.ok(tl.calls.some((c) => c.finish_reason), 'motivo de encerramento registrado');
+  assert.ok(tl.events.some((e) => e.stage === 'references' && e.detail && 'cobertura' in e.detail), 'tempo da etapa de referências');
+  assert.ok(tl.totals.tokensIn > 0 && tl.totals.tokensOut > 0);
+  assert.ok(tl.totals.costUsd > 0 && tl.totals.costUsd < 1, 'modelo com preço público: custo estimado pelos tokens reais');
+  assert.equal(T.costOf({ provider_model: 'zai-org/GLM-5.3-Flash', prompt_tokens: 1_000_000, completion_tokens: 1_000_000 }), 0.52);
+  assert.equal(T.costOf({ provider_model: 'modelo-sem-preco', prompt_tokens: 10, completion_tokens: 10 }), null);
+  const raw = JSON.stringify(tl); assert.ok(!/RIVER_API_KEY|chave-de-teste|Bearer|system prompt|SYSTEM PROMPT/i.test(raw), 'a telemetria não carrega prompts nem credenciais');
+});
+
+test('regressão Brasa Burger: paleta com texto da cor do fundo é consertada (tema, contraste mínimo 7:1 no texto principal)', () => {
+  const lum = (hex) => { const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const plan = E.normalizePlan({ title: 'Brasa', description: 'd', direction: 'x', theme: 'dark', palette: { brand: '#141311', brandDark: '#0a0908', accent: '#FF5A24', ink: '#F3EBDD', paper: '#F3EBDD', surface: '#E8DFCE', muted: '#F3EBDD' }, fonts: { display: 'Anton', body: 'DM Sans' }, sections: [{ id: 'hero', label: 'Início', layout: 'hero-brilho', headline: 'h', brief: 'b', bg: 'paper' }] }, { businessName: 'BRASA BURGER', details: 'Hamburgueria artesanal', style: 'auto', assets: [] });
+  assert.ok(ratio(plan.palette.ink, plan.palette.paper) >= 7, 'texto x fundo');
+  assert.ok(ratio(plan.palette.ink, plan.palette.surface) >= 4.5, 'texto x superfície');
+  assert.ok(ratio(plan.palette.muted, plan.palette.paper) >= 4.5, 'texto secundário x fundo');
+  assert.ok(Array.isArray(plan.paletteFixes) && plan.paletteFixes.length > 0, 'correções registradas');
+});

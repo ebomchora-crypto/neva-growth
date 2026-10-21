@@ -127,6 +127,8 @@ export interface SitePlan {
   /** Composição do site: contêiner, respiro, caixa dos títulos e divisórias (veja composition.ts). */
   composition?: Partial<Composition>
   creative?: CreativeSpec
+  /** Correções automáticas feitas na paleta do diretor de arte (contraste texto/fundo, tema coerente). */
+  paletteFixes?: string[]
   sections: PlanSection[]
   globalRequirementIds?: string[]
   specification?: CodeMakerSpecification
@@ -770,6 +772,32 @@ function mixHex(a: string, b: string, weight: number): string {
   return `#${[0, 1, 2]
     .map((i) => Math.round(channel(a, i) * (1 - weight) + channel(b, i) * weight).toString(16).padStart(2, '0'))
     .join('')}`
+}
+
+// Paleta inteira (caso Brasa Burger, medido em produção: ink = paper = #F3EBDD, texto creme sobre fundo creme em botões e títulos, e
+// tema "dark" com fundo claro). O tema passa a ser o que as cores realmente são, e o texto sempre contrasta com o fundo (AA).
+export interface PaletteRepair { palette: SitePlan['palette']; theme: 'dark' | 'light'; fixes: string[] }
+export function repairPalette(input: SitePlan['palette'], declared: 'dark' | 'light'): PaletteRepair {
+  const palette = { ...input }; const fixes: string[] = []
+  const theme: 'dark' | 'light' = luminance(palette.paper) < 0.35 ? 'dark' : 'light'
+  if (theme !== declared) fixes.push(`tema ${declared} → ${theme} (o fundo "paper" é ${theme === 'dark' ? 'escuro' : 'claro'})`)
+  const toward = theme === 'dark' ? '#ffffff' : '#000000'
+  const pull = (color: string, bg: string, min: number): string => {
+    if (contrastRatio(color, bg) >= min) return color
+    for (let w = 0.05; w <= 1.0001; w += 0.05) { const next = mixHex(color, toward, Math.min(1, w)); if (contrastRatio(next, bg) >= min) return next }
+    return toward
+  }
+  if (contrastRatio(palette.ink, palette.paper) < 7) {
+    // Se o texto ficou parecido com o fundo, parte de um neutro legível; senão só ajusta o tom.
+    const base = contrastRatio(palette.ink, palette.paper) < 2 ? (theme === 'dark' ? '#f4f2ee' : '#15171c') : palette.ink
+    palette.ink = pull(base, palette.paper, 7); fixes.push(`texto (ink) sem contraste com o fundo → ${palette.ink}`)
+  }
+  if (contrastRatio(palette.ink, palette.surface) < 4.5) {
+    palette.surface = mixHex(palette.paper, theme === 'dark' ? '#ffffff' : '#000000', 0.07); fixes.push('superfície sem contraste com o texto → ajustada')
+    if (contrastRatio(palette.ink, palette.surface) < 4.5) palette.surface = palette.paper
+  }
+  for (const bg of [palette.paper, palette.surface]) if (contrastRatio(palette.muted, bg) < 4.5) { palette.muted = pull(palette.muted, palette.surface, 4.5); palette.muted = pull(palette.muted, palette.paper, 4.5); fixes.push('texto secundário (muted) sem contraste → ajustado'); break }
+  return { palette, theme, fixes }
 }
 
 // DESIGN.md exige contraste AA: a cor da marca vira texto pequeno (sobretítulos, links, ícones com rótulo).
@@ -1688,14 +1716,17 @@ export function normalizePlan(raw: unknown, brief: SiteBrief): SitePlan | null {
     if (heroIndex > 0) sections.unshift(...sections.splice(heroIndex, 1))
     else sections.unshift({ id: 'hero', label: 'Início', brief: 'Topo de impacto do site.', bg: 'paper', layout: 'hero-dividido' })
   }
-  const theme: 'dark' | 'light' = input.theme === 'dark' ? 'dark' : 'light'
+  const declaredTheme: 'dark' | 'light' = input.theme === 'dark' ? 'dark' : 'light'
+  const repaired = repairPalette(palette, declaredTheme)
+  const theme = repaired.theme
   return {
+    ...(repaired.fixes.length ? { paletteFixes: repaired.fixes } : {}),
     title: String(input.title ?? brief.businessName).slice(0, 80),
     description: stripInventedClaims(String(input.description ?? ''), brief).slice(0, 200),
     direction: stripInventedClaims(String(input.direction ?? ''), brief).slice(0, 400),
     theme,
     lang: cleanLang(input.lang),
-    palette: readableBrand(palette, theme),
+    palette: readableBrand(repaired.palette, theme),
     fonts: {
       display: cleanFont(input.fonts?.display, 'Inter'),
       body: cleanFont(input.fonts?.body, 'Inter'),

@@ -13,7 +13,7 @@ const als = new AsyncLocalStorage();
 const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
 const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
 const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
-  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls']);
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls', 'build_events']);
 
 // Tradução mínima de construções herdadas do SQLite + placeholders
 function translate(sql) {
@@ -315,6 +315,19 @@ INSERT INTO app_settings(key, value, description) VALUES
   ('RIVER_REASONING', '', 'Parâmetro nativo de raciocínio aceito pela River: vazio (nenhum), reasoning_effort, reasoning ou thinking.'),
   ('QA_TOKEN', '', 'Token temporário da sonda de testes de IA (/api/qa/ai-probe). Vazio = sonda desligada.')
 ON CONFLICT (key) DO NOTHING;
+` }
+, { v: 12, name: 'v12-telemetria-do-builder-por-site', sql: `
+ALTER TABLE ai_calls ADD COLUMN IF NOT EXISTS site_id INTEGER;
+ALTER TABLE ai_calls ADD COLUMN IF NOT EXISTS stage TEXT;
+ALTER TABLE ai_calls ADD COLUMN IF NOT EXISTS finish_reason TEXT;
+CREATE INDEX IF NOT EXISTS idx_ai_calls_site ON ai_calls(site_id);
+CREATE TABLE IF NOT EXISTS build_events (id ${ID}, site_id INTEGER NOT NULL, user_id INTEGER, stage TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'done', ms INTEGER, detail TEXT, created_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_build_events_site ON build_events(site_id);
+ALTER TABLE public.build_events ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.build_events FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.build_events FROM authenticated'; END IF;
+END $$;
 ` }];
 
 async function migrate() {

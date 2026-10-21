@@ -29,6 +29,7 @@ const ai = require('../lib/ai');
 const DC = require('../lib/codemaker/design-context');
 const refs = require('../lib/codemaker/references');
 const DYAD = require('../lib/codemaker/dyad-rules');
+const T = require('../lib/telemetry');
 
 // SYSTEM_PROMPT.md + DESIGN.md (V2) são o system prompt do Builder (compilados em design-md.js). Cada etapa recebe só as seções
 // que usa (design-context.js), e as regras técnicas do Code Maker abaixo delas são a forma de executar isso no Builder da Neva.
@@ -200,14 +201,14 @@ const REVIEW = {
   high: 'Revise o rascunho abaixo como um editor exigente. Confira item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md: (1) fato, número, preço, prazo, garantia ou nome que NÃO esteja no pedido (apague ou troque por algo verdadeiro); (2) texto de botão, mensagem ou frase que o pedido deu entre aspas e foi trocado (devolva o texto exato); (3) frases genéricas (troque por algo específico deste negócio); (4) ação clara, texto escaneável, tom do pedido; (5) tamanho: nada que estoure o espaço do bloco.',
 };
 REVIEW.xhigh = `${REVIEW.high} Depois de corrigir, releia o resultado uma vez e corrija de novo se ainda houver algo vago, repetido ou que contrarie o pedido.`;
-async function reviewContent(apiKey, model, partId, plan, brief, draft, sel, userId, signal) {
+async function reviewContent(apiKey, model, partId, plan, brief, draft, sel, userId, signal, siteId) {
   try {
     const message = [
       E.buildPartMessage(partId, plan, brief),
       `RASCUNHO ESCRITO (JSON):\n${JSON.stringify(draft)}`,
       `${REVIEW[sel.effort] || REVIEW.medium}\n\nResponda SÓ com o JSON corrigido, no mesmo formato do rascunho (mantenha os campos; só mude o que precisa mudar).`
     ].join('\n\n');
-    const fixed = await completeJson(apiKey, model, systemFor('part', brief), message, signal, { sel, kind: 'cm_review', userId, maxTokens: 4000 });
+    const fixed = await completeJson(apiKey, model, systemFor('part', brief), message, signal, { sel, kind: 'cm_review', userId, siteId, maxTokens: 4000 });
     const parsed = E.parseContent(JSON.stringify(fixed));
     return parsed || draft;
   } catch (error) {
@@ -221,7 +222,7 @@ const PLAN_REVIEW = {
   high: 'Revise o PLANO ESCRITO abaixo como um diretor de arte exigente, conferindo item por item o CONTRATO DE ENTREGA e o PORTÃO DE QUALIDADE do DESIGN.md: (1) toda seção do pedido está no plano, na ordem pedida, com os blocos certos (formulário ou simulador pedidos viram os blocos "formulario" e "simulador"); (2) fato, número, preço ou prazo que NÃO está no pedido (apague); (3) cores com contraste de texto legível e fontes que combinam com o negócio, sem o visual genérico; (4) seções repetidas ou vagas; (5) título da página e descrição seguem o pedido de SEO; (6) cada seção tem um "brief" que diz o que escrever e o que NÃO inventar.'
 };
 PLAN_REVIEW.xhigh = `${PLAN_REVIEW.high} Depois de corrigir, releia o plano uma vez e corrija de novo o que ainda estiver vago ou contrariar o pedido.`;
-async function reviewPlan(apiKey, model, full, brief, recipe, sel, userId, signal, emit) {
+async function reviewPlan(apiKey, model, full, brief, recipe, sel, userId, signal, emit, siteId) {
   const draft = String(full).match(/<plano>([\s\S]*?)<\/plano>/i)?.[1];
   if (!draft) return full;
   try {
@@ -231,7 +232,7 @@ async function reviewPlan(apiKey, model, full, brief, recipe, sel, userId, signa
       `PLANO ESCRITO (JSON):\n${draft.trim().slice(0, 24000)}`,
       `${PLAN_REVIEW[sel.effort] || PLAN_REVIEW.medium}\n\nResponda SÓ com o JSON do plano corrigido, no mesmo formato do plano escrito (inclusive "business"). Mantenha o que está certo.`
     ].join('\n\n');
-    const fixed = await completeJson(apiKey, model, systemFor('plan', brief), message, signal, { sel, kind: 'cm_plan:revisao', userId, maxTokens: 7000 });
+    const fixed = await completeJson(apiKey, model, systemFor('plan', brief), message, signal, { sel, kind: 'cm_plan:revisao', userId, siteId, maxTokens: 7000 });
     const next = `<plano>\n${JSON.stringify(fixed)}\n</plano>`;
     // Só vale se o plano revisado continua sendo um plano válido.
     return E.parsePlan(next, brief, recipe).plan ? String(full).replace(/<plano>[\s\S]*?<\/plano>/i, () => next) : full;
@@ -268,11 +269,11 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
     await new Promise((resolve) => setTimeout(resolve, 1500 * 2 ** attempt + Math.random() * 800));
   }
   if (!response.ok) {
-    ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, ok: false, note: `HTTP ${response.status}` });
+    ai.logCall({ siteId: meta.siteId, stage: T.stageOfKind(meta.kind || 'cm_json'), kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, ok: false, note: `HTTP ${response.status}` });
     throw new Error(meta.raw ? 'A análise não respondeu agora.' : 'Não foi possível interpretar os requisitos agora.');
   }
   const data = await response.json();
-  ai.logCall({ kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, usage: data.usage });
+  ai.logCall({ siteId: meta.siteId, stage: T.stageOfKind(meta.kind || 'cm_json'), finishReason: data?.choices?.[0]?.finish_reason, kind: meta.kind || 'cm_json', userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ms: Date.now() - started, usage: data.usage });
   // Se o modelo pensou tudo e não escreveu, o próprio raciocínio é a análise.
   if (meta.raw) {
     const msg = data.choices?.[0]?.message || {};
@@ -284,7 +285,7 @@ async function completeJson(apiKey, model, system, content, signal, meta = {}) {
   if (typeof text !== 'string') throw new Error('A IA não retornou uma especificação válida.');
   const parsed = parseJsonLoose(text);
   if (parsed !== undefined) return parsed;
-  ai.logCall({ kind: `${meta.kind || 'cm_json'}:formato`, userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ok: false, note: text.slice(0, 280) });
+  ai.logCall({ siteId: meta.siteId, stage: T.stageOfKind(meta.kind || 'cm_json'), kind: `${meta.kind || 'cm_json'}:formato`, userId: meta.userId, model: meta.sel?.model, effort: meta.sel?.effort, providerModel: model, ok: false, note: text.slice(0, 280) });
   // A mensagem do JSON.parse é técnica (e em inglês): a tela recebe esta.
   throw new Error('A IA respondeu fora do formato esperado. Tente de novo.');
 }
@@ -353,8 +354,8 @@ async function streamAi(req, res, options) {
   let text = '';
   let timedOut = false;
   let preparing = true;
-  let usage = null; let reasoningChars = 0; let lengthHit = false; const started = Date.now();
-  const logUsage = (ok, note) => ai.logCall({ kind: options.kind || 'cm', userId: options.userId, model: options.sel?.model, effort: options.sel?.effort, providerModel: options.model,
+  let usage = null; let reasoningChars = 0; let lengthHit = false; let finishReason = null; const started = Date.now();
+  const logUsage = (ok, note) => ai.logCall({ siteId: options.siteId, stage: T.stageOfKind(options.kind || 'cm'), finishReason, kind: options.kind || 'cm', userId: options.userId, model: options.sel?.model, effort: options.sel?.effort, providerModel: options.model,
     ms: Date.now() - started, usage, reasoningTokens: reasoningChars ? Math.round(reasoningChars / 4) : null, ok, note });
   const recordFailure = async () => {
     try { await options.onFailure?.(); } catch (error) { console.error('code-maker failure status', error); }
@@ -411,6 +412,7 @@ async function streamAi(req, res, options) {
           if (chunk.usage) usage = chunk.usage;
           const choice = chunk.choices?.[0];
           if (choice?.delta?.reasoning_content) reasoningChars += choice.delta.reasoning_content.length;
+          if (choice?.finish_reason) finishReason = choice.finish_reason;
           if (choice?.finish_reason === 'length') { timedOut = true; lengthHit = true; }
           const delta = choice?.delta?.content;
           if (delta) { text += delta; send(delta); }
@@ -488,6 +490,13 @@ async function assertPublicHost(url) {
   const answers = await dns.lookup(url.hostname, { all: true }).catch(() => []);
   if (answers.some((a) => E.isBlockedHost(String(a.address)))) throw new Error('Esse endereço não pode ser lido.');
 }
+
+// Linha do tempo do site: chamadas de IA e etapas, com tempos, tokens, motivo de encerramento e custo estimado (sem prompts nem respostas).
+r.get('/:id(\\d+)/telemetry', async (req, res) => {
+  const site = await loadSite(req.params.id, req);
+  if (!site) throw new HttpError(404, 'Site não encontrado.');
+  res.json(await T.timeline(site.id));
+});
 
 r.get('/:id(\\d+)', async (req, res) => {
   const site = await loadSite(req.params.id, req);
@@ -668,7 +677,7 @@ r.post('/', async (req, res) => {
   // Modelo e esforço escolhidos no seletor (ou os guardados na criação do site).
   const sel = ai.selection(body, site.brief?.ai);
   const model = provider()?.model || ai.providerModelFor(sel.model);
-  const metaOf = (kind) => ({ sel, kind, userId: user.id });
+  const metaOf = (kind) => ({ sel, kind, userId: user.id, siteId: site.id });
   const configuredBudget = Number(config.get('CODE_MAKER_MAX_INPUT_CHARS'));
   const inputBudget = Number.isFinite(configuredBudget) && configuredBudget >= 16000 ? configuredBudget : 90000;
   if (!apiKey) throw new HttpError(503, 'O Code Maker ainda não foi configurado (preencha CODEMAKER_API_KEY ou RIVER_API_KEY na tabela app_settings).');
@@ -683,7 +692,7 @@ r.post('/', async (req, res) => {
     const recentRows = await all('SELECT plan FROM code_sites WHERE user_id=? AND project_id<>? AND plan IS NOT NULL ORDER BY created_at DESC LIMIT 6', user.id, site.id);
     const recipe = E.siteRecipe(site.brief, recentRows.map((row) => J(row.plan, {})), String(site.id));
     return streamAi(req, res, {
-      apiKey, model, maxTokens: MAX_TOKENS.plan[sel.effort], partial, sel, kind: 'cm_plan', userId: user.id,
+      apiKey, model, maxTokens: MAX_TOKENS.plan[sel.effort], partial, sel, kind: 'cm_plan', userId: user.id, siteId: site.id,
       onFailure: () => setStatus(site.id, 'error', 'planning'),
       prepare: async (signal, emit) => {
         if (!planningBrief.specification) {
@@ -697,7 +706,9 @@ r.post('/', async (req, res) => {
         }
         // Referências: escolhidas na biblioteca para este pedido e medidas nos sites reais (uma vez; a continuação reaproveita).
         if (!planningBrief.designRefs) {
+          const refT0 = Date.now();
           const built = await refs.buildReferences(planningBrief, { siteId: site.id }).catch((e) => ({ block: '', trace: { error: String(e.message).slice(0, 160) } }));
+          await T.event(site.id, user.id, 'references', { ms: Date.now() - refT0, detail: { selecionadas: built.trace?.selected?.length ?? 0, descartadas: built.trace?.discarded?.length ?? 0, cobertura: built.trace?.coverage || null, falhas: built.trace?.failures?.length ?? 0 } });
           planningBrief = { ...planningBrief, designRefs: built.block, designTrace: built.trace };
           await run("UPDATE code_sites SET brief=?, updated_at=datetime('now') WHERE project_id=?", S(planningBrief), site.id);
         }
@@ -725,7 +736,7 @@ r.post('/', async (req, res) => {
       },
       finish: async (full, signal, emit) => {
         // Revisão do plano (todos os níveis menos o Baixo): o plano manda no site inteiro, então ele passa por uma segunda leitura crítica.
-        if (sel.effort !== 'low') full = await reviewPlan(apiKey, model, full, planningBrief, recipe, sel, user.id, signal, emit);
+        if (sel.effort !== 'low') full = await reviewPlan(apiKey, model, full, planningBrief, recipe, sel, user.id, signal, emit, site.id);
         const { actions, plan: parsedPlan, business } = E.parsePlan(full, planningBrief, recipe);
         if (!parsedPlan) {
           await setStatus(site.id, 'error');
@@ -790,7 +801,7 @@ r.post('/', async (req, res) => {
     // Escrever código é o trabalho mais exigente: o modelo das seções livres é o melhor liberado para a chave (ai.pickCodeModel; NEVA_CODE_MODEL fixa um, "off" desliga).
     const writerModel = provider() ? model : (free && (await ai.pickCodeModel().catch(() => null))) || model;
     return streamAi(req, res, {
-      apiKey, model: writerModel, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: free ? 'cm_part_livre' : 'cm_part', userId: user.id,
+      apiKey, model: writerModel, maxTokens: MAX_TOKENS.part[sel.effort], partial, sel, kind: free ? 'cm_part_livre' : 'cm_part', userId: user.id, siteId: site.id,
       onFailure: markError,
       messages: [
         { role: 'system', content: free ? freeSystem(site.brief) : systemFor('part', site.brief) },
@@ -804,7 +815,7 @@ r.post('/', async (req, res) => {
         // Medido nos sites de teste: a revisão troca texto genérico, devolve a frase exata do pedido e tira o que foi inventado.
         if (content && sel.effort !== 'low') {
           emit('<etapa>revisao</etapa>\n');
-          content = await reviewContent(apiKey, model, partId, planForAi, site.brief, content, sel, user.id, signal);
+          content = await reviewContent(apiKey, model, partId, planForAi, site.brief, content, sel, user.id, signal, site.id);
         }
         let html;
         if (content) {
@@ -887,7 +898,7 @@ r.post('/', async (req, res) => {
   let editMessages = null;
 
   return streamAi(req, res, {
-    apiKey, model, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id,
+    apiKey, model, maxTokens: MAX_TOKENS.edit[sel.effort], partial, sel, kind: 'cm_edit', userId: user.id, siteId: site.id,
     prepare: buildMessages,
     messages: [],
     finish: async (full, signal, emit) => {

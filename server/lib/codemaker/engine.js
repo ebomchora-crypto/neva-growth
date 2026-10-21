@@ -116,6 +116,7 @@ __export(engine_exports, {
   readableBrand: () => readableBrand,
   recipeMessage: () => recipeMessage,
   renderPart: () => renderPart,
+  repairPalette: () => repairPalette,
   replaceInPart: () => replaceInPart,
   sanitizeFavicon: () => sanitizeFavicon,
   sectionBlock: () => sectionBlock,
@@ -2594,6 +2595,38 @@ function mixHex(a, b, weight) {
   const channel = (hex, i) => parseInt(hex.slice(1 + i * 2, 3 + i * 2), 16);
   return `#${[0, 1, 2].map((i) => Math.round(channel(a, i) * (1 - weight) + channel(b, i) * weight).toString(16).padStart(2, "0")).join("")}`;
 }
+function repairPalette(input, declared) {
+  const palette = { ...input };
+  const fixes = [];
+  const theme = luminance(palette.paper) < 0.35 ? "dark" : "light";
+  if (theme !== declared) fixes.push(`tema ${declared} \u2192 ${theme} (o fundo "paper" \xE9 ${theme === "dark" ? "escuro" : "claro"})`);
+  const toward = theme === "dark" ? "#ffffff" : "#000000";
+  const pull = (color, bg, min) => {
+    if (contrastRatio(color, bg) >= min) return color;
+    for (let w = 0.05; w <= 1.0001; w += 0.05) {
+      const next = mixHex(color, toward, Math.min(1, w));
+      if (contrastRatio(next, bg) >= min) return next;
+    }
+    return toward;
+  };
+  if (contrastRatio(palette.ink, palette.paper) < 7) {
+    const base = contrastRatio(palette.ink, palette.paper) < 2 ? theme === "dark" ? "#f4f2ee" : "#15171c" : palette.ink;
+    palette.ink = pull(base, palette.paper, 7);
+    fixes.push(`texto (ink) sem contraste com o fundo \u2192 ${palette.ink}`);
+  }
+  if (contrastRatio(palette.ink, palette.surface) < 4.5) {
+    palette.surface = mixHex(palette.paper, theme === "dark" ? "#ffffff" : "#000000", 0.07);
+    fixes.push("superf\xEDcie sem contraste com o texto \u2192 ajustada");
+    if (contrastRatio(palette.ink, palette.surface) < 4.5) palette.surface = palette.paper;
+  }
+  for (const bg of [palette.paper, palette.surface]) if (contrastRatio(palette.muted, bg) < 4.5) {
+    palette.muted = pull(palette.muted, palette.surface, 4.5);
+    palette.muted = pull(palette.muted, palette.paper, 4.5);
+    fixes.push("texto secund\xE1rio (muted) sem contraste \u2192 ajustado");
+    break;
+  }
+  return { palette, theme, fixes };
+}
 function readableBrand(palette, theme) {
   const target = theme === "dark" ? "#ffffff" : "#000000";
   const ok = (color) => [palette.paper, palette.surface, mixHex(palette.surface, color, 0.12)].every((bg) => contrastRatio(color, bg) >= 4.5);
@@ -3332,14 +3365,17 @@ function normalizePlan(raw, brief) {
     if (heroIndex > 0) sections.unshift(...sections.splice(heroIndex, 1));
     else sections.unshift({ id: "hero", label: "In\xEDcio", brief: "Topo de impacto do site.", bg: "paper", layout: "hero-dividido" });
   }
-  const theme = input.theme === "dark" ? "dark" : "light";
+  const declaredTheme = input.theme === "dark" ? "dark" : "light";
+  const repaired = repairPalette(palette, declaredTheme);
+  const theme = repaired.theme;
   return {
+    ...repaired.fixes.length ? { paletteFixes: repaired.fixes } : {},
     title: String(input.title ?? brief.businessName).slice(0, 80),
     description: stripInventedClaims(String(input.description ?? ""), brief).slice(0, 200),
     direction: stripInventedClaims(String(input.direction ?? ""), brief).slice(0, 400),
     theme,
     lang: cleanLang(input.lang),
-    palette: readableBrand(palette, theme),
+    palette: readableBrand(repaired.palette, theme),
     fonts: {
       display: cleanFont(input.fonts?.display, "Inter"),
       body: cleanFont(input.fonts?.body, "Inter")
@@ -4799,6 +4835,7 @@ async function fetchLimited(start, accept, maxBytes, truncate = false) {
   readableBrand,
   recipeMessage,
   renderPart,
+  repairPalette,
   replaceInPart,
   sanitizeFavicon,
   sectionBlock,

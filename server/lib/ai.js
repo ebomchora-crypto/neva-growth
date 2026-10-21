@@ -137,9 +137,10 @@ async function logCall(entry) {
   try {
     const { run } = require('./db');
     const u = entry.usage || {};
-    await run('INSERT INTO ai_calls(user_id,kind,model,effort,provider_model,ms,prompt_tokens,completion_tokens,reasoning_tokens,ok,note) VALUES (?,?,?,?,?,?,?,?,?,?,?)',
+    await run('INSERT INTO ai_calls(user_id,kind,model,effort,provider_model,ms,prompt_tokens,completion_tokens,reasoning_tokens,ok,note,site_id,stage,finish_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)',
       entry.userId ?? null, String(entry.kind || 'chat').slice(0, 40), entry.model ?? null, entry.effort ?? null, entry.providerModel ?? null, Math.round(entry.ms || 0),
-      u.prompt_tokens ?? null, u.completion_tokens ?? null, u.completion_tokens_details?.reasoning_tokens ?? entry.reasoningTokens ?? null, entry.ok === false ? 0 : 1, entry.note ? String(entry.note).slice(0, 300) : null);
+      u.prompt_tokens ?? null, u.completion_tokens ?? null, u.completion_tokens_details?.reasoning_tokens ?? entry.reasoningTokens ?? null, entry.ok === false ? 0 : 1, entry.note ? String(entry.note).slice(0, 300) : null,
+      entry.siteId ?? null, entry.stage ? String(entry.stage).slice(0, 30) : null, entry.finishReason ? String(entry.finishReason).slice(0, 30) : null);
   } catch { /* tabela ainda não migrada: não atrapalha a resposta */ }
 }
 
