@@ -16,7 +16,7 @@ const CSS = `
 .kk-drape-background-text p{margin:0;max-width:22em;font-size:clamp(12px,3.3cqw,16px);line-height:1.45;color:var(--mut,${PALETTE.mut})}
 .kk-drape-background-bar{position:absolute;z-index:1;left:10px;right:10px;bottom:10px;display:flex;flex-direction:column;gap:6px;align-items:center}
 .kk-drape-background-row{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.kk-drape-background-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font:600 12px/1 inherit;font-family:inherit;cursor:pointer}
+.kk-drape-background-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font-family:inherit;font-weight:600;font-size:12px;line-height:1;cursor:pointer}
 .kk-drape-background-chip[aria-pressed=true]{background:${PALETTE.ice700};border-color:${PALETTE.ice700};color:#fff}
 .kk-drape-background-chip:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:2px}
 `;

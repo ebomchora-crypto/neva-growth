@@ -212,7 +212,7 @@ export default function mount(stage) {
     const key = canOpen ? h('button', { type: 'button', class: 'kk-ai-input-search-key', 'aria-expanded': String(expanded), 'aria-controls': 'kk-ais-l' + uid, onclick: (e) => { e.stopPropagation(); expanded = !expanded; paintTrace(); } }, expanded ? 'Ocultar' : 'Fontes', P(IC.chev)) : null;
     const list = expanded && sources.length ? h('ol', { class: 'kk-ai-input-search-list', id: 'kk-ais-l' + uid }, sources.map((s, i) => h('li', { style: `animation-delay:${Math.min(i, 8) * 30}ms` }, avatar(s, 'md'), h('span', { class: 't' }, s[1]), h('span', { class: 'd' }, s[0]), h('span', { class: 'n' }, i + 1)))) : null;
     const ans = phase === 'done' && answer ? h('div', { class: 'kk-ai-input-search-ans' }, h('small', 'Resposta simulada'), answer) : null;
-    traceBox.replaceChildren(h('div', { class: 'row' }, lead, lb, h('span', { class: 'el' }, secs(elapsed)), key), list, ans);
+    traceBox.replaceChildren(...[h('div', { class: 'row' }, lead, lb, h('span', { class: 'el' }, secs(elapsed)), key), list, ans].filter(Boolean));
   }
   const paintAll = () => { paintBand(); paintPill(); paintMenus(); paintAsk(); paintTrace(); };
 

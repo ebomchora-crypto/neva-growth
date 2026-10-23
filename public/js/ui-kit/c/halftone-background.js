@@ -74,7 +74,7 @@ const CSS = `
 .kk-halftone-background-text h3{margin:0;font-size:clamp(22px,7cqw,44px);line-height:1.05;letter-spacing:-.03em;font-weight:700;color:var(--ink,${PALETTE.ink});text-shadow:0 0 14px #fff,0 0 4px #fff}
 .kk-halftone-background-text p{margin:0;max-width:24em;font-size:clamp(12px,3.2cqw,16px);line-height:1.4;color:var(--mut,${PALETTE.mut});text-shadow:0 0 10px #fff,0 0 3px #fff}
 .kk-halftone-background-bar{position:absolute;left:10px;right:10px;bottom:10px;display:flex;gap:6px;justify-content:center}
-.kk-halftone-background-chip{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font:600 12px/1 inherit;font-family:inherit;cursor:pointer}
+.kk-halftone-background-chip{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font-family:inherit;font-weight:600;font-size:12px;line-height:1;cursor:pointer}
 .kk-halftone-background-chip[aria-pressed=true]{background:${PALETTE.ice700};border-color:${PALETTE.ice700};color:#fff}
 .kk-halftone-background-chip:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:2px}
 `;

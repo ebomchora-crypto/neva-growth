@@ -136,7 +136,6 @@ export default function mount(stage) {
       cn.append(out, back); cnPaths.push({ out, back });
     });
   }
-  const stopResize = onResize(area, ({ width }) => { areaW = width; buildConnectors(); render(); });
 
   let tip = null;
   function setHover(li, si) {
@@ -147,8 +146,8 @@ export default function mount(stage) {
   function paintTip() {
     if (!tip || !hover) return;
     const s = LANES[hover.li].steps[hover.si];
-    tip.replaceChildren(h('p', { class: 'm' }, h('span', TOOL_NAME[s.tool]), h('span', fmt(Math.min(now, s.end) - s.start))), h('p', { class: 'l' }, s.label),
-      s.result && h('p', { class: 'r' }, now >= s.end ? s.result : 'Aguardando resultados…'));
+    tip.replaceChildren(...[h('p', { class: 'm' }, h('span', TOOL_NAME[s.tool]), h('span', fmt(Math.min(now, s.end) - s.start))), h('p', { class: 'l' }, s.label),
+      s.result && h('p', { class: 'r' }, now >= s.end ? s.result : 'Aguardando resultados…')].filter(Boolean));
     // Ancora pelo lado que sobra espaço e mantém a dica dentro do cartão
     const w = tip.offsetWidth, mid = (s.start + s.end) / 2 / total, lw = labelEls[0].b.parentElement.offsetWidth;
     const px = (t) => (t / total) * areaW;
@@ -216,6 +215,7 @@ export default function mount(stage) {
 
   // Sem movimento: já mostra a execução concluída; senão começa sozinha após meio segundo
   if (reduced()) now = total; else startTimer = setTimeout(play, 500);
-  render();
+  // onResize chama já na primeira medida, então vem depois de tudo declarado
+  const stopResize = onResize(area, ({ width }) => { areaW = width; buildConnectors(); render(); });
   return () => { clearTimeout(startTimer); stopLoop?.(); stopResize(); };
 }

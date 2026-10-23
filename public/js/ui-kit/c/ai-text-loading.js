@@ -19,7 +19,7 @@ const CSS = `
 .kk-ai-text-loading-root[data-still] .kk-ai-text-loading-wave{animation:none}
 .kk-ai-text-loading-secs{font-size:max(13px,.5em);font-weight:500;color:${PALETTE.ice400};font-variant-numeric:tabular-nums}
 .kk-ai-text-loading-bar{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.kk-ai-text-loading-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:#fff;color:${PALETTE.ice800};font:600 12px/1 inherit;font-family:inherit;cursor:pointer}
+.kk-ai-text-loading-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:#fff;color:${PALETTE.ice800};font-family:inherit;font-weight:600;font-size:12px;line-height:1;cursor:pointer}
 .kk-ai-text-loading-chip[aria-pressed=true]{background:${PALETTE.ice700};border-color:${PALETTE.ice700};color:#fff}
 .kk-ai-text-loading-chip:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:2px}
 `;

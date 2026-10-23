@@ -94,7 +94,7 @@ const CSS = `
 .kk-topo-background-text h3{margin:0;font-size:clamp(22px,8cqw,46px);line-height:1.05;letter-spacing:-.03em;font-weight:700;color:var(--ink,${PALETTE.ink});text-wrap:balance}
 .kk-topo-background-text p{margin:0;max-width:22em;font-size:clamp(12px,3.3cqw,16px);line-height:1.45;color:var(--mut,${PALETTE.mut})}
 .kk-topo-background-bar{position:absolute;left:10px;right:10px;bottom:10px;display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
-.kk-topo-background-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font:600 12px/1 inherit;font-family:inherit;cursor:pointer}
+.kk-topo-background-chip{min-height:36px;padding:0 14px;border-radius:999px;border:1px solid ${PALETTE.ice300};background:rgba(255,255,255,.92);color:${PALETTE.ice800};font-family:inherit;font-weight:600;font-size:12px;line-height:1;cursor:pointer}
 .kk-topo-background-chip[aria-pressed=true]{background:${PALETTE.ice700};border-color:${PALETTE.ice700};color:#fff}
 .kk-topo-background-chip:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:2px}
 `;

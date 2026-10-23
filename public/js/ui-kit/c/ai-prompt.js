@@ -164,12 +164,12 @@ export default function mount(stage, ctx = {}) {
 
   function paintTray() {
     tray.hidden = !command && !files.length;
-    tray.replaceChildren(
+    tray.replaceChildren(...[
       command && h('li', { class: 'kk-ai-prompt-chip cmd' }, h('span', { 'aria-hidden': 'true', style: 'opacity:.6' }, '/'), command.label, h('button', { type: 'button', class: 'kk-ai-prompt-rm', 'aria-label': `Remover comando ${command.label}`, onclick: () => { command = null; paintTray(); field.focus(); } }, ICONS.x())),
       ...files.map((f) => h('li', { class: 'kk-ai-prompt-chip' },
         h('span', { class: 'th' }, f.url ? h('img', { alt: '', src: f.url }) : ICONS.file()),
         h('span', { class: 'nm' }, h('b', { title: f.file.name }, f.file.name), h('span', size(f.file.size))),
-        h('button', { type: 'button', class: 'kk-ai-prompt-rm', 'aria-label': `Remover ${f.file.name}`, onclick: () => { if (f.url) URL.revokeObjectURL(f.url); files = files.filter((x) => x !== f); paintTray(); field.focus(); } }, ICONS.x()))));
+        h('button', { type: 'button', class: 'kk-ai-prompt-rm', 'aria-label': `Remover ${f.file.name}`, onclick: () => { if (f.url) URL.revokeObjectURL(f.url); files = files.filter((x) => x !== f); paintTray(); field.focus(); } }, ICONS.x())))].filter(Boolean));
   }
   function paintMenu() {
     const ms = matches(), open = ms.length > 0 && !menuDismissed;

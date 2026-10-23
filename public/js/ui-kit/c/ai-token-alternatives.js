@@ -149,7 +149,7 @@ export default function mount(stage) {
     chips.replaceChildren(...(ed.length === 0 ? [h('p', { class: 'kk-ai-token-alternatives-hintx' }, 'Toque numa palavra pontilhada para trocá-la')] : [
       ...ed.map((s) => h('span', { class: 'kk-ai-token-alternatives-chip' }, h('s', s.options[0].text), h('b', choice[s.id]),
         h('button', { type: 'button', 'aria-label': `Voltar para ${s.options[0].text}`, onclick: () => pick(s.id, s.options[0].text) }, icon('x')))),
-      ed.length > 1 && h('button', { type: 'button', class: 'kk-ai-token-alternatives-reset', onclick: resetAll }, icon('undo'), 'Refazer tudo')]));
+      ...(ed.length > 1 ? [h('button', { type: 'button', class: 'kk-ai-token-alternatives-reset', onclick: resetAll }, icon('undo'), 'Refazer tudo')] : [])]));
     live.textContent = streaming() ? '' : 'Resposta atualizada';
   }
 

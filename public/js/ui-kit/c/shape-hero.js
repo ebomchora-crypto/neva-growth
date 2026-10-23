@@ -177,7 +177,7 @@ const CSS = `
 .kk-shape-hero-text h3{margin:0;font-size:clamp(20px,6.4cqw,44px);line-height:1.05;letter-spacing:-.03em;text-wrap:balance;font-weight:700}
 .kk-shape-hero-text p{margin:10px 0 0;max-width:24em;font-size:clamp(12px,3.2cqw,16px);line-height:1.45;color:var(--mut,${PALETTE.mut});text-wrap:pretty}
 .kk-shape-hero-actions{pointer-events:auto;margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-.kk-shape-hero-btn{min-height:38px;padding:0 16px;border-radius:999px;font:600 13px/1 inherit;font-family:inherit;cursor:pointer;border:1px solid ${PALETTE.ice300};background:#fff;color:${PALETTE.ice800};transition:background .15s,transform .15s}
+.kk-shape-hero-btn{min-height:38px;padding:0 16px;border-radius:999px;font-family:inherit;font-weight:600;font-size:13px;line-height:1;cursor:pointer;border:1px solid ${PALETTE.ice300};background:#fff;color:${PALETTE.ice800};transition:background .15s,transform .15s}
 .kk-shape-hero-btn:hover{background:${PALETTE.ice50}}.kk-shape-hero-btn:active{transform:scale(.97)}
 .kk-shape-hero-btn.main{background:${PALETTE.ice700};border-color:${PALETTE.ice700};color:#fff}.kk-shape-hero-btn.main:hover{background:${PALETTE.ice800}}
 .kk-shape-hero-btn:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:2px}

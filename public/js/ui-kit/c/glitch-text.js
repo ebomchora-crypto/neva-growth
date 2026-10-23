@@ -33,7 +33,7 @@ const bandPath = (s, forceMove) => Array.from({ length: s.frames }, (_, f) => {
 export default function mount(stage, ctx) {
   ensureStyle('glitch-text', `
 .kk-glitch-text{width:100%;display:flex;flex-direction:column;align-items:center;gap:22px;padding:8px 4px;container-type:inline-size;color:var(--ink)}
-.kk-glitch-text-word{position:relative;display:inline-block;max-width:100%;text-align:center;font-size:clamp(26px,10cqw,46px);font-weight:800;letter-spacing:-.02em;line-height:1.15;touch-action:manipulation;cursor:default}
+.kk-glitch-text-word{position:relative;display:inline-block;max-width:100%;text-align:center;font-size:clamp(22px,8cqw,42px);font-weight:800;letter-spacing:-.02em;line-height:1.15;touch-action:manipulation;cursor:default}
 .kk-glitch-text-layers{position:relative;display:inline-grid}
 .kk-glitch-text-layer{grid-column:1;grid-row:1;display:grid}
 .kk-glitch-text-layer.ghost{pointer-events:none;user-select:none;opacity:0}
