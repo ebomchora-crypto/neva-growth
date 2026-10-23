@@ -14,12 +14,13 @@ export default {
     const canWrite = ctx.user.role !== 'viewer';
     const st = await api.get('/integrations/status');
     const aiOn = st.ai.configured;
+    const builderOn = st.builder?.configured ?? aiOn;
     let tab = (() => { try { return sessionStorage.getItem('builderTab') || 'create'; } catch { return 'create'; } })();
 
     // Só o AI Prompt (texto + modelo + raciocínio + enviar) e "Otimizar pedido". O Studio decide o resto (estilo, cores, seções).
     const orb = generatingOrb({ text: 'Neva Studio', size: 150 });
     let creating = false;
-    const prompt = aiPrompt({ models: st.ai.models, defaultModel: st.ai.defaultModel, disabled: !aiOn || !canWrite,
+    const prompt = aiPrompt({ models: st.ai.models, defaultModel: st.ai.defaultModel, disabled: !builderOn || !canWrite,
       placeholder: 'Descreva o site que você quer. Ex.: site para uma clínica odontológica em Curitiba, com tratamentos, depoimentos e botão de agendamento pelo WhatsApp.',
       onSubmit: async (text, sel) => {
         if (creating) return;
@@ -36,9 +37,18 @@ export default {
     const btnOpt = h('button', { type: 'button', class: 'btn ghost ap-opt', disabled: !aiOn || !canWrite, onclick: async () => {
       if (!prompt.field.value.trim()) { prompt.field.focus(); prompt.shake(); return; }
       btnOpt.disabled = true; btnOpt.textContent = 'Otimizando…';
-      try { const r = await api.post('/projects/optimize-prompt', { brief: prompt.field.value }); prompt.setValue(r.brief); toast('Pedido otimizado.', 'ok'); } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar pedido'; }
+      try {
+        const original = prompt.field.value;
+        const r = await api.post('/projects/optimize-prompt', { brief: original });
+        const edited = h('textarea', { rows: 11, style: 'width:100%;min-height:250px;resize:vertical', 'aria-label': 'Pedido otimizado' }, r.brief);
+        modal({ title: 'Revise o pedido otimizado', size: 'lg', body: h('div', { class: 'stack' }, h('p', 'Confira se suas informações foram mantidas. Você pode editar o texto antes de usar.'), edited), actions: [
+          { label: 'Manter meu pedido', kind: 'ghost' },
+          { label: 'Usar este pedido', onClick: () => { if (!edited.value.trim()) return false; prompt.setValue(edited.value.trim()); toast('Pedido atualizado.', 'ok'); } }
+        ] });
+      } catch (e) { fail(e); } finally { btnOpt.disabled = !aiOn; btnOpt.textContent = 'Otimizar pedido'; }
     } }, 'Otimizar pedido');
-    const status = aiOn ? null : h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: preencha RIVER_API_KEY na tabela app_settings do banco.');
+    const status = !builderOn ? h('span', { class: 'bstatus' }, h('i'), 'IA indisponível: configure CODEMAKER_API_KEY ou RIVER_API_KEY.')
+      : !aiOn ? h('span', { class: 'bstatus' }, h('i'), 'Otimizar pedido requer RIVER_API_KEY.') : null;
 
     // ---- Meus sites (como a aba de projetos do Lovable): prévia, editar, publicar, renomear, duplicar, excluir.
     const sitesBox = h('div', { class: 'bsites' });

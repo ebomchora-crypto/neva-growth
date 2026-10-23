@@ -2454,7 +2454,16 @@ function photoGroup(niche) {
 }
 function photosFor(niche) {
   const group = photoGroup(niche);
+  if (group === "comida") {
+    const text2 = normalize(niche ?? "");
+    const matching = /padaria|pao|confeit|doceria/.test(text2) ? /paes|croissant/ : /pizzar/.test(text2) ? /pizza/ : /cafe|cafeteria/.test(text2) ? /cafe|cafeteria/ : null;
+    if (matching) return [...PHOTOS.comida.filter((photo2) => matching.test(normalize(photo2.about))), ...PHOTOS.comida.filter((photo2) => !matching.test(normalize(photo2.about)))];
+  }
   return group ? PHOTOS[group] : PHOTOS.geral;
+}
+function photosForBrief(brief) {
+  const group = photoGroup(brief.niche) ?? photoGroup(`${brief.businessName ?? ""} ${brief.details ?? ""}`);
+  return group ? photosFor(group === "comida" ? `${brief.niche ?? ""} ${brief.businessName ?? ""} ${brief.details ?? ""}` : group) : PHOTOS.geral;
 }
 function photoCatalog(niche) {
   return photosFor(niche).map((photo2) => `- https://images.unsplash.com/photo-${photo2.id}?auto=format&fit=crop&w=1600&q=80 \u2014 ${photo2.about}`).join("\n");
@@ -2490,7 +2499,7 @@ function imagesMessage(brief, fresh = [], used = /* @__PURE__ */ new Set()) {
     photos.length > 0 ? `FOTOS DO PR\xD3PRIO NEG\xD3CIO (enviadas pelo usu\xE1rio \u2014 use estas PRIMEIRO, principalmente no topo, na galeria e no "sobre"; n\xE3o sabemos o que cada uma mostra, ent\xE3o use legendas gen\xE9ricas e alt descritivo neutro):
 ${photos.map((photo2) => `- ${photo2.url}${mark(photo2.url)}`).join("\n")}` : null,
     `${photos.length > 0 ? "Fotos de banco (s\xF3 como complemento, se faltar foto)" : "Fotos dispon\xEDveis (use somente estas)"} \u2014 prefira as que ainda n\xE3o est\xE3o no site:
-${photosFor(brief.niche).map((photo2) => `- ${stockUrl(photo2.id)} \u2014 ${photo2.about}${mark(stockUrl(photo2.id))}`).join("\n")}`
+${photosForBrief(brief).map((photo2) => `- ${stockUrl(photo2.id)} \u2014 ${photo2.about}${mark(stockUrl(photo2.id))}`).join("\n")}`
   ].filter(Boolean).join("\n\n");
 }
 var stockUrl = (id) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=1600&q=80`;
@@ -2529,7 +2538,7 @@ function sectionPhotos(section) {
 }
 function photoPlan(plan, brief) {
   const own = (brief.assets ?? []).filter((asset) => asset.kind === "photo").map((asset) => ({ url: asset.url, about: "foto do pr\xF3prio neg\xF3cio (n\xE3o sabemos o que mostra: legenda gen\xE9rica e alt neutro)" }));
-  const pool = [...own, ...photosFor(brief.niche).map((photo2) => ({ url: stockUrl(photo2.id), about: photo2.about }))];
+  const pool = [...own, ...photosForBrief(brief).map((photo2) => ({ url: stockUrl(photo2.id), about: photo2.about }))];
   const result = {};
   let next = 0;
   for (const section of plan.sections) {
@@ -3957,7 +3966,7 @@ function editPhotos(count, partId, parts, brief, fresh) {
       ...fresh.filter((asset) => asset.kind === "photo").map((asset) => asset.url),
       ...own.filter((url) => url !== logoOf(brief)),
       ...(brief.assets ?? []).filter((asset) => asset.kind === "photo").map((asset) => asset.url),
-      ...photosFor(brief.niche).map((photo2) => stockUrl(photo2.id))
+      ...photosForBrief(brief).map((photo2) => stockUrl(photo2.id))
     ])
   ];
   const free = pool.filter((url) => !elsewhere.has(photoKey(url)));
@@ -4277,7 +4286,7 @@ function buildFreePartMessage(partId, plan, brief) {
   const section = plan.sections[index];
   const prev = plan.sections[index - 1], next = plan.sections[index + 1];
   const action = mainAction(plan, brief);
-  const photos = photosFor(brief.niche);
+  const photos = photosForBrief(brief);
   const userPhotos = (brief.assets ?? []).filter((asset) => asset.kind === "photo");
   const bg = section?.bg ?? "paper";
   const familyOf = (item) => item ? `${item.id} \u2192 ${item.layoutFamily || sectionBlock(item)}` : "nenhuma";
@@ -4310,7 +4319,7 @@ ${photos.map((photo2) => `- https://images.unsplash.com/photo-${photo2.id}?auto=
 }
 function dedupeImages(plan, parts, brief) {
   const own = (brief.assets ?? []).filter((asset) => asset.kind === "photo").map((asset) => asset.url);
-  const pool = [...own, ...photosFor(brief.niche).map((photo2) => stockUrl(photo2.id))];
+  const pool = [...own, ...photosForBrief(brief).map((photo2) => stockUrl(photo2.id))];
   const allowed = new Set(pool.map(photoKey));
   const stockPattern = /https:\/\/images\.unsplash\.com\/photo-[\w-]+[^"'\s)]*/g;
   const present = /* @__PURE__ */ new Set();
@@ -4334,9 +4343,19 @@ function dedupeImages(plan, parts, brief) {
       const reason = ok ? "repetida" : "fora-do-banco";
       const next = free.find((candidate) => !used.has(photoKey(candidate)));
       if (!next) {
-        unresolved += 1;
-        fixes.push({ part: id, from: url, to: null, reason });
-        return url;
+        if (ok) {
+          unresolved += 1;
+          fixes.push({ part: id, from: url, to: null, reason });
+          return url;
+        }
+        const fallback = pool[total % pool.length];
+        if (!fallback) {
+          unresolved += 1;
+          fixes.push({ part: id, from: url, to: null, reason });
+          return url;
+        }
+        fixes.push({ part: id, from: url, to: fallback, reason });
+        return fallback;
       }
       used.add(photoKey(next));
       const width = url.match(/[?&]w=(\d+)/)?.[1];

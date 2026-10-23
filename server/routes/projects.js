@@ -167,9 +167,8 @@ r.post('/optimize-prompt', async (req, res) => {
   if (brief.length < 10) throw bad('Descreva o site (mínimo 10 caracteres).');
   if (!ai.configured()) throw new HttpError(503, ai.NOT_CONFIGURED, 'ai_not_configured');
   await S.checkAiQuota(req.user, 'optimize');
-  // Modelo mais rápido, esforço baixo e saída curta (~200 tokens): antes eram até 1.200 tokens no modelo padrão, sem registro.
-  const out = await ai.complete({ model: 'neva-1-0', effort: 'low', kind: 'optimize', userId: req.user.id, maxTokens: 500,
-    system: 'Reescreva o pedido do usuário como um briefing de site, curto e direto, em português do Brasil: no máximo 130 palavras, em 5 linhas com estes rótulos: Negócio e público; Objetivo e ação principal; Seções; Tom e estilo; Requisitos. Mantenha tudo que o usuário já disse (nome, cidade, contatos, cores, preços). Não invente dados da empresa; use [COLCHETES] onde faltar informação. Responda só com o briefing, sem introdução.', messages: [{ role: 'user', content: brief.slice(0, 3000) }] });
+  const out = await ai.complete({ model: 'neva-1-2', effort: 'low', kind: 'optimize', userId: req.user.id, maxTokens: 1000,
+    system: 'Você melhora um pedido para criação de site em português do Brasil. Reescreva-o como instrução clara para o criador, preservando TODOS os fatos e preferências que o usuário informou: nome, ramo, público, cidade, contatos, estilo, cores, fotos, páginas, funções, preços e restrições. Organize objetivos, conteúdo e ação principal apenas quando fizer sentido para o pedido. Não transforme um pedido simples em um formulário rígido. Não invente dados, depoimentos, preços, telefones ou requisitos; não use colchetes, placeholders nem texto genérico. Preserve o idioma pedido para o site. Responda somente com o pedido melhorado, conciso e específico, sem comentários sobre o que foi alterado.', messages: [{ role: 'user', content: brief.slice(0, 6000) }] });
   await S.recordAiUse(req.user, 'optimize');
   res.json({ brief: out.trim(), usage: (await S.usageOf(req.user)).ai });
 });

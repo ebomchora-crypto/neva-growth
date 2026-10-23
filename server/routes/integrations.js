@@ -8,6 +8,7 @@ const ai = require('../lib/ai');
 const r = express.Router();
 r.get('/status', async (_req, res) => res.json({
   ai: { configured: ai.configured(), model: ai.configured() ? ai.MODELS.find((m) => m.id === ai.DEFAULT_ID()).name : null, models: ai.publicModels(), defaultModel: ai.DEFAULT_ID(), envVar: 'RIVER_API_KEY' },
+  builder: { configured: Boolean(config.get('CODEMAKER_API_KEY')) || ai.configured() },
   places: { configured: Boolean(config.get('APIFY_API_TOKEN')), envVar: 'APIFY_API_TOKEN', provider: 'Apify (Google Maps)' }
 }));
 

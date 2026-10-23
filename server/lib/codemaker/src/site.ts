@@ -408,7 +408,17 @@ export function photosFor(niche: string | null | undefined): Photo[] {
   const group = photoGroup(niche)
   // Fotos genéricas de escritório só quando o ramo não tem fotos próprias: no
   // meio de um site de oficina ou de clínica elas pareciam fora de lugar.
+  if (group === 'comida') {
+    const text = normalize(niche ?? '')
+    const matching = /padaria|pao|confeit|doceria/.test(text) ? /paes|croissant/ : /pizzar/.test(text) ? /pizza/ : /cafe|cafeteria/.test(text) ? /cafe|cafeteria/ : null
+    if (matching) return [...PHOTOS.comida.filter((photo) => matching.test(normalize(photo.about))), ...PHOTOS.comida.filter((photo) => !matching.test(normalize(photo.about)))]
+  }
   return group ? PHOTOS[group] : PHOTOS.geral
+}
+
+function photosForBrief(brief: SiteBrief): Photo[] {
+  const group = photoGroup(brief.niche) ?? photoGroup(`${brief.businessName ?? ''} ${brief.details ?? ''}`)
+  return group ? photosFor(group === 'comida' ? `${brief.niche ?? ''} ${brief.businessName ?? ''} ${brief.details ?? ''}` : group) : PHOTOS.geral
 }
 
 export function photoCatalog(niche: string | null | undefined): string {
@@ -457,7 +467,7 @@ export function imagesMessage(brief: SiteBrief, fresh: SiteAsset[] = [], used: S
     photos.length > 0
       ? `FOTOS DO PRÓPRIO NEGÓCIO (enviadas pelo usuário — use estas PRIMEIRO, principalmente no topo, na galeria e no "sobre"; não sabemos o que cada uma mostra, então use legendas genéricas e alt descritivo neutro):\n${photos.map((photo) => `- ${photo.url}${mark(photo.url)}`).join('\n')}`
       : null,
-    `${photos.length > 0 ? 'Fotos de banco (só como complemento, se faltar foto)' : 'Fotos disponíveis (use somente estas)'} — prefira as que ainda não estão no site:\n${photosFor(brief.niche)
+    `${photos.length > 0 ? 'Fotos de banco (só como complemento, se faltar foto)' : 'Fotos disponíveis (use somente estas)'} — prefira as que ainda não estão no site:\n${photosForBrief(brief)
       .map((photo) => `- ${stockUrl(photo.id)} — ${photo.about}${mark(stockUrl(photo.id))}`)
       .join('\n')}`,
   ]
@@ -521,7 +531,7 @@ export function photoPlan(plan: SitePlan, brief: SiteBrief): Record<string, Phot
   const own = (brief.assets ?? [])
     .filter((asset) => asset.kind === 'photo')
     .map((asset) => ({ url: asset.url, about: 'foto do próprio negócio (não sabemos o que mostra: legenda genérica e alt neutro)' }))
-  const pool: PhotoChoice[] = [...own, ...photosFor(brief.niche).map((photo) => ({ url: stockUrl(photo.id), about: photo.about }))]
+  const pool: PhotoChoice[] = [...own, ...photosForBrief(brief).map((photo) => ({ url: stockUrl(photo.id), about: photo.about }))]
   const result: Record<string, PhotoChoice[]> = {}
   let next = 0
   for (const section of plan.sections) {
@@ -2285,7 +2295,7 @@ function editPhotos(count: number, partId: string, parts: SiteParts, brief: Site
       ...fresh.filter((asset) => asset.kind === 'photo').map((asset) => asset.url),
       ...own.filter((url) => url !== logoOf(brief)),
       ...(brief.assets ?? []).filter((asset) => asset.kind === 'photo').map((asset) => asset.url),
-      ...photosFor(brief.niche).map((photo) => stockUrl(photo.id)),
+      ...photosForBrief(brief).map((photo) => stockUrl(photo.id)),
     ]),
   ]
   const free = pool.filter((url) => !elsewhere.has(photoKey(url)))
@@ -2643,7 +2653,7 @@ export function buildFreePartMessage(partId: string, plan: SitePlan, brief: Site
   const section = plan.sections[index]
   const prev = plan.sections[index - 1], next = plan.sections[index + 1]
   const action = mainAction(plan, brief)
-  const photos = photosFor(brief.niche)
+  const photos = photosForBrief(brief)
   const userPhotos = (brief.assets ?? []).filter((asset) => asset.kind === 'photo')
   const bg = section?.bg ?? 'paper'
   const familyOf = (item?: PlanSection) => (item ? `${item.id} → ${item.layoutFamily || sectionBlock(item)}` : 'nenhuma')
@@ -2691,7 +2701,7 @@ export interface ImageFix {
  *  repetida (ou fora do banco verificado) por uma foto ainda não usada; sem foto livre, mantém e registra. */
 export function dedupeImages(plan: SitePlan, parts: SiteParts, brief: SiteBrief): { parts: SiteParts; fixes: ImageFix[]; unresolved: number; total: number; unique: number } {
   const own = (brief.assets ?? []).filter((asset) => asset.kind === 'photo').map((asset) => asset.url)
-  const pool = [...own, ...photosFor(brief.niche).map((photo) => stockUrl(photo.id))]
+  const pool = [...own, ...photosForBrief(brief).map((photo) => stockUrl(photo.id))]
   const allowed = new Set(pool.map(photoKey))
   const stockPattern = /https:\/\/images\.unsplash\.com\/photo-[\w-]+[^"'\s)]*/g
   const present = new Set<string>()
@@ -2712,7 +2722,15 @@ export function dedupeImages(plan: SitePlan, parts: SiteParts, brief: SiteBrief)
       if (ok && !used.has(key)) { used.add(key); return url }
       const reason: ImageFix['reason'] = ok ? 'repetida' : 'fora-do-banco'
       const next = free.find((candidate) => !used.has(photoKey(candidate)))
-      if (!next) { unresolved += 1; fixes.push({ part: id, from: url, to: null, reason }); return url }
+      // Se o catálogo acabou, repetir uma foto válida é melhor que publicar
+      // uma URL inventada que aparece quebrada para o visitante.
+      if (!next) {
+        if (ok) { unresolved += 1; fixes.push({ part: id, from: url, to: null, reason }); return url }
+        const fallback = pool[total % pool.length]
+        if (!fallback) { unresolved += 1; fixes.push({ part: id, from: url, to: null, reason }); return url }
+        fixes.push({ part: id, from: url, to: fallback, reason })
+        return fallback
+      }
       used.add(photoKey(next))
       const width = url.match(/[?&]w=(\d+)/)?.[1]
       const replacement = width ? next.replace(/([?&])w=\d+/, `$1w=${width}`) : next

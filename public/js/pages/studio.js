@@ -10,7 +10,6 @@ const SAY = {
   start: ['Vou começar agora a criação do seu site.', 'Bora lá! Vou começar a montar o seu site agora.', 'Certo, vou criar o seu site a partir do seu pedido.', 'Começando a criação do seu site agora mesmo.'],
   resume: ['Vou continuar de onde o site parou.', 'Retomando a criação de onde parou.', 'Vou terminar as partes que ficaram faltando.'],
   planned: ['Plano pronto. Agora vou escrever cada parte do site.', 'Já sei o caminho. Partindo para as seções.', 'Direção definida! Agora vou escrever as seções.'],
-  notice: ['Percebi que ainda falta uma coisa.', 'Opa, uma parte não ficou como eu queria.', 'Encontrei um detalhe para ajustar.', 'Uma seção precisa de mais uma passada.'],
   done: ['Pronto! Está feito, aqui o link já publicado:', 'Prontinho! Seu site já está no ar:', 'Tudo certo! O site está publicado neste link:'],
   editStart: ['Vou fazer essa alteração.', 'Certo, vou mexer nisso agora.', 'Entendi! Vou ajustar o site.', 'Beleza, já vou alterar.'],
   editDone: ['Pronto! Alteração feita. Confira abaixo o que mudou em cada arquivo.', 'Feito! Abaixo está cada arquivo que mudou — aceite ou desfaça o que quiser.', 'Alteração aplicada. Revise as mudanças por arquivo logo abaixo.'],
@@ -302,6 +301,7 @@ export default {
       await runWithLimit(missing, PARALLEL_PARTS, async (pid) => {
         const label = partLabel(current.plan, pid).toLowerCase();
         const fixed = pid === 'header' || pid === 'footer';
+        let lastError = '';
         for (let attempt = 0; attempt < 2; attempt++) {
           if (signal.aborted) return;
           progress[pid] = { status: 'writing' };
@@ -318,11 +318,13 @@ export default {
           } catch (e) {
             step.fail();
             if (e.name === 'AbortError') return;
-            if (/limite|sess[aã]o/i.test(e.message)) { error = e.message; break; }
-            if (attempt === 0) say(log, pick(SAY.notice));
+            lastError = String(e.message || 'erro desconhecido').slice(0, 180);
+            if (/limite|sess[aã]o/i.test(lastError)) { error = lastError; break; }
+            if (attempt === 0) say(log, `A seção ${label} falhou: ${lastError}. Vou tentar novamente.`);
           }
         }
-        failed++; progress[pid] = { status: 'error' }; drawThread();
+        failed++; error ||= `Não consegui concluir ${label}: ${lastError}. Clique em "Continuar criação" para tentar novamente.`;
+        progress[pid] = { status: 'error' }; drawThread();
       });
       return failed === 0;
     }
@@ -362,7 +364,7 @@ export default {
           if (ok && !signal.aborted) {
             const fin = act(log, pick(ACT.finish));
             current = await refresh();
-            if (current.status !== 'ready') { await api.post('/code-maker', { action: 'finish', site_id: id }).catch(() => {}); current = await refresh(); }
+            if (current.status !== 'ready') { await api.post('/code-maker', { action: 'finish', site_id: id }); current = await refresh(); }
             fin.done();
           } else current = await refresh();
           if (current.status === 'ready' && !signal.aborted) {
