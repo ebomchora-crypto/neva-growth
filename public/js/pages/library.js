@@ -142,6 +142,34 @@ export const design = {
   }
 };
 
+// ---- Skill Vault: detalhe no estilo "arquivo da skill + método + instalação"
+const SKILL_ORDER = ['code performance', 'code accessibility', 'code testing', 'code responsive', 'code architecture', 'code database', 'code auth', 'code integrations', 'code ads', 'code copywriting', 'code funnel builder', 'code security', 'code pentest'];
+const skillRank = (it) => { const t = String(it.title || '').toLowerCase(); const i = SKILL_ORDER.findIndex((k) => t.startsWith(k)); return i < 0 ? 99 : i; };
+const skillSlug = (content, title) => (/^name:\s*([\w-]+)/m.exec(content || '') || [])[1] || slug(title);
+/** Texto de uma seção "## Título" até o próximo "## " (sem cercas de código). */
+const mdSection = (content, name) => { const m = new RegExp(`^##\\s+${name}\\s*$([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))`, 'im').exec(content || ''); return m ? m[1].trim() : ''; };
+const mdParas = (text) => String(text || '').split(/\n{2,}/).map((x) => x.trim()).filter(Boolean).slice(0, 4).map((x) => h('p', x.replace(/\*\*(.+?)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1')));
+const tagChips = (it) => String(it.niche || '').split(',').filter(Boolean).map((t) => h('span', { class: 'skt' }, t));
+
+function skillDetail(full, isAdmin, reload) {
+  const file = skillSlug(full.content, full.title);
+  const ver = (/version:\s*"?([\d.]+)"?/.exec(full.content || '') || [])[1] || String(full.style || 'v1.0.0').replace(/^v/, '');
+  const what = mdSection(full.content, 'O que ela faz') || full.summary || ''; const when = mdSection(full.content, 'Quando usar');
+  return h('div', { class: 'dpane skillpane' },
+    h('div', { class: 'dbanner' }, h('div', { class: 'dk' }, h('span', icon('box')), `SKILL / ${String(full.category || 'Geral').toUpperCase()}`), h('h2', full.title), full.summary && h('p', full.summary)),
+    h('div', { class: 'dbody stack' },
+      h('div', { class: 'dnotice' }, h('b', 'USO RESTRITO'), h('span', 'É proibido divulgar, compartilhar ou redistribuir este conteúdo. O descumprimento está sujeito à perda de acesso e ao banimento da plataforma.')),
+      h('section', { class: 'skfile' },
+        h('div', { class: 'skart', 'aria-hidden': 'true' }, h('i'), h('i'), h('i'), h('i'), h('i'), h('i'), h('i')),
+        h('div', { class: 'skinfo' }, h('small', { class: 'skk' }, 'ARQUIVO DA SKILL', h('span', `v${ver}`)), h('b', `${file}.md`), h('code', file), h('p', 'O método completo em um único arquivo.')),
+        h('div', { class: 'skact' }, h('button', { class: 'btn', type: 'button', onclick: () => downloadFile(`${file}.md`, full.content) }, 'Baixar skill', icon('download')), h('button', { class: 'btn ghost', type: 'button', onclick: () => copyText(full.content, 'Skill copiada.') }, 'Copiar'), isAdmin && h('button', { class: 'btn ghost', type: 'button', onclick: () => itemForm(full, reload) }, 'Editar'))),
+      h('div', { class: 'skcols' },
+        h('section', h('small', { class: 'skk2' }, '01 / MÉTODO'), h('h3', 'O que ela faz'), ...mdParas(what), when && h('div', { class: 'skwhen' }, h('b', 'Quando usar'), ...mdParas(when).slice(0, 2))),
+        h('section', h('small', { class: 'skk2' }, '02 / INSTALAÇÃO'), h('h3', 'Como instalar'),
+          h('ol', { class: 'skol' }, h('li', h('span', 'Baixe o arquivo ', h('b', `${file}.md`), '.')), h('li', h('span', 'Salve-o na pasta de skills do seu agente com o nome SKILL.md.')), h('li', h('span', 'Peça ao agente para usar a skill ao iniciar a tarefa.'))),
+          h('div', { class: 'skex' }, h('small', 'Exemplo no Codex'), h('code', `.agents/skills/${file}/SKILL.md`))))));
+}
+
 // ---- Acervo: Prompt Lab · Skill Vault · Animações
 export const acervo = {
   async render(box, ctx) {
@@ -161,7 +189,8 @@ export const acervo = {
         mount(listBox); mount(detail); return;
       }
       mount(galleryBox);
-      mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('span', { class: 'lnum' }, String(i + 1).padStart(2, '0')), h('span', { class: 'lbody' }, h('span', { class: 'lcat' }, `${it.category || KIND[kind][0]}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('b', { class: 't' }, it.title), it.summary && h('span', { class: 'lsum' }, it.summary)), h('span', { class: 'larr' }, icon('chevron'))))
+      if (kind === 'skill') items.sort((a, b) => skillRank(a) - skillRank(b));
+      mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('span', { class: 'lnum' }, String(i + 1).padStart(2, '0')), h('span', { class: 'lbody' }, h('span', { class: 'lcat' }, `${it.category || KIND[kind][0]}${kind === 'skill' && it.style ? ' | ' + it.style : ''}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('b', { class: 't' }, it.title), it.summary && h('span', { class: 'lsum' }, it.summary), kind === 'skill' && it.niche && h('span', { class: 'sktags' }, ...tagChips(it))), h('span', { class: 'larr' }, icon('chevron'))))
         : h('div', { class: 'empty' }, h('b', 'Nenhum recurso'), isAdmin ? 'Use "+ Novo recurso" para cadastrar.' : 'Nada publicado ainda.'));
       if (!selected && items[0] && !items[0].locked) show(items[0]); else if (!items.length) mount(detail, h('div', { class: 'empty' }, 'Selecione um recurso.'));
     }
@@ -169,6 +198,7 @@ export const acervo = {
       selected = it.id; listBox.querySelectorAll('.libitem').forEach((b) => b.classList.remove('on'));
       if (it.locked) return mount(detail, h('div', { class: 'empty' }, h('b', '🔒 Recurso de plano superior'), 'Peça a um administrador para alterar seu plano em Associação.'));
       try { const full = await api.get('/library/' + it.id);
+        if (full.kind === 'skill') return mount(detail, skillDetail(full, isAdmin, load));
         mount(detail, h('div', { class: 'dpane' },
           h('div', { class: 'dbanner' }, h('div', { class: 'dk' }, h('span', icon('box')), `${KIND[full.kind][0].toUpperCase()} / ${full.category || 'Geral'}`), h('h2', full.title), full.summary && h('p', full.summary)),
           h('div', { class: 'dbody stack' },
@@ -178,10 +208,10 @@ export const acervo = {
               h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))))));
       } catch (e) { mount(detail, h('div', { class: 'empty' }, e.message)); }
     }
-    const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Métodos prontos para instalar.', 'Guias e skills para repetir bons resultados com a sua IA, sem começar do zero.'], animation: ['Movimento para dar vida ao seu site.', 'Explore as animações, copie o prompt completo e ajuste os detalhes no editor do seu projeto.'] };
+    const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Skills para operar em outro nível.', 'Escolha uma skill, entenda o método e baixe o arquivo pronto para instalar.'], animation: ['Movimento para dar vida ao seu site.', 'Explore as animações, copie o prompt completo e ajuste os detalhes no editor do seu projeto.'] };
     const heroBox = h('div'); let total = 0;
     const drawHero = () => mount(heroBox, hero({ kicker: `Neva Growth / ${KIND[kind][0]}`, title: TITLES[kind][0], art: 'acervo', subtitle: TITLES[kind][1],
-      stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('box'), `${total} recurso(s) publicado(s)`), h('span', { class: 'chipk' }, icon('check'), 'Texto completo'), h('span', { class: 'chipk' }, icon('refresh'), 'Sincronizado')),
+      stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('box'), `${total} recurso(s) publicado(s)`), h('span', { class: 'chipk' }, icon('check'), kind === 'skill' ? 'Conteúdo versionado' : 'Texto completo'), h('span', { class: 'chipk' }, icon('refresh'), 'Sincronizado')),
       actions: [isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, kind) }, '+ Novo recurso')] }));
     const drawTabs = () => mount(tabs, h('div', { class: 'card acervobar' }, h('span', { class: 'ex' }, 'ACERVO NEVA'), h('div', { class: 'atabs' }, ['prompt', 'skill', 'animation'].map((k) => h('button', { class: kind === k ? 'on' : '', onclick: () => { kind = k; selected = null; st.category = ''; drawTabs(); load(); } }, h('b', KIND[k][0]), h('small', KIND[k][1])))),
       h('a', { class: 'btn', href: '#/prompts' }, '✦ Gerar com IA')));

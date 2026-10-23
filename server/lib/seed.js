@@ -51,6 +51,17 @@ async function seedAnimationPrompts() {
   }
 }
 
+// Skill Vault: as 13 skills enviadas (conteúdo integral). Idempotente a cada partida; os exemplos antigos do Acervo saem de cena (despublicados, não apagados).
+async function seedSkillVault() {
+  const skills = require('./seed-skills-data');
+  for (const k of skills) {
+    if (await get("SELECT 1 x FROM library_items WHERE kind='skill' AND title=?", k.title)) continue;
+    await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,min_plan) VALUES (?,?,?,?,?,?,?,?)', 'skill', k.title, k.category, k.summary, k.content, k.tags, 'v' + k.version, 'member');
+  }
+  const names = skills.map((k) => k.title);
+  await run(`UPDATE library_items SET published=0 WHERE kind='skill' AND published=1 AND title NOT IN (${names.map(() => '?').join(',')})`, ...names);
+}
+
 // Referências verificadas (docs/referencias-verificadas.json, criado por scripts/add-reference.js): só entra URL que
 // respondeu e foi medida; o texto vem das medidas, nunca de descrição inventada. Idempotente: roda a cada partida.
 async function seedVerifiedReferences() {
@@ -68,4 +79,4 @@ async function seedVerifiedReferences() {
     await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,url,min_plan) VALUES (?,?,?,?,?,?,?,?,?,?)', 'design', r.title, 'Referência verificada', `${r.niche} · ${r.style} (medido em site real)`, content, r.niche, r.style, r.site_type || 'Institucional', r.url, 'member');
   }
 }
-module.exports = { seedLibrary, seedLibraryV2, seedAnimationPrompts, seedVerifiedReferences };
+module.exports = { seedLibrary, seedLibraryV2, seedAnimationPrompts, seedSkillVault, seedVerifiedReferences };
