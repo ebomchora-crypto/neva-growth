@@ -56,6 +56,7 @@ function createApp() {
   api.use('/prompts', require('./routes/prompts'));
   api.use('/search', require('./routes/search'));
   api.use('/projects', projects);
+  api.use('/design-references', require('./routes/design-references'));
   api.use('/code-maker', require('./routes/codemaker'));
   api.use('/integrations', require('./routes/integrations'));
   api.use(require('./routes/resources').router);
