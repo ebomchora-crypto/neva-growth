@@ -738,6 +738,7 @@ body{background:#e6f0fa}
 .emptyart .whitepill{box-shadow:0 10px 26px rgba(47,123,189,.2)}
 /* quadro: rolagem horizontal com barra visível, como no original */
 .kanban{scrollbar-width:thin;scrollbar-color:var(--ice-500) var(--ice-100)}
+.kanban{cursor:grab}.kanban.panning{cursor:grabbing;user-select:none;scroll-snap-type:none}
 .kanban::-webkit-scrollbar{height:10px}.kanban::-webkit-scrollbar-track{background:var(--ice-100);border-radius:99px}
 .kanban::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#7fb4e0,#2f7bbd);border-radius:99px;border:2px solid var(--ice-100)}
 .col .colhead::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:1px solid rgba(255,255,255,.22);box-shadow:0 0 0 22px rgba(255,255,255,.05);pointer-events:none}

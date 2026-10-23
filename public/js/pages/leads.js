@@ -74,6 +74,33 @@ export default {
         if (e.clientX > r.right - edge) board.scrollLeft += 22; else if (e.clientX < r.left + edge) board.scrollLeft -= 22;
       });
     }
+    function dragToScroll(board) {
+      let start = null;
+      const finish = (e) => {
+        if (!start || e.pointerId !== start.id) return;
+        start = null; board.classList.remove('panning');
+        if (board.hasPointerCapture(e.pointerId)) board.releasePointerCapture(e.pointerId);
+      };
+      board.addEventListener('pointerdown', (e) => {
+        if (e.pointerType !== 'mouse' || e.button !== 0 || board.scrollWidth <= board.clientWidth) return;
+        if (e.target.closest('.lcard,button,input,textarea,select,a,[contenteditable]')) return;
+        if (e.clientY >= board.getBoundingClientRect().top + board.clientHeight) return;
+        start = { id: e.pointerId, x: e.clientX, left: board.scrollLeft };
+        board.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      board.addEventListener('pointermove', (e) => {
+        if (!start || e.pointerId !== start.id) return;
+        const distance = e.clientX - start.x;
+        if (Math.abs(distance) < 4 && !board.classList.contains('panning')) return;
+        board.classList.add('panning');
+        board.scrollLeft = start.left - distance;
+        e.preventDefault();
+      });
+      board.addEventListener('pointerup', finish);
+      board.addEventListener('pointercancel', finish);
+      board.addEventListener('lostpointercapture', finish);
+    }
     function kanban() {
       const board = h('div', { class: 'kanban' }, stages.map((s) => {
         const items = leads.filter((l) => l.status === s.key);
@@ -105,6 +132,7 @@ export default {
         return col;
       }));
       autoScroll(board);
+      dragToScroll(board);
       return h('div', null, board, h('div', { class: 'kfoot' }, h('span', `● Sincronizado com sua conta · ${archivedCount} arquivada(s)`), h('span', canWrite && !st.archived ? 'Arraste os cards entre etapas' : '')));
     }
     function list() {
