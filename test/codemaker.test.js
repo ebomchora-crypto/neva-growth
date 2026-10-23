@@ -124,3 +124,11 @@ test('referências escolhidas pelo usuário entram no bloco mesmo fora do ramo',
   assert.ok(out.trace.selected.every((s) => s.why.includes('escolhida pelo usuário no Builder')));
   for (const d of designs) assert.match(out.block, new RegExp(d.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
+
+test('acervo de 1.289 DESIGN.md: uma referência entra sozinha no bloco do plano', async () => {
+  process.env.CM_REF_INSPECT = '0';
+  const out = await require('../server/lib/codemaker/references').buildReferences({ details: 'Clínica odontológica em Curitiba com implantes e clareamento', niche: 'odontologia' }, { siteId: 1 });
+  assert.ok(out.trace.archive?.title, 'escolheu uma referência do acervo');
+  assert.match(out.block, /Referência do acervo de DESIGN\.md/);
+  assert.doesNotMatch(out.block, /diga em uma frase quais referências usou/);
+});

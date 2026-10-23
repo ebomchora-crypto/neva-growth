@@ -1,7 +1,7 @@
 // Builder com IA (Neva Code): conversa estilo chat para criar e alterar sites. À esquerda, os seus sites como conversas;
 // no meio, a conversa com o agente (etapas ao vivo, plano, revisão de alterações por arquivo); à direita, a prévia.
 // A criação usa o mesmo motor do Studio (plano → seções em paralelo → montagem → publicação) e o DESIGN.md da Neva;
-// referências de design da biblioteca podem ser escolhidas na caixa de pedido (ou com /design).
+// a direção de arte vem do DESIGN.md da Neva e de referências escolhidas automaticamente pelo agente.
 import { api } from '../api.js';
 import { h, mount, toast, fail, icon, modal, confirmBox, dtt, debounce } from '../ui.js';
 import { composer } from '../neva-code/composer.js';
@@ -36,8 +36,6 @@ export default {
     const st = await api.get('/integrations/status').catch(() => ({ ai: {} }));
     const builderOn = st.builder?.configured ?? st.ai?.configured;
     let disposed = false;
-    let designCache = null;
-    const loadDesigns = async () => (designCache ||= (await api.get('/library', { kind: 'design' })).items.filter((d) => !d.locked));
 
     // ---------------- barra lateral: os sites como conversas
     let sites = [];
@@ -86,13 +84,12 @@ export default {
     // ---------------- caixa de pedido + medidor de contexto
     const meter = contextMeter();
     const refreshMeter = debounce(async () => {
-      try { meter.set(await api.get('/code-maker/context', { ...(id ? { site_id: id } : {}), design_ids: cp.designs().map((d) => d.id).join(',') })); } catch { /* sem medidor */ }
+      try { meter.set(await api.get('/code-maker/context', { ...(id ? { site_id: id } : {}), })); } catch { /* sem medidor */ }
     }, 250);
     const cp = composer({
       models: st.ai?.models, defaultModel: st.ai?.defaultModel, disabled: !builderOn || !canWrite, meter,
       placeholder: id ? 'Peça uma alteração. Digite / para comandos' : 'Descreva o site que você quer. Digite / para comandos',
       upload: (dataUrl, name) => api.post('/code-maker/images', { dataUrl, name }),
-      loadDesigns, onDesigns: () => refreshMeter(),
       onSubmit: (text, meta) => (id ? edit(text, meta) : create(text, meta)),
       onStop: () => stop(),
     });
@@ -103,34 +100,20 @@ export default {
       const typed = (meta.command?.prefix || '') + (text || 'Crie o site com base nos arquivos anexados.');
       cp.setResponding(true);
       try {
-        const r = await api.post('/code-maker', { action: 'create', brief: { details: composeDetails(typed, meta.files), style: 'auto', designIds: meta.designs.map((d) => d.id) }, assets: meta.assets, model: meta.model, effort: meta.effort });
+        const r = await api.post('/code-maker', { action: 'create', brief: { details: composeDetails(typed, meta.files), style: 'auto' }, assets: meta.assets, model: meta.model, effort: meta.effort });
         if (r?.attachments?.length) toast(r.attachments.join(' '), 'ok');
-        try { sessionStorage.setItem('nc-designs-' + r.site.id, JSON.stringify(meta.designs)); } catch { /* ok */ }
         location.hash = '#/builder/' + r.site.id;
         return true;
       } catch (e) { fail(e); return false; } finally { cp.setResponding(false); }
     }
     function welcome() {
-      const refsRow = h('div', { class: 'nc-refrow' });
-      loadDesigns().then((list) => {
-        if (disposed || !list.length) return;
-        const draw = () => mount(refsRow, h('p', { class: 'nc-lbl' }, 'Comece com uma referência de design'),
-          h('div', { class: 'nc-refs-grid' }, list.slice(0, 6).map((d) => {
-            const on = cp.designs().some((x) => x.id === d.id);
-            return h('button', { type: 'button', class: 'nc-ref' + (on ? ' on' : ''), 'aria-pressed': String(on), onclick: () => {
-              const cur = cp.designs(); cp.setDesigns(on ? cur.filter((x) => x.id !== d.id) : [...cur, { id: d.id, title: d.title }].slice(0, 3)); draw(); refreshMeter();
-            } }, h('b', d.title), h('small', [d.style, d.niche].filter(Boolean).join(' · ') || 'DESIGN.md'));
-          })));
-        draw();
-      }).catch(() => {});
       const name = ctx.user.name.split(' ')[0];
       return h('div', { class: 'nc-welcome' },
         h('div', { class: 'nc-hello' }, h('span', { class: 'nc-kicker' + (builderOn ? '' : ' off') }, h('i'), builderOn ? 'Agente de sites pronto' : 'IA indisponível: configure CODEMAKER_API_KEY ou RIVER_API_KEY'),
           h('h1', `${name}, que site vamos construir?`),
-          h('p', 'Converse como num chat: descreva o negócio, anexe fotos e logo, escolha uma referência de design. O agente planeja, escreve e publica, e você ajusta pedindo.')),
+          h('p', 'Converse como num chat: descreva o negócio e anexe fotos e logo. O agente escolhe a direção de arte, escreve, publica, e você ajusta pedindo.')),
         cp.el,
-        h('div', { class: 'nc-ideas' }, IDEAS.map((i) => h('button', { type: 'button', class: 'nc-idea', onclick: () => { cp.setValue(i.d); cp.focus(); } }, h('b', i.t), h('span', i.d)))),
-        refsRow);
+        h('div', { class: 'nc-ideas' }, IDEAS.map((i) => h('button', { type: 'button', class: 'nc-idea', onclick: () => { cp.setValue(i.d); cp.focus(); } }, h('b', i.t), h('span', i.d)))));
     }
 
     // ---------------- conversa (site aberto)
@@ -178,19 +161,16 @@ export default {
       const creating = phase === 'planning' || phase === 'building' || site.status !== 'ready';
       const steps = stepsFromServer(); createSteps.set(steps);
       const planActions = phase === 'planning' ? actionsOf(planText) : (site.plan?.actions || []);
-      const designs = (() => { try { return JSON.parse(sessionStorage.getItem('nc-designs-' + id) || '[]'); } catch { return []; } })();
-      const usedRefs = site.brief?.designTrace?.selected?.map((s) => s.title) || [];
       const createBlock = aiMsg(
         ...(log.length ? says(log.filter((e, i) => i === 0 || e.t === 'say')) : [h('p', site.status === 'ready' ? 'Criei o site a partir do seu pedido.' : 'Vou planejar a direção de arte, as cores, as fontes e as seções do seu site.')]),
         steps.length ? createSteps.el : null,
         bullet(planActions, 'Plano do site'),
-        usedRefs.length ? h('p', { class: 'nc-refs-used' }, icon('palette'), `Referências usadas: ${usedRefs.join(', ')}`) : null,
         site.status === 'ready' && !creating && !log.length && site.published && linkCard(liveLink()),
         error && h('div', { class: 'nc-err' }, h('p', error), canWrite && phase === 'idle' && site.status !== 'ready' && h('button', { type: 'button', class: 'btn sm', onclick: generate }, 'Continuar criação')));
       const edits = versions.filter((v) => v.kind === 'edit' && v.instruction).slice().reverse();
       const lastId = edits.length ? edits[edits.length - 1].id : null;
       mount(thread, h('div', { class: 'nc-col' },
-        userMsg(site.brief?.details || site.name, site.created_at, designs),
+        userMsg(site.brief?.details || site.name, site.created_at),
         createBlock,
         edits.map((v) => {
           const live = editRun && !editRun.pending && editRun.version === v.id;
@@ -350,12 +330,8 @@ export default {
     const EDIT_STEPS = [['read', 'Lendo os arquivos do site'], ['think', 'Entendendo o pedido'], ['exec', 'Aplicando a alteração'], ['check', 'Conferindo o resultado']];
     async function edit(text, meta) {
       if (!site || site.status !== 'ready' || busy) return false;
-      let typed = (meta.command?.prefix || '') + (text || 'Use os arquivos anexados para alterar o site.');
-      // Referência de design escolhida numa alteração: o DESIGN.md dela vai junto, como material de apoio.
-      const refFiles = [];
-      for (const d of meta.designs) { try { const full = await api.get('/library/' + d.id); refFiles.push({ kind: 'text', name: `DESIGN.md — ${d.title}`, text: String(full.content || '').slice(0, 9000) }); } catch { /* sem a referência */ } }
-      if (refFiles.length) typed += `\n\nUse como referência de design (sem copiar layout, textos nem marca): ${meta.designs.map((d) => d.title).join(', ')}.`;
-      const instruction = composeDetails(typed, [...meta.files, ...refFiles]);
+      const typed = (meta.command?.prefix || '') + (text || 'Use os arquivos anexados para alterar o site.');
+      const instruction = composeDetails(typed, meta.files);
       busy = true; controller?.abort(); controller = new AbortController(); const signal = controller.signal;
       error = null; phase = 'editing'; review = null;
       const status = Object.fromEntries(EDIT_STEPS.map(([k]) => [k, 'pending'])); const lines = [];

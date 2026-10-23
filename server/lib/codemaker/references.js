@@ -106,7 +106,7 @@ function describe(sel, facts) {
 }
 
 // Monta o bloco de referências + o rastro do que foi encontrado, usado, descartado e falhou.
-async function buildReferences(brief, { siteId } = {}) {
+async function buildLibraryReferences(brief, { siteId } = {}) {
   const t0 = Date.now();
   const items = await all("SELECT id,title,niche,style,site_type,url,content FROM library_items WHERE kind='design' AND published=1");
   // Escolhidas pelo usuário no Builder: valem como estão (sem filtro de ramo), na ordem em que foram escolhidas.
@@ -131,7 +131,7 @@ async function buildReferences(brief, { siteId } = {}) {
   }
   let block = [
     'REFERÊNCIAS DE DESIGN (escolhidas para ESTE pedido e medidas nos sites reais). Regras: cada referência vale só no papel indicado; NÃO copie layout, textos nem marca de nenhuma; combine os papéis numa direção de arte própria para o negócio.',
-    'Quando o usuário não deu cores nem fontes, a paleta e as fontes do plano devem nascer destas referências (adaptadas ao ramo, com contraste AA). No <acoes>, diga em uma frase quais referências usou e para quê.',
+    'Quando o usuário não deu cores nem fontes, a paleta e as fontes do plano devem nascer destas referências (adaptadas ao ramo, com contraste AA). Não cite nomes de referências no <acoes> (a escolha é interna).',
     ...selected.map((s) => describe(s, byUrl.get(s.it.url))),
     ...own.map((f) => `### Referência enviada pelo usuário (${f.url})\nMedido: fontes ${f.fonts.join(', ') || 'n/d'}; cores ${f.colors.join(' ') || 'n/d'}; ${f.sections} seções${f.libs.length ? `; usa ${f.libs.join(', ')}` : ''}. Papel: o que o usuário pedir sobre ela no pedido.`),
   ].join('\n\n');
@@ -147,4 +147,15 @@ async function buildReferences(brief, { siteId } = {}) {
   return { block, trace };
 }
 
-module.exports = { buildReferences, pickDesigns, parseFacts, inspect, urlsIn };
+// Biblioteca curada (Referências de design) + uma referência do acervo de 1.289 DESIGN.md escolhida automaticamente.
+async function buildReferences(brief, opts = {}) {
+  const out = await buildLibraryReferences(brief, opts);
+  const arch = require('./archive-refs').archiveBlock(brief, `${opts.siteId ?? ''}:${brief.details || ''}`);
+  if (!arch) return out;
+  console.log(JSON.stringify({ evt: 'cm_design_archive', site: opts.siteId ?? null, title: arch.trace.title, score: arch.trace.score }));
+  return { block: `${out.block}
+
+${arch.block}`, trace: { ...out.trace, archive: arch.trace } };
+}
+
+module.exports = { buildReferences, buildLibraryReferences, pickDesigns, parseFacts, inspect, urlsIn };

@@ -25,5 +25,5 @@ const qs = (o = {}) => {
 };
 export const api = {
   get: (u, q) => request('GET', u + qs(q)), post: (u, b = {}) => request('POST', u, b),
-  put: (u, b) => request('PUT', u, b), del: (u, q) => request('DELETE', u + qs(q))
+  put: (u, b) => request('PUT', u, b), patch: (u, b) => request('PATCH', u, b), del: (u, q) => request('DELETE', u + qs(q))
 };

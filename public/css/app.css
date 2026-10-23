@@ -2283,3 +2283,45 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 @container (max-width:560px){.cp-design span,.cp-effort>span:not(.cp-bars){display:none}.cp-ghost{padding:0 8px}}
 @container (max-width:430px){.cm-pct{display:none}.cp-model .chev{display:none}}
 @media (max-width:520px){.nc-top .nc-status{display:none}.nc-title{flex:1;min-width:0}.nc-name{max-width:none}.nc-top .grow{display:none}}
+
+/* ===== Chat com IA ===== */
+.ch-main{position:relative}
+.ch-top{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 14px;border-bottom:1px solid var(--nc-line)}
+.ch.empty .ch-top{border-bottom-color:transparent}
+.ch-title{font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-thread{flex:1;min-height:0;overflow-y:auto;padding:24px 18px 12px}
+.ch.empty .ch-thread{display:flex}
+.ch-hello{margin:auto;width:min(760px,100%);display:grid;gap:18px;padding-bottom:6vh}
+.ch-hello h1{text-align:center;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.03em;font-weight:650;text-wrap:balance}
+.ch-off{margin:0;text-align:center;color:#9a6a0c;font-size:.85rem}
+.ch-starters{display:grid;gap:4px;margin-top:4px}
+.ch-starters button{display:flex;align-items:center;gap:12px;padding:11px 14px;border:0;border-radius:14px;background:transparent;text-align:left;color:#4c6580;font-size:.9rem;cursor:pointer;transition:background .15s,color .15s}
+.ch-starters button:hover{background:#f0f6fc;color:var(--ink)}.ch-starters .ico{width:18px;height:18px;color:var(--ice-600)}
+.ch-col{max-width:760px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+.ch-msg.me{display:flex;justify-content:flex-end}
+.ch-bubble{max-width:min(80%,600px);background:#edf4fb;border-radius:20px;padding:10px 16px;white-space:pre-wrap;word-break:break-word;font-size:.94rem;line-height:1.55}
+.ch-att{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:.74rem;color:var(--ice-700)}.ch-att .ico{width:13px;height:13px}
+.ch-msg.ai{display:grid;gap:6px}
+.ch-md{font-size:.95rem;line-height:1.7;color:#1b2f45;min-width:0;overflow-wrap:anywhere}
+.ch-md>*{margin:0 0 .75em}.ch-md>*:last-child{margin-bottom:0}
+.ch-md h2,.ch-md h3,.ch-md h4,.ch-md h5{margin:1.1em 0 .45em;font-size:1.05rem;letter-spacing:-.01em}
+.ch-md ul,.ch-md ol{padding-left:1.4em}.ch-md li{margin:.2em 0}
+.ch-md code{font:.86em ui-monospace,SFMono-Regular,Menlo,monospace;background:#eef4fa;border-radius:6px;padding:.12em .4em}
+.ch-md a{color:var(--ice-600)}
+.ch-md hr{border:0;border-top:1px solid var(--nc-line);margin:1.2em 0}
+.ch-code{border-radius:14px;overflow:hidden;background:#0f2135;margin:0 0 .9em}
+.ch-codebar{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;background:#16304b;color:#9fbad4;font-size:.74rem}
+.ch-codebar button{border:0;background:transparent;color:#cfe2f4;font-size:.74rem;cursor:pointer;padding:3px 8px;border-radius:7px}.ch-codebar button:hover{background:rgba(255,255,255,.1)}
+.ch-code pre{margin:0;padding:12px 14px;overflow-x:auto}.ch-code code{background:none;padding:0;color:#e4eef8;font-size:.82rem;line-height:1.6}
+.ch-md.live>*:last-child::after{content:"";display:inline-block;width:8px;height:8px;margin-left:4px;border-radius:50%;background:var(--ice-600);vertical-align:1px;animation:ncpulse .9s infinite}
+.ch-md.live .ch-code::after,.ch-md.live>.ch-wait::after{display:none!important}
+.ch-wait{display:flex;gap:5px;padding:6px 0}.ch-wait i{width:7px;height:7px;border-radius:50%;background:#9cc3e6;animation:chdot 1.2s infinite ease-in-out}.ch-wait i:nth-child(2){animation-delay:.15s}.ch-wait i:nth-child(3){animation-delay:.3s}
+@keyframes chdot{0%,80%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-3px)}}
+.ch-acts{display:flex;gap:2px}.ch-acts button{width:30px;height:30px;border:0;border-radius:9px;background:transparent;color:#7d93a9;display:grid;place-items:center;cursor:pointer}.ch-acts button:hover{background:#eef4fa;color:var(--ink)}.ch-acts .ico{width:15px;height:15px}
+.ch-err{margin:0;font-size:.82rem;color:var(--bad)}
+.ch-dock{padding:6px 16px 14px}.ch-dock .cp{max-width:760px;margin:0 auto}
+.ch.empty .ch-dock{display:none}
+.ch .cp-box{border-radius:26px}
+.ch .nc-mark .ico{width:15px;height:15px;color:#fff}
+@media (max-width:900px){.ch-thread{padding:16px 12px 8px}.ch-dock{padding:6px 8px 10px}.ch-bubble{max-width:88%}}
+@media (prefers-reduced-motion:reduce){.ch-wait i,.ch-md.live>*:last-child::after{animation:none}}

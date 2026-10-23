@@ -17,7 +17,6 @@ const I = {
   neva: () => sv('<path d="M12 2.5 14.6 9.4 21.5 12l-6.9 2.6L12 21.5l-2.6-6.9L2.5 12l6.9-2.6z"/>', 'nv'),
 };
 export const COMMANDS = [
-  { id: 'design', label: 'Referência de design', hint: 'Escolher um DESIGN.md da biblioteca', icon: I.book, picker: true },
   { id: 'pagina', label: 'Nova página', hint: 'Criar outra página no site', icon: I.page, prefix: 'Crie uma nova página no site: ' },
   { id: 'secao', label: 'Nova seção', hint: 'Adicionar um bloco à página', icon: I.layers, prefix: 'Adicione uma nova seção: ' },
   { id: 'cores', label: 'Cores e fontes', hint: 'Trocar paleta ou tipografia', icon: I.palette, prefix: 'Mude as cores e/ou as fontes do site: ' },
@@ -89,7 +88,8 @@ export function composer(opts) {
   // ---- menu de comandos "/"
   const slash = h('div', { class: 'cp-slash', role: 'listbox', 'aria-label': 'Comandos', hidden: true });
   const query = () => (!command && ta.value.startsWith('/') && !/\s/.test(ta.value) ? ta.value.slice(1).toLowerCase() : null);
-  const matches = () => { const q = query(); return q === null ? [] : COMMANDS.filter((c) => c.label.toLowerCase().includes(q) || c.id.includes(q)); };
+  const cmds = opts.commands || COMMANDS;
+  const matches = () => { const q = query(); return q === null ? [] : cmds.filter((c) => c.label.toLowerCase().includes(q) || c.id.includes(q)); };
   function paintSlash() {
     const list = matches(); const show = list.length > 0 && !menuDismissed;
     slash.hidden = !show; if (!show) { ta.removeAttribute('aria-activedescendant'); return; }
@@ -155,7 +155,7 @@ export function composer(opts) {
 
   // ---- enviar / parar
   const send = h('button', { type: 'button', class: 'cp-send' }, h('span', { class: 'f go' }, I.up()), h('span', { class: 'f st' }, h('i')));
-  const canSend = () => !disabled && !responding && (ta.value.trim().length > 0 || att.files.length > 0) && !query();
+  const canSend = () => !disabled && !responding && (ta.value.trim().length > 0 || att.files.length > 0) && !matches().length;
   function paintSend() {
     send.classList.toggle('ready', canSend() || responding); send.classList.toggle('stop', responding);
     send.disabled = !(responding || canSend()); send.setAttribute('aria-label', responding ? 'Parar resposta' : 'Enviar mensagem');
@@ -193,7 +193,7 @@ export function composer(opts) {
 
   const drop = h('div', { class: 'cp-drop', 'aria-hidden': 'true' }, 'Solte para anexar');
   const box = h('div', { class: 'cp-box' }, tray, slash, ta,
-    h('div', { class: 'cp-bar' }, att.button, modelBtn, effortBtn, designBtn, h('span', { class: 'cp-grow' }), opts.meter?.el, send), drop, att.picker);
+    h('div', { class: 'cp-bar' }, att.button, modelBtn, effortBtn, opts.loadDesigns ? designBtn : null, h('span', { class: 'cp-grow' }), opts.meter?.el, send), drop, att.picker);
   const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes('Files');
   box.addEventListener('dragover', (e) => { if (hasFiles(e)) { e.preventDefault(); box.classList.add('drag'); } });
   box.addEventListener('dragleave', (e) => { if (!box.contains(e.relatedTarget)) box.classList.remove('drag'); });

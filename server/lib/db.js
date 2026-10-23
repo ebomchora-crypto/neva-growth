@@ -13,7 +13,7 @@ const als = new AsyncLocalStorage();
 const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
 const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
 const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
-  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls', 'build_events']);
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls', 'build_events', 'chats']);
 
 // Tradução mínima de construções herdadas do SQLite + placeholders
 function translate(sql) {
@@ -335,6 +335,14 @@ ALTER TABLE public.site_images ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.site_images FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.site_images FROM authenticated'; END IF;
+END $$;
+` }, { v: 14, name: 'v14-chat-com-ia', sql: `
+CREATE TABLE IF NOT EXISTS chats (id ${ID}, user_id INTEGER NOT NULL, title TEXT NOT NULL DEFAULT 'Nova conversa', messages TEXT NOT NULL DEFAULT '[]', created_at ${TS}, updated_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_chats_user ON chats(user_id);
+ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.chats FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.chats FROM authenticated'; END IF;
 END $$;
 ` }];
 

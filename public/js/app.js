@@ -26,6 +26,7 @@ const ROUTES = [
   { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
   { path: 'builder', wide: true, search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'chat', wide: true, search: 'Buscar conversa', label: 'Chat com IA', icon: 'message', page: lazy('./pages/chat.js') },
   { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { path: 'studio/:id', hidden: true, wide: true, page: lazy('./pages/studio.js') },
   { path: 'ao-vivo', hidden: true, wide: true, page: lazy('./pages/live.js') },
@@ -56,6 +57,8 @@ async function loadMe() {
   applyPrivacy(state.me.settings.hide_values === '1');
 }
 
+// Endereços diretos (neva-growth.vercel.app/chat, /builder) abrem a tela certa do app.
+if (/^\/(chat|builder)\/?$/.test(location.pathname) && !location.hash) history.replaceState(null, '', `/#/${location.pathname.replace(/\//g, '')}`);
 async function boot() {
   let st;
   try { st = await api.get('/auth/status'); } catch (e) { mount(root, h('div', { class: 'boot', style: 'text-align:center;padding:20px' }, h('div', mascotImg('erro'), h('p', 'Não foi possível iniciar o servidor.'), h('p', { class: 'mut sm' }, e.message), h('button', { class: 'btn', onclick: boot }, 'Tentar novamente')))); return; }

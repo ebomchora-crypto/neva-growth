@@ -58,6 +58,7 @@ function createApp() {
   api.use('/projects', projects);
   api.use('/design-references', require('./routes/design-references'));
   api.use('/code-maker', require('./routes/codemaker'));
+  api.use('/chat', require('./routes/chat'));
   api.use('/integrations', require('./routes/integrations'));
   api.use(require('./routes/resources').router);
   api.use((_req, _res, next) => next(new HttpError(404, 'Rota não encontrada.')));

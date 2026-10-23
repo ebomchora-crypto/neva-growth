@@ -33,6 +33,14 @@
     {
       "source": "/healthz",
       "destination": "/api"
+    },
+    {
+      "source": "/chat",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/builder",
+      "destination": "/index.html"
     }
   ],
   "headers": [

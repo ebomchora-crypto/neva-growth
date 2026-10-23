@@ -208,6 +208,51 @@ async function complete({ system, messages, maxTokens = 4096, model, effort, noT
   return (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
 }
 
+/**
+ * Resposta ao vivo (para o Chat): chama `onDelta(texto)` a cada pedaço. Sem River, cai na resposta inteira de uma vez.
+ * Devolve o texto completo. `signal` cancela.
+ */
+async function stream({ system, messages, maxTokens = 4096, model, effort, kind = 'chat', userId, onDelta, signal }) {
+  if (!configured()) throw new HttpError(503, NOT_CONFIGURED, 'ai_not_configured');
+  let sys = system;
+  if (effort && THINK[effort]) { const notes = await think({ system, messages, effort, model, kind, userId }); if (notes) sys = `${system || ''}\n\nSua análise interna deste pedido (use para acertar; não a repita nem mencione):\n${notes}`; }
+  if (!river()) { const text = await complete({ system: sys, messages, maxTokens, model, effort, noThink: true, kind, userId }); onDelta?.(text); return text; }
+  const started = Date.now();
+  const body = { model: providerModelFor(model), max_tokens: maxTokens, temperature: temperatureOf(model), stream: true,
+    messages: [...(sys ? [{ role: 'system', content: sys }] : []), ...messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: asText(m.content) }))] };
+  let resp;
+  for (let attempt = 0; attempt < 4; attempt++) {
+    resp = await fetch(`${RIVER_URL()}/chat/completions`, { method: 'POST', headers: { 'content-type': 'application/json', authorization: `Bearer ${config.get('RIVER_API_KEY')}` }, body: JSON.stringify(body), signal });
+    if (![429, 500, 502, 503, 504].includes(resp.status)) break;
+    await new Promise((r) => setTimeout(r, 800 * (attempt + 1)));
+  }
+  if (!resp.ok) {
+    const data = await resp.json().catch(() => ({}));
+    logCall({ kind, userId, model, effort, providerModel: body.model, ms: Date.now() - started, ok: false, note: `HTTP ${resp.status}` });
+    throw new HttpError(502, `Falha na API de IA: ${data?.error?.message || data?.message || resp.status}`, 'ai_upstream');
+  }
+  const reader = resp.body.getReader(); const dec = new TextDecoder(); let buf = ''; let full = ''; let usage = null; let finish = null;
+  for (;;) {
+    const { value, done } = await reader.read(); if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let i;
+    while ((i = buf.indexOf('\n')) >= 0) {
+      const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1);
+      if (!line.startsWith('data:')) continue;
+      const payload = line.slice(5).trim(); if (payload === '[DONE]') continue;
+      try {
+        const j = JSON.parse(payload); const ch = j.choices?.[0];
+        const piece = asText(ch?.delta?.content || '');
+        if (piece) { full += piece; onDelta?.(piece); }
+        if (ch?.finish_reason) finish = ch.finish_reason; if (j.usage) usage = j.usage;
+      } catch { /* linha parcial */ }
+    }
+  }
+  logCall({ kind, userId, model, effort, providerModel: body.model, ms: Date.now() - started, usage, finishReason: finish, ok: Boolean(full) });
+  if (!full.trim()) throw new HttpError(502, 'A IA não retornou texto. Tente de novo.', 'ai_empty');
+  return full;
+}
+
 // Visão: descreve imagens anexadas ao pedido. Tenta, em ordem, modelos da River que costumam enxergar (e que esta chave libera);
 // o primeiro que responder vale. Sem nenhum, devolve { text: null } e o chamador avisa o usuário (nunca finge que leu).
 const VISION_PREFERENCE = ['Qwen/Qwen3.5-397B-A17B-FP8', 'nvidia/Kimi-K2.6-NVFP4-262K', 'nvidia/Kimi-K2.6-NVFP4', 'nvidia/GLM-5.2-NVFP4-262K'];
@@ -228,5 +273,5 @@ async function describeImages(images) {
   }
   return { text: null, reason: candidates.length ? 'falhou' : 'sem-modelo' };
 }
-module.exports = { describeImages, family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
+module.exports = { stream, describeImages, family, complete, think, THINK, configured, NOT_CONFIGURED, providerModel: () => (river() ? RIVER_MODEL() : MODEL()), providerModelFor, temperatureOf, reasoningParams, streamParams, withHeadroom, markRefused, hasNative, withoutNative,
   availableModels, chooseCodeModel, pickCodeModel, CODE_PREFERENCE, logCall, MODEL, EFFORTS, MODELS, resolveModel, apiModel, DEFAULT_ID, resolveEffort, publicModels, selection, RIVER_URL };
