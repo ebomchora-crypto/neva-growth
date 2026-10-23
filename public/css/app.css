@@ -1903,3 +1903,15 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 @media(max-width:760px){.stu-stages{position:static!important;margin:8px 0 12px;box-shadow:none}.stu-stages>summary span{font-size:.78rem}}
 .stu-composer .ap-files{padding:0}.stu-composer .ap-attach{min-width:36px;justify-content:center}
 .stu-composer .ap-ghost{color:var(--mut)}.stu-att{display:block;font-size:11px;opacity:.75;margin-top:2px}
+/* ===== Componentes UI (galeria do Kokonut UI em JS puro) ===== */
+.kk-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}.kk-head h1{margin:0 0 4px}.kk-head p{margin:0;max-width:62ch;color:var(--mut)}.kk-count{font-size:.8rem;color:var(--mut);font-weight:600}
+.kk-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}.kk-q{width:100%;max-width:460px;padding:11px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:16px}
+.kk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;align-items:start}
+.kk-card{display:flex;flex-direction:column;gap:10px;padding:12px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.86);box-shadow:var(--shadow);min-width:0}
+.kk-stage{position:relative;min-height:240px;border-radius:14px;overflow:hidden;background:linear-gradient(160deg,#f6fbff,#e6f1fb);border:1px solid var(--line);display:grid;place-items:center;container-type:inline-size;isolation:isolate}
+.kk-stage.big{min-height:min(62vh,560px);width:100%}
+.kk-empty{margin:0;padding:16px;text-align:center;color:var(--mut);font-size:.85rem}
+.kk-meta b{font-size:1rem}.kk-meta p{margin:4px 0 0;font-size:.84rem;color:var(--mut);line-height:1.45}.kk-tag{margin-left:8px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ice-700);background:var(--ice-100);border-radius:99px;padding:2px 8px;vertical-align:2px}
+.kk-acts{display:flex;align-items:center;justify-content:space-between;gap:10px}.kk-acts .btn{min-height:38px}.kk-src{font-size:.82rem;color:var(--ice-700);font-weight:600;text-decoration:none;padding:8px 4px}.kk-src:hover{text-decoration:underline}
+.modal.kk-modal{width:min(980px,96vw)}.kk-big{display:flex;flex-direction:column;gap:10px}.kk-desc{margin:0;color:var(--mut);font-size:.88rem}
+@media(max-width:640px){.kk-grid{grid-template-columns:minmax(0,1fr)}.kk-stage{min-height:220px}}

@@ -33,6 +33,7 @@ const ROUTES = [
   { path: 'play', search: 'Buscar conteúdo', tool: true, label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
   { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
   { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
+  { path: 'componentes', search: 'Buscar componente', tool: true, label: 'Componentes UI', icon: 'gridplus', page: lazy('./pages/uikit.js') },
   { sec: 'Gestão' },
   { path: 'tarefas', norail: true, label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
   { path: 'produtos', norail: true, label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
