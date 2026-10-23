@@ -1871,6 +1871,31 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
   .topbar2 .livepill{display:inline-flex!important;align-items:center;justify-content:center;gap:0}
   .topbar2 .livepill span{display:none}
 }
+/* Dashboard: aproxima a composição da referência usando a paleta azul existente. */
+.shell:has(.dash3) .topbar2{padding-top:20px;padding-bottom:12px}
+.shell:has(.dash3) .content{padding-top:0}
+.dash3{gap:14px;grid-template-columns:minmax(0,1fr) clamp(300px,27vw,370px)}
+.dash3 .mainc{gap:14px}
+.dash3 .profit{min-height:320px;padding:18px 20px 16px;border-radius:25px}
+.dash3 .profit .dotk{width:6px;height:6px}
+.dash3 .profit .big{font-size:clamp(1.8rem,2.6vw,2.4rem);line-height:1.12}
+.dash3 .lchart .area{fill:url(#dash-area)}
+.dash3 .promo{border-radius:24px}
+.dash3 .lucroper{min-height:260px;border-radius:24px}
+.dash3 .walletpanel{border-radius:25px;padding:20px 16px;gap:14px}
+.dash3 .cardstack{padding-top:24px}
+.dash3 .cardstack .ghost{display:block}
+.dash3 .cardvis{border-radius:23px;min-height:175px}
+.dash3 .walletpanel .recent{background:transparent;border:0;padding:0;justify-content:flex-start;min-height:120px}
+.dash3 .recent ul{display:grid;gap:9px}
+.dash3 .recent li{display:flex;align-items:center;gap:10px;background:rgba(9,36,64,.42);border:1px solid rgba(255,255,255,.18);border-radius:15px;padding:9px 10px;min-width:0}
+.dash3 .sale-avatar{width:36px;height:36px;flex:none;display:grid;place-items:center;border-radius:10px;background:rgba(255,255,255,.16);font-size:.62rem;font-weight:800;color:#fff}
+.dash3 .sale-info{min-width:0;flex:1;display:flex;flex-direction:column;line-height:1.25}
+.dash3 .sale-info strong{font-size:.76rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash3 .sale-info small{font-size:.65rem;color:rgba(255,255,255,.72);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dash3 .sale-amount{font-size:.68rem;color:#fff;white-space:nowrap;border-radius:999px;background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.18);padding:4px 7px}
+@media(max-width:1100px){.dash3{grid-template-columns:1fr}.dash3 .walletpanel{min-height:380px}}
+@media(max-width:640px){.dash3 .profit{padding:16px}.dash3 .profit .top>div:last-child{justify-content:flex-start}.dash3 .walletpanel{padding:18px 14px}.dash3 .sale-amount{font-size:.65rem}}
 /* Resumo do período: logo oficial e acabamento */
 .sm-brand{display:flex;align-items:center;gap:12px}.sm-brand img{width:56px;height:56px;object-fit:contain;filter:drop-shadow(0 6px 16px rgba(127,180,224,.45))}.sm-brand b{font-size:1.15rem;letter-spacing:-.01em;color:#fff}
 .sm-card::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:radial-gradient(520px 320px at 85% -5%,rgba(127,180,224,.28),transparent 70%),radial-gradient(420px 300px at 0% 105%,rgba(74,149,210,.22),transparent 70%)}

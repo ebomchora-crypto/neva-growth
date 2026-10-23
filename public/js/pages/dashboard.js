@@ -21,6 +21,10 @@ function lineChart(series, avail = 760) {
   const max = Math.max(1, ...series.map((s) => Math.max(s.revenue, s.profit))); const step = series.length > 1 ? (W - L - R) / (series.length - 1) : 0;
   const x = (i) => (series.length > 1 ? L + i * step : (W - R + L) / 2); const y = (v) => T + (H - T - B) * (1 - v / max);
   const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart lchart', role: 'img', 'aria-label': 'Receita e lucro no período' });
+  svg.append(sv('defs', {},
+    sv('linearGradient', { id: 'dash-area', x1: '0', y1: '0', x2: '0', y2: '1' },
+      sv('stop', { offset: '0%', 'stop-color': '#4a95d2', 'stop-opacity': '.45' }),
+      sv('stop', { offset: '100%', 'stop-color': '#4a95d2', 'stop-opacity': '.02' }))));
   for (let g = 0; g <= 4; g++) { const v = (max * g) / 4; svg.append(sv('line', { class: 'grid', x1: L, x2: W - R + 8, y1: y(v), y2: y(v) }), sv('text', { x: W - R + 16, y: y(v) + 4, 'text-anchor': 'start' }, 'R$ ' + short(v))); }
   const path = (k) => series.map((s, i) => `${i ? 'L' : 'M'}${x(i)},${y(s[k])}`).join(' ');
   if (series.length > 1) {
@@ -84,11 +88,15 @@ export default {
           h('aside', { class: 'walletpanel' },
             h('div', { class: 'wh' }, h('h2', 'Minha carteira'), canWrite && h('a', { class: 'npill', href: '#/vendas' }, '+ Nova venda')),
             h('div', { class: 'cardstack' },
+              h('div', { class: 'ghost g2', 'aria-hidden': 'true' }), h('div', { class: 'ghost', 'aria-hidden': 'true' }),
               h('div', { class: 'cardvis' }, h('span', { class: 'chipic' }), h('span', { class: 'mk' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128 }))),
-                h('div', h('small', 'Lucro disponível'), h('div', { class: 'row', style: 'gap:10px' }, h('b', money(d.wallet.profitTotal)), delta(m.profitVariation)), h('small', { class: 'rc' }, 'Receita ', money(d.wallet.revenueTotal), d.wallet.pending ? [' · a receber ', money(d.wallet.pending)] : '')))),
+                h('div', h('small', 'Lucro estimado'), h('div', { class: 'row', style: 'gap:10px' }, h('b', money(d.wallet.profitTotal)), delta(m.profitVariation)), h('small', { class: 'rc' }, 'Receita ', money(d.wallet.revenueTotal), d.wallet.pending ? [' · a receber ', money(d.wallet.pending)] : '')))),
             canWrite && h('div', { class: 'two' }, h('a', { class: 'wbtn dark', href: '#/clientes' }, h('i', { class: 'arr dl' }, icon('arrow')), 'Cliente'), h('a', { class: 'wbtn light', href: '#/vendas' }, h('i', { class: 'arr ur' }, icon('arrow')), 'Venda')),
             h('div', { class: 'row', style: 'justify-content:space-between;margin-top:6px' }, h('h2', 'Vendas recentes'), h('a', { href: '#/vendas', class: 'vt' }, 'Ver todas')),
-            h('div', { class: 'recent' }, d.recentSales.length ? h('ul', { class: 'list-plain' }, d.recentSales.map((s) => h('li', h('span', s.description, h('div', { class: 'sm mut' }, s.client_name || '')), h('b', money(s.amount)))))
+            h('div', { class: 'recent' }, d.recentSales.length ? h('ul', { class: 'list-plain' }, d.recentSales.map((s) => h('li',
+              h('span', { class: 'sale-avatar', 'aria-hidden': 'true' }, (s.client_name || s.description || 'V').slice(0, 2).toUpperCase()),
+              h('span', { class: 'sale-info' }, h('strong', s.description), h('small', s.client_name || (s.sold_at ? dt(s.sold_at) : ''))),
+              h('b', { class: 'sale-amount' }, money(s.amount)))))
               : h('div', { class: 'empty' }, h('b', 'Nenhuma venda registrada'), h('span', 'Seus resultados aparecerão aqui.'), canWrite && h('a', { class: 'npill', href: '#/vendas', style: 'margin-top:14px' }, 'Registrar primeira venda'))))));
       drawBar();
       // Card da carteira com inclinação 3D e brilho (porte do TiltCard); a cada redesenho o card é novo, então liga de novo.
