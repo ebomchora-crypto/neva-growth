@@ -70,6 +70,7 @@ export default function mount(stage, ctx) {
 .kk-file-upload-bar i.bad{background:var(--bad,#d1434b)}
 .kk-file-upload-bar i.nt{transition:none}
 .kk-file-upload-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 0 8px}
+.kk-file-upload-foot[hidden]{display:none}
 .kk-file-upload-sum{font-size:12px;color:var(--mut,#4a6f93);font-variant-numeric:tabular-nums}
 .kk-file-upload-sum b{font-weight:600;color:var(--ink,#0e2236)}
 .kk-file-upload-sum .bad{color:var(--bad,#d1434b)}

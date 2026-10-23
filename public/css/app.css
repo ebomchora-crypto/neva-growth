@@ -1971,3 +1971,11 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 
 /* O campo, os seletores e as ações do chat ocupam linhas próprias quando falta largura. */
 .stu-composer{flex:none;min-width:0}.stu-composer .row{min-width:0;flex-wrap:wrap}.stu-composer .row .msel{min-width:0;max-width:100%}.stu-composer .row>.btn:last-child{margin-left:auto}.stu-composer textarea{width:100%;min-width:0}
+
+/* Resumo do período: a arte nunca é espremida (largura e altura vêm da proporção 4:5 do canvas) */
+.sm-art{width:auto!important;max-width:100%;height:auto!important;max-height:calc(100vh - 150px);aspect-ratio:1080/1350;object-fit:contain;margin-inline:auto}
+.sm-card{grid-template-columns:minmax(0,480px) minmax(0,1fr)}
+.sm-left{align-self:center}
+@media(max-width:820px){.sm-art{max-height:none;width:100%!important}}
+@media(max-width:820px){.sm-card{grid-template-columns:minmax(0,1fr)!important}.sm-left{max-width:380px;margin:0 auto;width:100%}}
+@media(max-width:820px){.sm-card{padding-top:64px}.sm-x{top:12px;right:12px}}
