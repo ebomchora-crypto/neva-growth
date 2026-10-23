@@ -7,7 +7,7 @@ const HOLD_MS = 900, TICK = 380;
 const DEMO = [
   { id: 'vendas', tool: 'consultar_vendas', title: 'Consultar vendas', input: 'pedidos pagos de outubro por cliente', reason: 'Preciso do total por cliente antes de montar a lista de recompra.',
     output: ['128 pedidos pagos encontrados', 'Padaria Estrela  R$ 4.320,00', 'Studio Aurora  R$ 3.870,00', 'Total do mês: R$ 41.905,00'] },
-  { id: 'precos', tool: 'editar_planilha', title: 'Atualizar preços', input: { arquivo: 'tabela-de-precos.xlsx', alteracao: '12 itens +5%' }, reason: 'Repassar o reajuste do fornecedor nos itens da linha Premium.',
+  { id: 'precos', tool: 'editar_planilha', title: 'Atualizar preços', input: { arquivo: 'tabela-de-precos.xlsx', alteração: '12 itens +5%' }, reason: 'Repassar o reajuste do fornecedor nos itens da linha Premium.',
     output: ['tabela-de-precos.xlsx atualizada (12 itens, +5%)'] },
   { id: 'email', tool: 'enviar_email', title: 'Enviar e-mail', input: { para: '38 clientes inativos', assunto: 'Sentimos sua falta: 10% na volta' }, reason: 'Reativar quem não compra há mais de 90 dias.',
     output: ['38 e-mails na fila', 'Enviados: 38 de 38'], destructive: false },

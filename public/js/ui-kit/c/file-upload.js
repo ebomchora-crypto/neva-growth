@@ -31,7 +31,7 @@ const countDragged = (dt) => { let n = 0; for (const it of dt.items || []) if (i
 export default function mount(stage, ctx) {
   ensureStyle('file-upload', `
 .kk-file-upload-root{width:100%;box-sizing:border-box;display:flex;align-items:center;justify-content:center;padding:12px 8px;min-height:240px}
-.kk-file-upload-card{width:100%;max-width:384px;box-sizing:border-box;padding:8px;border-radius:14px;border:1px solid var(--line,#d3e6f6);background:#fff;box-shadow:0 1px 2px rgba(14,34,54,.05);color:var(--ink,#0e2236)}
+.kk-file-upload-card{width:100%;min-width:0;max-width:384px;box-sizing:border-box;padding:8px;border-radius:14px;border:1px solid var(--line,#d3e6f6);background:#fff;box-shadow:0 1px 2px rgba(14,34,54,.05);color:var(--ink,#0e2236)}
 .kk-file-upload-zone{width:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:12px;padding:22px 14px;border-radius:10px;border:1.5px dashed var(--ice-300,#a5cdee);background:var(--ice-50,#f2f8fe);font:inherit;color:inherit;text-align:center;cursor:pointer;outline:none;transition:border-color .15s,background .15s}
 .kk-file-upload-zone:hover{border-color:var(--ice-500,#4a95d2);background:var(--ice-100,#e3f0fb)}
 .kk-file-upload-zone:focus-visible{border-color:var(--ice-500,#4a95d2);box-shadow:0 0 0 3px rgba(74,149,210,.25)}
@@ -98,7 +98,7 @@ export default function mount(stage, ctx) {
 
   // ---- validação e entrada de arquivos
   function validate(file) {
-    if (!ACCEPT.some((t) => matches(file, t))) return { message: `Não é ${describeAll(ACCEPT).replace(/^./, (c) => c.toLowerCase())}`, code: 'INVALID_FILE_TYPE' };
+    if (!ACCEPT.some((t) => matches(file, t))) return { message: 'Tipo de arquivo não aceito', code: 'INVALID_FILE_TYPE' };
     if (file.size > MAX_SIZE) return { message: `Maior que ${formatBytes(MAX_SIZE)}`, code: 'FILE_TOO_LARGE' };
     return null;
   }
@@ -181,7 +181,7 @@ export default function mount(stage, ctx) {
     if (r.key !== key) {
       r.key = key; r.act.textContent = '';
       if (item.status === 'done') r.act.append(h('span', { class: 'kk-file-upload-ok' }, svg('svg', { viewBox: '0 0 16 16', width: 16, height: 16, 'aria-hidden': 'true' }, svg('path', { d: 'M3.5 8.5 6.5 11.5 12.5 4.5' }))));
-      if (item.status === 'error') r.act.append(h('button', { type: 'button', class: 'kk-file-upload-btn', 'aria-label': `Tentar de novo: ${item.file.name}`, onclick: () => retry(item.id) }, icon('refresh'), 'Tentar de novo'));
+      if (item.status === 'error') r.act.append(h('button', { type: 'button', class: 'kk-file-upload-btn', 'aria-label': `Tentar de novo: ${item.file.name}`, onclick: () => retry(item.id) }, icon('refresh'), 'Repetir'));
       r.act.append(h('button', { type: 'button', class: 'kk-file-upload-btn', 'aria-label': `${inFlight ? 'Cancelar' : 'Remover'} ${item.file.name}`, onclick: () => removeItem(item.id) }, icon('x')));
     }
   }

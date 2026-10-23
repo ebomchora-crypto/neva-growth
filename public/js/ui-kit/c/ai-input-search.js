@@ -55,7 +55,7 @@ const CSS = `
 .kk-ai-input-search-key kbd{display:grid;place-items:center;width:16px;height:16px;border-radius:4px;background:${PALETTE.ice100};font:inherit;font-size:11px;font-weight:400;color:${PALETTE.mut}}
 .kk-ai-input-search-key svg{width:12px;height:12px;opacity:.5;transition:transform .2s}.kk-ai-input-search-key[aria-expanded=true] svg{transform:rotate(180deg)}
 .kk-ai-input-search-frame button:focus-visible,.kk-ai-input-search-frame input:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:1px}
-.kk-ai-input-search-card{display:flex;flex-direction:column;border-radius:18px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 6px 20px -10px rgba(15,53,96,.25);transition:box-shadow .15s}
+.kk-ai-input-search-card{position:relative;display:flex;flex-direction:column;border-radius:18px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 6px 20px -10px rgba(15,53,96,.25);transition:box-shadow .15s}
 .kk-ai-input-search-card:focus-within{box-shadow:0 0 0 2px ${PALETTE.ice500},0 6px 20px -10px rgba(15,53,96,.25)}
 .kk-ai-input-search-files{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:12px 12px 0;list-style:none}
 .kk-ai-input-search-files li{display:flex;align-items:center;gap:6px;max-width:192px;height:36px;padding:0 4px 0 8px;border-radius:10px;background:${PALETTE.ice50};box-shadow:inset 0 0 0 1px ${PALETTE.line};font-size:12px;color:${PALETTE.mut};animation:kk-ai-input-search-in .18s both}
@@ -79,8 +79,8 @@ const CSS = `
 .kk-ai-input-search-ask.on{background:${PALETTE.ice800};color:#fff}.kk-ai-input-search-ask.on:hover{background:${PALETTE.ice900}}.kk-ai-input-search-ask:disabled{cursor:default}
 .kk-ai-input-search-ask .in{display:flex;align-items:center;gap:6px;width:max-content;padding:0 12px;height:100%;font-size:12px;font-weight:600}
 .kk-ai-input-search-ask svg{width:16px;height:16px;opacity:.7}.kk-ai-input-search-ask .sq{width:8px;height:8px;border-radius:2px;background:currentColor}
-.kk-ai-input-search-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:0;width:288px;max-width:100%;box-sizing:border-box;padding:4px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 14px 30px -10px rgba(15,53,96,.35);animation:kk-ai-input-search-pop .14s cubic-bezier(.23,1,.32,1) both;transform-origin:top left}
-.kk-ai-input-search-menu.end{left:auto;right:0;width:176px;transform-origin:top right}.kk-ai-input-search-menu[hidden]{display:none}
+.kk-ai-input-search-menu{position:absolute;z-index:30;top:calc(100% + 6px);left:8px;width:min(288px,calc(100% - 16px));box-sizing:border-box;padding:4px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 14px 30px -10px rgba(15,53,96,.35);animation:kk-ai-input-search-pop .14s cubic-bezier(.23,1,.32,1) both;transform-origin:top left}
+.kk-ai-input-search-menu.end{left:auto;right:8px;width:min(176px,calc(100% - 16px));transform-origin:top right}.kk-ai-input-search-menu[hidden]{display:none}
 @keyframes kk-ai-input-search-pop{from{opacity:0;transform:scale(.97) translateY(-4px)}}
 .kk-ai-input-search-menu .ttl{display:flex;justify-content:space-between;padding:6px 8px 4px;font-size:11px;color:${PALETTE.mut}}
 .kk-ai-input-search-opt{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:4px 8px;border:0;border-radius:8px;background:none;font:inherit;text-align:left;color:inherit;cursor:pointer}
@@ -135,8 +135,8 @@ export default function mount(stage) {
   const ask = h('button', { type: 'button', class: 'kk-ai-input-search-ask' }, askIn);
   const traceBox = h('div', { class: 'kk-ai-input-search-trace', hidden: true });
   const live = h('output', { class: 'kk-ai-input-search-sr', 'aria-live': 'polite' });
-  const bar = h('div', { class: 'kk-ai-input-search-bar' }, attach, fileIn, h('div', { style: 'position:relative;display:flex;min-width:0' }, pill, toolMenu), h('span', { class: 'kk-ai-input-search-grow' }), h('div', { style: 'position:relative' }, modelBtn, modelMenu), ask);
-  const card = h('div', { class: 'kk-ai-input-search-card' }, filesEl, field, bar);
+  const bar = h('div', { class: 'kk-ai-input-search-bar' }, attach, fileIn, h('div', { style: 'display:flex;min-width:0' }, pill), h('span', { class: 'kk-ai-input-search-grow' }), modelBtn, ask);
+  const card = h('div', { class: 'kk-ai-input-search-card' }, filesEl, field, bar, toolMenu, modelMenu);
   const frame = h('div', { class: 'kk-ai-input-search-frame' }, band, card, traceBox);
   const root = h('div', { class: 'kk-ai-input-search-root' }, frame, live);
   stage.append(root);

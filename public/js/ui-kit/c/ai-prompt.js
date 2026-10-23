@@ -27,7 +27,7 @@ const REPLIES = ['Entendi. Para esse pedido eu começaria separando os clientes 
 const size = (b) => (b < 1024 ? `${b} B` : b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`);
 
 const CSS = `
-.kk-ai-prompt-root{min-width:0;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:10px;min-height:340px;container-type:inline-size;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-prompt-root{min-width:0;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:10px;min-height:400px;container-type:inline-size;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-prompt-thread{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:220px;padding:2px}
 .kk-ai-prompt-empty{margin:auto;text-align:center;font-size:13px;color:var(--mut,#4a6f93);padding:12px;line-height:1.5}
 .kk-ai-prompt-msg{max-width:88%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
@@ -75,7 +75,7 @@ const CSS = `
 .kk-ai-prompt-send svg{width:16px;height:16px}.kk-ai-prompt-send .sq{width:10px;height:10px;border-radius:2px;background:currentColor}
 .kk-ai-prompt-send .stop{opacity:0;filter:blur(2px)}.kk-ai-prompt-send.busy .stop{opacity:1;filter:none}.kk-ai-prompt-send.busy .go{opacity:0;filter:blur(2px)}
 .kk-ai-prompt-bars{display:flex;align-items:flex-end;gap:2px;height:12px}.kk-ai-prompt-bars i{width:3px;border-radius:1px;background:${PALETTE.ice200};transition:background .2s}.kk-ai-prompt-bars i.on{background:${PALETTE.ice800}}
-.kk-ai-prompt-menu{position:absolute;z-index:20;bottom:calc(100% + 8px);left:0;max-width:calc(100vw - 32px);padding:4px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 12px 28px -10px rgba(15,53,96,.35);animation:kk-ai-prompt-in .12s both}
+.kk-ai-prompt-menu{position:absolute;z-index:20;bottom:calc(100% + 8px);left:8px;width:min(288px,calc(100% - 16px));box-sizing:border-box;padding:4px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px ${PALETTE.line},0 12px 28px -10px rgba(15,53,96,.35);animation:kk-ai-prompt-in .12s both}
 .kk-ai-prompt-menu[hidden]{display:none}
 .kk-ai-prompt-menu .ttl{padding:6px 8px 4px;font-size:11px;color:var(--mut,#4a6f93)}
 .kk-ai-prompt-item{display:flex;align-items:center;gap:10px;width:100%;min-height:40px;padding:6px 8px;border:0;border-radius:8px;background:none;font:inherit;text-align:left;cursor:pointer;color:inherit}
@@ -91,6 +91,7 @@ const CSS = `
 .kk-ai-prompt-card.drop .kk-ai-prompt-drop{opacity:1}
 .kk-ai-prompt-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
 .kk-ai-prompt-root button:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:1px}
+@container (max-width:330px){.kk-ai-prompt-effort-n{display:none}.kk-ai-prompt-ghost{padding:0 8px}}
 @media (prefers-reduced-motion:reduce){.kk-ai-prompt-chip,.kk-ai-prompt-menu{animation:none}.kk-ai-prompt-dots i{animation:none;opacity:.6}}
 `;
 
@@ -125,8 +126,8 @@ export default function mount(stage, ctx = {}) {
 
   // Menus suspensos que abrem para cima (o prompt fica no rodapé de um chat).
   const mkDropdown = (btn, title, build) => {
-    const panel = h('div', { class: 'kk-ai-prompt-menu', role: 'menu', hidden: true, style: 'min-width:240px' });
-    const wrap = h('div', { style: 'position:relative' }, btn, panel);
+    const panel = h('div', { class: 'kk-ai-prompt-menu', role: 'menu', hidden: true });
+    const wrap = h('div', btn, panel);
     btn.setAttribute('aria-haspopup', 'menu'); btn.setAttribute('aria-expanded', 'false');
     const close = (focus) => { panel.hidden = true; btn.setAttribute('aria-expanded', 'false'); if (focus) btn.focus(); };
     const open = () => { panel.replaceChildren(h('div', { class: 'ttl' }, title), ...build(close)); panel.hidden = false; btn.setAttribute('aria-expanded', 'true'); (panel.querySelector('[aria-checked=true]') || panel.querySelector('button'))?.focus(); };
@@ -195,7 +196,7 @@ export default function mount(stage, ctx = {}) {
     modelBtn.setAttribute('aria-label', `Modelo: ${model}. Alterar`);
     const es = efforts();
     effortBtn.hidden = !es.length;
-    if (es.length) { effortBtn.replaceChildren(bars(es.length, Math.max(0, es.indexOf(effort))), h('span', effort)); effortBtn.setAttribute('aria-label', `Esforço: ${effort}. Alterar`); }
+    if (es.length) { effortBtn.replaceChildren(bars(es.length, Math.max(0, es.indexOf(effort))), h('span', { class: 'kk-ai-prompt-effort-n' }, effort)); effortBtn.setAttribute('aria-label', `Esforço: ${effort}. Alterar`); }
     const inUse = model === MODELS[1].name; promoBtn.disabled = inUse; promoBtn.textContent = inUse ? 'Em uso' : 'Testar';
     paintTray(); paintMenu(); paintSend();
   }
