@@ -42,7 +42,7 @@ const hue = (d) => { let n = 0; for (const c of d) n = (n * 31 + c.charCodeAt(0)
 const secs = (ms) => `${(ms / 1000).toFixed(1).replace('.', ',')}s`;
 
 const CSS = `
-.kk-ai-input-search-root{width:100%;min-width:0;box-sizing:border-box;container-type:inline-size;min-height:380px;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-input-search-root{width:100%;min-width:0;box-sizing:border-box;container-type:inline-size;min-height:450px;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-input-search-frame{position:relative;min-width:0;border-radius:22px;background:${PALETTE.ice50};box-shadow:inset 0 0 0 1px ${PALETTE.line};padding:4px;cursor:text}
 .kk-ai-input-search-band{display:flex;align-items:center;gap:8px;min-height:36px;padding:0 6px 0 12px;font-size:12px;overflow:hidden}
 .kk-ai-input-search-band .sw{min-width:0;flex:1;display:flex;align-items:center;gap:8px;animation:kk-ai-input-search-in .2s cubic-bezier(.23,1,.32,1) both}

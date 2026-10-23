@@ -11,7 +11,7 @@ const pct = (v, d = 0) => (v * 100).toFixed(d).replace('.', ',');
 const levelColor = (s) => (s >= COMPACT_AT + (1 - COMPACT_AT) / 2 ? PALETTE.bad : s >= COMPACT_AT - 0.1 ? '#b7791f' : PALETTE.ink);
 
 const CSS = `
-.kk-ai-context-meter-root{min-width:0;box-sizing:border-box;width:100%;min-height:330px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-context-meter-root{min-width:0;box-sizing:border-box;width:100%;min-height:380px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-context-meter-chat{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:12px;color:${PALETTE.mut};padding:0 2px}
 .kk-ai-context-meter-chat p{margin:0}
 .kk-ai-context-meter-bar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:44px;padding:0 6px 0 12px;border-radius:14px;background:${PALETTE.ice50};box-shadow:inset 0 0 0 1px ${PALETTE.line}}
@@ -43,7 +43,7 @@ const CSS = `
 .kk-ai-context-meter-list u{width:40px;text-align:right;text-decoration:none;color:#7d97b3;font-variant-numeric:tabular-nums}
 .kk-ai-context-meter-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid ${PALETTE.ice100}}
 .kk-ai-context-meter-foot p{margin:0;font-size:12px;color:${PALETTE.mut}}
-.kk-ai-context-meter-go{min-height:36px;padding:0 14px;border:0;border-radius:10px;background:${PALETTE.ice800};color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.kk-ai-context-meter-go{white-space:nowrap;min-height:36px;padding:0 14px;border:0;border-radius:10px;background:${PALETTE.ice800};color:#fff;font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .kk-ai-context-meter-go:hover:not(:disabled){background:${PALETTE.ice900}}.kk-ai-context-meter-go:disabled{background:${PALETTE.ice100};color:#8aa5c0;cursor:default}
 @media (prefers-reduced-motion:reduce){.kk-ai-context-meter-panel{animation:none}.kk-ai-context-meter-segs span,.kk-ai-context-meter-ring circle:last-child{transition:none}}
 `;
