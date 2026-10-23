@@ -1,7 +1,7 @@
 // Componentes UI: galeria dos componentes do Kokonut UI (MIT, https://kokonutui.com) reescritos em JavaScript puro,
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
-import { h, mount, icon, modal } from '../ui.js';
+import { h, mount, icon, modal, copyText, downloadFile, toast } from '../ui.js';
 import { KIT } from '../ui-kit/manifest.js';
 
 const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões'];
@@ -9,6 +9,66 @@ const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 
 async function load(slug) {
   try { return (await import(`../ui-kit/c/${slug}.js`)).default; } catch (e) { if (/Failed to fetch|Cannot find|Unexpected token|404|error loading/i.test(String(e?.message))) return null; console.error('[ui-kit]', slug, e); return 'erro'; }
+}
+
+/** Prompt de integração no estilo "copiar prompt" do Kokonut, adaptado ao site da Neva (JavaScript puro, sem React/Tailwind). */
+async function buildPrompt(item) {
+  const r = await fetch(`/js/ui-kit/c/${item.slug}.js`); if (!r.ok) throw new Error('Não consegui ler o código deste componente.');
+  const code = (await r.text()).trim();
+  return `Você recebeu a tarefa de integrar um componente de interface existente neste projeto: "${item.name}" (${item.cat}).
+${item.desc}
+
+O projeto deve suportar:
+- HTML, CSS e JavaScript puro (módulos ES), sem React, sem Tailwind e sem build.
+- Se o projeto usar React, Tailwind ou TypeScript, adapte o código: o componente aqui é uma função \`mount(stage, ctx)\` que recebe um elemento e devolve a função de limpeza.
+
+Caminhos padrão:
+- Componentes em /js/ui-kit/c/ (um arquivo por componente, exporta \`default function mount(stage, ctx)\`).
+- Utilitários comuns em /js/ui-kit/kit.js (h, svg, ensureStyle, spring, loop, drag, onResize, disposer, PALETTE). Se esse arquivo não existir no seu projeto, crie-o ou troque os imports por helpers próprios.
+- Os estilos ficam dentro do próprio componente (ensureStyle injeta o CSS uma única vez, com classes prefixadas por kk-${item.slug}-).
+
+Copie este componente para /js/ui-kit/c/${item.slug}.js:
+\`\`\`js
+${item.slug}.js
+${code}
+\`\`\`
+
+Como usar (demo):
+\`\`\`js
+import mount from '/js/ui-kit/c/${item.slug}.js';
+
+const stage = document.querySelector('#palco'); // qualquer div com largura/altura definidas
+const stop = await mount(stage, { big: false, theme: 'light' });
+// ao sair da tela / desmontar:
+stop?.();
+\`\`\`
+
+Dependências:
+- Nenhum pacote npm. Só o arquivo kit.js acima.
+- Cores no azul da Neva (use as variáveis/PALETTE); não troque por verde, roxo ou laranja de marca.
+
+Diretrizes de implementação:
+1. Analise a estrutura do componente e identifique tudo de que ele depende (kit.js, CSS injetado, eventos de ponteiro).
+2. Revise os argumentos (stage, ctx) e o estado interno; sempre chame a função de limpeza ao desmontar (cancela animações, observers e listeners).
+3. Respeite prefers-reduced-motion e funcione em tela de toque (390 px de largura).
+4. Perguntas a fazer: quais dados vão no componente? onde ele entra na página? qual o comportamento responsivo esperado?
+
+Passos para integrar:
+0. Copie e cole o código acima nos diretórios corretos.
+1. Garanta que /js/ui-kit/kit.js exista e seja importável.
+2. Troque imagens de exemplo por imagens reais do projeto (ou fotos de banco de imagens que você saiba que existem).
+3. Use ícones em SVG simples (traço 1.8, cantos arredondados) quando o componente pedir logos ou ícones.
+`;
+}
+async function openPrompt(item) {
+  let text;
+  try { text = await buildPrompt(item); } catch (e) { toast(e.message, 'err'); return; }
+  const pre = h('pre', { class: 'code kk-prompt', tabindex: 0 }, text);
+  modal({ title: `Prompt: ${item.name}`, size: 'kk-modal', body: h('div', { class: 'stack' },
+    h('p', { class: 'sm mut' }, 'Cole este prompt no seu assistente de código (Claude, ChatGPT, Cursor, Codex). Ele já leva o código completo do componente.'), pre,
+    h('div', { class: 'row' }, h('button', { type: 'button', class: 'btn', onclick: () => copyText(text, 'Prompt copiado.') }, icon('copy'), 'Copiar prompt'),
+      h('button', { type: 'button', class: 'btn ghost', onclick: () => downloadFile(`${item.slug}-prompt.txt`, text) }, 'Baixar .txt'))) });
+  copyText(text, 'Prompt copiado.');
 }
 
 /** Monta um componente num palco; devolve a limpeza. */
@@ -49,6 +109,7 @@ export default {
         h('div', { class: 'kk-meta' }, h('div', h('b', item.name), h('span', { class: 'kk-tag' }, item.cat)), h('p', item.desc)),
         h('div', { class: 'kk-acts' },
           h('button', { type: 'button', class: 'btn sm ghost', disabled: item.pro, onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
+          h('button', { type: 'button', class: 'btn sm', disabled: item.pro, onclick: () => openPrompt(item) }, icon('copy'), 'Copiar prompt'),
           h('a', { class: 'kk-src', href: item.url, target: '_blank', rel: 'noopener' }, 'Original ↗')));
     };
     const draw = () => {
