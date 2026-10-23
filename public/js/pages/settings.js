@@ -1,8 +1,9 @@
 import { api } from '../api.js';
-import { h, mount, toast, fail, fieldEl, readForm, dtt, confirmBox, downloadFile, icon } from '../ui.js';
-import { applyPrivacy } from '../app.js';
+import { h, mount, toast, fail, fieldEl, readForm, dtt, icon } from '../ui.js';
 import { motionEnabled, setMotion } from '../motion.js';
 import * as push from '../push.js';
+
+const applyPrivacy = (on) => document.documentElement.classList.toggle('hide-values', !!on);
 
 // [chave, rótulo, subtítulo, ícone, título da seção, descrição]
 const SECTIONS = [
@@ -13,16 +14,14 @@ const SECTIONS = [
   ['crm', 'CRM', 'Prospecção e funil', 'kanban', ['CRM e ', 'prospecção'], 'Decida quando os resultados da Prospecção passam a fazer parte do seu funil comercial.'],
   ['plano', 'Meu plano', 'Acesso e benefícios', 'card', ['Plano e ', 'acesso'], 'Veja sua condição atual e gerencie sua experiência como membro.'],
   ['pagamentos', 'Pagamentos', 'Integração de pagamentos', 'wallet', ['Pagamentos', ''], 'Conecte sua conta de pagamentos para trazer recebimentos para a Neva Growth.', true],
-  ['suporte', 'Suporte', 'Ajuda e relato de bugs', 'mail', ['Como podemos ', 'ajudar?'], 'Dúvidas, problemas e relatos de bug chegam direto à equipe da Neva Growth.', true],
-  ['integracoes', 'Integrações', 'IA e prospecção', 'gridplus', ['Suas ', 'integrações'], 'Serviços conectados ao servidor que alimentam a IA e a Prospecção.'],
-  ['dados', 'Dados', 'Exportação e backup', 'box', ['Seus ', 'dados'], 'Leve uma cópia do que é seu.']
+  ['suporte', 'Suporte', 'Ajuda e relato de bugs', 'mail', ['Como podemos ', 'ajudar?'], 'Dúvidas, problemas e relatos de bug chegam direto à equipe da Neva Growth.', true]
 ];
 
 export default {
   async render(box, ctx) {
     let sec = (location.hash.split('?s=')[1]) || 'perfil'; if (!SECTIONS.some((s) => s[0] === sec)) sec = 'perfil';
     const isAdmin = ctx.user.role === 'admin';
-    const [me, integ] = await Promise.all([api.get('/me'), api.get('/integrations/status')]);
+    const me = await api.get('/me');
     const content = h('div', { class: 'scontent' }); const nav = h('nav', { class: 'snav', 'aria-label': 'Seções' });
     const switchRow = (key, title, desc) => { const cb = h('input', { type: 'checkbox', checked: me.settings[key] === '1', 'aria-label': title, onchange: async () => {
       try { await api.put('/me/settings', { [key]: cb.checked }); me.settings[key] = cb.checked ? '1' : '0'; if (key === 'hide_values') { ctx.me.settings.hide_values = me.settings[key]; applyPrivacy(cb.checked); } toast('Preferência salva.', 'ok'); } catch (e) { fail(e); cb.checked = !cb.checked; } } });
@@ -137,14 +136,7 @@ export default {
         return h('div', { class: 'stack' }, h('section', { class: 'scard stack soon' }, h('div', { class: 'skick' }, 'SUPORTE / CONTATO DIRETO'), h('div', { class: 'shead' }, h('i', { class: 'sico' }, icon('mail')), h('div', h('b', 'Fale com o suporte.'), h('div', { class: 'sm mut' }, 'Se algo não funcionar como esperado ou você precisar de ajuda, envie uma mensagem.')), h('span', { class: 'soonbadge' }, 'Em breve')),
           h('p', { class: 'sm mut', style: 'margin:0' }, 'O canal oficial de suporte ainda está a caminho. Enquanto isso, fale com o administrador da sua conta.')),
           h('section', { class: 'scard stack soon' }, h('div', { class: 'shead' }, h('i', { class: 'sico' }, icon('alert')), h('div', h('b', 'Encontrou um bug?'), h('div', { class: 'sm mut' }, 'O relato de bugs, com a tela e uma captura, chega em breve.')), h('span', { class: 'soonbadge' }, 'Em breve'))));
-      },
-      async integracoes() {
-        const row = (name, desc, s) => h('div', { class: 'switch' }, h('span', h('b', name), h('div', { class: 'sm mut' }, desc), !s.configured && h('div', { class: 'sm' }, 'Defina ', h('code', s.envVar), ' no servidor e reinicie.')), h('span', { class: 'badge ' + (s.configured ? 'ok' : 'warn') }, s.configured ? 'conectado' : 'não configurado'));
-        return card(7, 'Integrações', row('River (IA)', `Assistente da IDE, Builder, resumos e prompts.${integ.ai.model ? ' Modelo: ' + integ.ai.model + '.' : ''}`, integ.ai), row('Google Places', 'Busca de empresas na Prospecção.', integ.places),
-          h('p', { class: 'sm mut' }, 'Chaves ficam apenas no servidor (variáveis de ambiente) e nunca são enviadas ao navegador.'));
-      },
-      async dados() { return card(8, 'Dados', h('p', 'Exporte uma cópia dos dados do workspace (JSON, sem senhas).'), isAdmin ? h('div', h('button', { class: 'btn', onclick: async () => { try { const r = await fetch('/api/me/export', { credentials: 'same-origin', headers: { 'x-requested-with': 'neva' } }); if (!r.ok) throw new Error((await r.json()).error); downloadFile('neva-export.json', await r.blob()); } catch (e) { fail(e); } } }, 'Exportar dados (JSON)')) : h('div', { class: 'notice info' }, 'Somente administradores podem exportar os dados.'),
-        h('p', { class: 'sm mut' }, 'Os dados ficam no banco PostgreSQL do projeto. Faça cópias pelo painel do provedor do banco e use a exportação acima para ter um arquivo seu.')); }
+      }
     };
     const cur = () => SECTIONS.findIndex((x) => x[0] === sec);
     const head = h('div', { class: 'shead2' });
