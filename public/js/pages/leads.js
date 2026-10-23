@@ -58,8 +58,11 @@ export default {
       modal({ title: 'Filtros', body: f, actions: [{ label: 'Limpar', kind: 'ghost', onClick: () => { st.priority = st.source = st.owner = ''; load(); } }, { label: 'Aplicar', onClick: () => { st.priority = f.priority.value; st.owner = f.owner.value; st.source = f.source.value; load(); } }] });
     }
     function card(l) {
-      const el = h('div', { class: 'lcard' + (l.id === justId ? ' just' : ''), draggable: canWrite && !st.archived ? 'true' : null, tabindex: 0, onclick: () => openLead(l.id), onkeydown: (e) => { if (e.key === 'Enter') openLead(l.id); } },
-        h('div', h('span', { class: 'pri ' + l.priority, title: `Prioridade ${l.priority}` }), h('b', l.name)), l.company && h('div', { class: 'sm mut' }, l.company),
+      const el = h('div', { class: 'lcard' + (l.id === justId ? ' just' : ''), draggable: canWrite && !st.archived ? 'true' : null, tabindex: 0, onclick: () => openLead(l.id), onkeydown: (e) => { if (e.target === el && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); openLead(l.id); } } },
+        h('div', { class: 'lcard-head' },
+          h('div', { class: 'lcard-title' }, h('span', { class: 'pri ' + l.priority, title: `Prioridade ${l.priority}` }), h('b', l.name)),
+          h('button', { type: 'button', class: 'lcard-open', 'aria-label': `Abrir dossiê de ${l.name}`, title: 'Abrir dossiê', draggable: 'false', onclick: (e) => { e.stopPropagation(); openLead(l.id); } }, icon('arrow'))),
+        l.company && h('div', { class: 'sm mut' }, l.company),
         h('div', { class: 'row', style: 'justify-content:space-between;margin-top:6px' }, h('span', { class: 'sm' }, money(l.value)), l.due_date && h('span', { class: 'sm ' + (late(l) ? 'late' : 'mut') }, (late(l) ? '⚠ ' : '') + dt(l.due_date))),
         l.owner_name && h('span', { class: 'badge', style: 'margin-top:6px' }, l.owner_name.split(' ')[0]));
       el.addEventListener('dragstart', (e) => { e.dataTransfer.setData('text/plain', String(l.id)); e.dataTransfer.effectAllowed = 'move'; el.classList.add('drag'); dragging = true; });
@@ -160,6 +163,10 @@ export default {
         priority: field({ k: 'priority', l: 'Prioridade', type: 'select', opts: [['baixa', 'Baixa'], ['media', 'Normal'], ['alta', 'Alta']] }, rec?.priority || 'media'), source: field({ k: 'source', l: 'Origem', type: 'select', opts: srcOpts }, rec?.source || 'Indicação'),
         due_date: field({ k: 'due_date', l: 'Próxima ação', type: 'date' }, rec?.due_date), tags: field({ k: 'tags', l: 'Tags', opt: 'separe por vírgula', ph: 'SaaS, redesign, landing page' }, rec?.tags),
         notes: field({ k: 'notes', l: 'Notas', type: 'textarea', rows: 7, ph: 'Contexto da conversa, combinados, próximos passos…', full: true }, rec?.notes) };
+      const probability = h('small', { class: 'dw-probability' });
+      const updateProbability = () => { probability.textContent = `${stages.find((s) => s.key === F.status.input.value)?.probability ?? 0}% de probabilidade`; };
+      F.status.input.addEventListener('change', updateProbability);
+      updateProbability();
       const pane = h('div'); let tab = 'det'; let acts = []; let myTasks = [];
       const startStatus = rec?.status;
       const tabsEl = h('div', { class: 'dw-tabs', role: 'tablist' });
@@ -194,7 +201,7 @@ export default {
         !rec.client_id && act('userplus', 'Converter em cliente', rec.value > 0 ? 'Cria o cliente e uma venda pendente' : 'Cria o cliente com os dados desta oportunidade', '', async () => { try { await api.post(`/leads/${rec.id}/convert`, { createSale: rec.value > 0 }); toast('Convertida em cliente' + (rec.value > 0 ? ' e venda pendente criada.' : '.'), 'ok'); D.close(); load(); } catch (e) { fail(e); } }),
         act('trash', 'Excluir do CRM', 'Cliente, vendas e lead original são preservados', 'danger', async () => { if (!(await confirmBox(`Excluir "${rec.name}" definitivamente?`))) return; try { await api.del('/leads/' + rec.id); toast('Excluída.', 'ok'); D.close(); load(); } catch (e) { fail(e); } })) : null;
       const D = drawer({ kicker: rec ? 'Dossiê da oportunidade' : 'Novo relacionamento', title: rec ? rec.name : 'O próximo projeto começa aqui.', subtitle: rec ? [...new Set([rec.company, rec.contact].filter(Boolean))].join(' · ') || 'Sem empresa informada' : 'Dê contexto à conversa. O restante ganha forma no caminho.',
-        body: h('div', F.status.el, tabsEl, pane, actions), footer: h('div', { class: 'dw-foot' }, note, go) });
+        body: h('div', h('div', { class: 'dw-status' }, F.status.el, probability), tabsEl, pane, actions), footer: h('div', { class: 'dw-foot' }, note, go) });
       D.panel.addEventListener('input', () => { touched = true; sync(); }); D.panel.addEventListener('change', () => { touched = true; sync(); });
       for (const k of ['name', 'company']) F[k].input.addEventListener('input', sync);
       drawTabs(); drawPane(); sync();
