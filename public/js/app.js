@@ -5,8 +5,10 @@ import { pushNew, resetPush } from './push.js';
 import { openTips } from './tips.js';
 import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill, motionEnabled } from './motion.js';
 import { topoBackground } from './topo-bg.js';
+import { musicPlayer } from './music-player.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
+let musicControl = null;
 initMotion();
 // Fundo topográfico vivo, fixo atrás do app inteiro (linhas finas em azul da Neva). Respeita o interruptor de animações.
 { const topo = document.createElement('canvas'); topo.id = 'topo-bg'; topo.setAttribute('aria-hidden', 'true'); document.body.prepend(topo);
@@ -87,6 +89,7 @@ function loadTurnstile(siteKey, container) {
 function resetTurnstile() { try { if (typeof turnstile !== 'undefined') turnstile.reset(); } catch (_) {} }
 
 function authScreen(mode, st = {}, swapped = false) {
+  musicControl?.destroy(); musicControl = null;
   kill(); dropDrape();
   snow(true);
   const setup = mode === 'setup', signup = mode === 'signup', forgot = mode === 'forgot', reset = mode === 'reset';
@@ -214,6 +217,7 @@ async function pollNotifications() {
 }
 
 function shell() {
+  musicControl?.destroy(); musicControl = musicPlayer();
   snow(false); dropDrape();
   const side = h('aside', { class: 'side', id: 'side' });
   const scrim = h('div', { class: 'scrim hide', onclick: () => toggle(false) });
@@ -235,7 +239,7 @@ function shell() {
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
     h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
     h('button', { type: 'button', class: 'alertbtn hide', id: 'tipsbtn', title: 'Dicas para vender', 'aria-label': 'Dicas para vender', onclick: openTips }, icon('alert')),
-    h('span', { class: 'grow' }), h('a', { class: 'livepill', id: 'syncinfo', href: '#/ao-vivo', title: 'Abrir as vendas de hoje ao vivo' }, h('i'), h('span', 'AO VIVO')), eye,
+    h('span', { class: 'grow' }), h('a', { class: 'livepill', id: 'syncinfo', href: '#/ao-vivo', title: 'Abrir as vendas de hoje ao vivo' }, h('i'), h('span', 'AO VIVO')), musicControl.el, eye,
     h('button', { class: 'iconbtn', title: 'Atualizar a página atual', 'aria-label': 'Atualizar dados', onclick: () => route() }, icon('refresh')),
     h('div', { style: 'position:relative' }, bell),
     h('a', { class: 'userpill', href: '#/configuracoes', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),

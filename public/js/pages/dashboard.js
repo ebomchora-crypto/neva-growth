@@ -15,7 +15,7 @@ function delta(v) {
   return h('span', { class: 'dchip ' + (v > 0 ? 'up' : v < 0 ? 'down' : '') }, h('i', icon(v < 0 ? 'trend' : 'trend')), `${Math.abs(v).toLocaleString('pt-BR')}%`);
 }
 // Linha de lucro e receita: eixo de valores à direita, meses embaixo e uma faixa por mês (como na referência)
-function lineChart(series, avail = 760, format = brl, axis = 'R$ ') {
+function lineChart(series, avail = 760, format = brl, axis = 'R$ ', rate = 1) {
   const W = Math.max(320, Math.min(900, avail)), H = 168, L = 6, R = 64, T = 14, B = 8;
   const max = Math.max(1, ...series.map((s) => Math.max(s.revenue, s.profit))); const step = series.length > 1 ? (W - L - R) / (series.length - 1) : 0;
   const x = (i) => (series.length > 1 ? L + i * step : (W - R + L) / 2); const y = (v) => T + (H - T - B) * (1 - v / max);
@@ -24,13 +24,13 @@ function lineChart(series, avail = 760, format = brl, axis = 'R$ ') {
     sv('linearGradient', { id: 'dash-area', x1: '0', y1: '0', x2: '0', y2: '1' },
       sv('stop', { offset: '0%', 'stop-color': '#4a95d2', 'stop-opacity': '.45' }),
       sv('stop', { offset: '100%', 'stop-color': '#4a95d2', 'stop-opacity': '.02' }))));
-  for (let g = 0; g <= 4; g++) { const v = (max * g) / 4; svg.append(sv('line', { class: 'grid', x1: L, x2: W - R + 8, y1: y(v), y2: y(v) }), sv('text', { x: W - R + 16, y: y(v) + 4, 'text-anchor': 'start' }, axis + short(v))); }
+  for (let g = 0; g <= 4; g++) { const v = (max * g) / 4; svg.append(sv('line', { class: 'grid', x1: L, x2: W - R + 8, y1: y(v), y2: y(v) }), sv('text', { x: W - R + 16, y: y(v) + 4, 'text-anchor': 'start', class: 'currency-axis', 'data-base': v }, axis + short(v * rate))); }
   const path = (k) => series.map((s, i) => `${i ? 'L' : 'M'}${x(i)},${y(s[k])}`).join(' ');
   if (series.length > 1) {
     svg.append(sv('path', { d: `${path('revenue')} L${x(series.length - 1)},${y(0)} L${x(0)},${y(0)} Z`, class: 'area' }));
     svg.append(sv('path', { d: path('revenue'), class: 'ln rev' }), sv('path', { d: path('profit'), class: 'ln prof' }));
   }
-  series.forEach((s, i) => svg.append(sv('circle', { cx: x(i), cy: y(s.profit), r: series.length > 40 ? 0 : 3, class: 'pt' }, sv('title', {}, `${s.label}: lucro ${format(s.profit)} · receita ${format(s.revenue)}`))));
+  series.forEach((s, i) => svg.append(sv('circle', { cx: x(i), cy: y(s.profit), r: series.length > 40 ? 0 : 3, class: 'pt' }, sv('title', { class: 'currency-tooltip', 'data-label': s.label, 'data-profit': s.profit, 'data-revenue': s.revenue }, `${s.label}: lucro ${format(s.profit)} · receita ${format(s.revenue)}`))));
   const every = Math.ceil(series.length / 8);
   const months = h('div', { class: 'lmonths', style: `padding-right:${(R / W) * 100}%` }, series.filter((_, i) => i % every === 0 || series.length < 9).map((s, i, arr) => h('div', { class: 'lm' + (i === arr.length - 1 ? ' cur' : '') }, h('span', s.label), h('i'))));
   return h('div', { class: 'lwrap' }, svg, months);
@@ -38,19 +38,29 @@ function lineChart(series, avail = 760, format = brl, axis = 'R$ ') {
 function barChart(series, format = brl) {
   const max = Math.max(1, ...series.map((s) => s.profit));
   const pick = series.length > 12 ? series.filter((_, i) => i % Math.ceil(series.length / 12) === 0) : series;
-  return h('div', { class: 'bchart', role: 'img', 'aria-label': 'Lucro por período' }, pick.map((s) => h('div', { class: 'bcol', title: `${s.label}: ${format(s.profit)}` },
-    h('small', format(s.profit)), h('i', { style: `height:${Math.max(6, (Math.max(s.profit, 0) / max) * 100)}%` }), h('span', s.label))));
+  return h('div', { class: 'bchart', role: 'img', 'aria-label': 'Lucro por período' }, pick.map((s) => h('div', { class: 'bcol', title: `${s.label}: ${format(s.profit)}`, 'data-label': s.label, 'data-profit': s.profit },
+    h('small', { class: 'dash-money', 'data-base': s.profit }, format(s.profit)), h('i', { style: `height:${Math.max(6, (Math.max(s.profit, 0) / max) * 100)}%` }), h('span', s.label))));
 }
 
 export default {
   async render(box, ctx) {
     const canWrite = ctx.user.role !== 'viewer';
     let period = (() => { try { return sessionStorage.getItem('dashPeriod') || '6m'; } catch { return '6m'; } })();
-    let currency = 'BRL'; let rates = null; let currentData = null;
-    const fmtRaw = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(Number(v) || 0);
-    const fmt = (v) => fmtRaw((Number(v) || 0) * (currency === 'BRL' ? 1 : rates?.[currency] || 1));
-    const convertedSeries = (series) => currency === 'BRL' ? series : series.map((s) => ({ ...s, profit: s.profit * rates[currency], revenue: s.revenue * rates[currency] }));
+    let currency = 'BRL'; let rates = null; let currentData = null; let shownRate = 1; let currencyFrame = 0; let currencyRequest = 0;
+    let formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency });
+    const fmtRaw = (v) => formatter.format(Number(v) || 0);
+    const rate = () => currency === 'BRL' ? 1 : rates?.[currency] || 1;
+    const fmt = (v) => fmtRaw((Number(v) || 0) * rate());
+    const money = (tag, v, attrs = {}) => h(tag, { ...attrs, class: [attrs.class, 'dash-money'].filter(Boolean).join(' '), 'data-base': v }, fmt(v));
+    const axis = () => ({ BRL: 'R$ ', USD: 'US$ ', EUR: '€ ' })[currency];
+    function updateMoney(factor) {
+      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { el.textContent = fmtRaw(Number(el.dataset.base) * factor); });
+      area.querySelectorAll('.currency-axis').forEach((el) => { el.textContent = axis() + short(Number(el.dataset.base) * factor); });
+      area.querySelectorAll('.currency-tooltip').forEach((el) => { el.textContent = `${el.dataset.label}: lucro ${fmtRaw(Number(el.dataset.profit) * factor)} · receita ${fmtRaw(Number(el.dataset.revenue) * factor)}`; });
+      area.querySelectorAll('.bcol[data-profit]').forEach((el) => { el.title = `${el.dataset.label}: ${fmtRaw(Number(el.dataset.profit) * factor)}`; });
+    }
     async function selectCurrency(next) {
+      const request = ++currencyRequest;
       if (next === currency) return;
       if (next !== 'BRL' && !rates) {
         try {
@@ -61,11 +71,36 @@ export default {
           rates = { ...quote.rates, date: quote.date };
         } catch { toast('Não foi possível obter a cotação agora.', 'err'); return; }
       }
-      currency = next; if (currentData) draw(currentData);
+      if (request !== currencyRequest) return;
+      cancelAnimationFrame(currencyFrame);
+      const from = shownRate;
+      currency = next;
+      formatter = new Intl.NumberFormat('pt-BR', { style: 'currency', currency });
+      area.querySelectorAll('.currencybar button').forEach((button) => {
+        const active = button.textContent === next;
+        button.classList.toggle('on', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      const note = area.querySelector('.exchange-note');
+      if (note) note.textContent = next === 'BRL' ? 'BRL · valores originais' : `BCE · ${rates.date}`;
+      const target = rate();
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches || !currentData) { shownRate = target; updateMoney(target); return; }
+      area.querySelectorAll('.dash-money').forEach((el) => el.animate(
+        [{ transform: `translateY(${target > from ? 5 : -5}px)` }, { transform: 'translateY(0)' }],
+        { duration: 520, easing: 'cubic-bezier(.22,1,.36,1)' }));
+      const started = performance.now();
+      const tick = (now) => {
+        const t = Math.min(1, (now - started) / 520);
+        shownRate = from + (target - from) * (1 - (1 - t) ** 3);
+        updateMoney(shownRate);
+        if (t < 1) currencyFrame = requestAnimationFrame(tick);
+      };
+      currencyFrame = requestAnimationFrame(tick);
     }
     const area = h('div');
     const aiOn = (await api.get('/integrations/status').catch(() => null))?.ai.configured;
     async function load() {
+      cancelAnimationFrame(currencyFrame); shownRate = rate();
       const first = !area.firstChild;
       if (first) mount(area, h('p', { class: 'mut' }, 'Carregando…'));
       const d = await api.get('/dashboard', { period });
@@ -85,14 +120,14 @@ export default {
           h('div', { class: 'mainc' },
             h('section', { class: 'card pad stack profit' },
               h('div', { class: 'top' },
-                h('div', h('div', { class: 'ptitle' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, h('span', { class: 'big' }, fmt(m.profit)), delta(m.profitVariation))),
+                h('div', h('div', { class: 'ptitle' }, h('span', { class: 'dotk' }), 'Lucro no período'), h('div', { class: 'row' }, money('span', m.profit, { class: 'big' }), delta(m.profitVariation))),
                 h('div', { class: 'row' },
                   h('button', { class: 'aibtn', title: 'Abre a arte do seu resultado, pronta para compartilhar', onclick: () => openSummary({ name: ctx.user.name, metrics: m, period }) }, h('i', icon('trend')), 'Gerar resumo do período'),
                   h('div', { id: 'periodbar' }))),
-              lineChart(convertedSeries(m.series), W * 0.66 - 60, fmtRaw, { BRL: 'R$ ', USD: 'US$ ', EUR: '€ ' }[currency]),
+              lineChart(m.series, W * 0.66 - 60, fmt, axis(), rate()),
               h('div', { class: 'foot' },
                 h('div', { class: 'profit-foot-left' },
-                  h('span', { class: 'chip', title: `${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}` }, 'Ticket médio ', h('b', fmt(m.ticket))),
+                  h('span', { class: 'chip', title: `${m.sales} venda(s) paga(s) · ${dt(m.range.start)} a ${dt(m.range.end)}` }, 'Ticket médio ', money('b', m.ticket)),
                   h('div', { class: 'currencybar', role: 'group', 'aria-label': 'Moeda de exibição' }, ['BRL', 'USD', 'EUR'].map((code) => h('button', { type: 'button', class: currency === code ? 'on' : '', 'aria-pressed': currency === code, onclick: () => selectCurrency(code) }, code))),
                   h('span', { class: 'exchange-note', title: 'Cotação indicativa para exibição; os dados permanecem em BRL.' }, currency === 'BRL' ? 'BRL · valores originais' : `BCE · ${rates.date}`)),
                 h('div', { class: 'row' }, aiOn && h('button', { class: 'btn ghost sm', title: 'Resumo escrito por IA com base nos números do período', onclick: genSummary }, 'Texto com IA'), h('span', { class: 'chip' }, h('i', { class: 'lgd prof' }), 'Lucro líquido'), h('span', { class: 'chip' }, h('i', { class: 'lgd rev' }), 'Receita total')))),
@@ -102,20 +137,20 @@ export default {
                 heroArt('dashboard'),
                 canWrite && h('a', { class: 'bigwhite', href: '#/clientes' }, 'Registrar cliente')),
               h('section', { class: 'card pad stack lucroper' },
-                h('div', { class: 'row', style: 'justify-content:space-between;align-items:flex-start' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, h('b', { class: 'mid' }, fmt(m.profit)), delta(m.profitVariation))), monthsSel),
-                barChart(convertedSeries(m.series), fmtRaw)))),
+                h('div', { class: 'row', style: 'justify-content:space-between;align-items:flex-start' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, money('b', m.profit, { class: 'mid' }), delta(m.profitVariation))), monthsSel),
+                barChart(m.series, fmt)))),
           h('aside', { class: 'walletpanel' },
             h('div', { class: 'wh' }, h('h2', 'Minha carteira'), canWrite && h('a', { class: 'npill', href: '#/vendas' }, '+ Nova venda')),
             h('div', { class: 'cardstack' },
               h('div', { class: 'ghost g2', 'aria-hidden': 'true' }), h('div', { class: 'ghost', 'aria-hidden': 'true' }),
               h('div', { class: 'cardvis' }, h('span', { class: 'chipic' }), h('span', { class: 'mk' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128 }))),
-                h('div', h('small', 'Lucro estimado'), h('div', { class: 'row', style: 'gap:10px' }, h('b', fmt(d.wallet.profitTotal)), delta(m.profitVariation)), h('small', { class: 'rc' }, 'Receita ', fmt(d.wallet.revenueTotal), d.wallet.pending ? [' · a receber ', fmt(d.wallet.pending)] : '')))),
+                h('div', h('small', 'Lucro estimado'), h('div', { class: 'row', style: 'gap:10px' }, money('b', d.wallet.profitTotal), delta(m.profitVariation)), h('small', { class: 'rc' }, 'Receita ', money('span', d.wallet.revenueTotal), d.wallet.pending ? [' · a receber ', money('span', d.wallet.pending)] : '')))),
             canWrite && h('div', { class: 'two' }, h('a', { class: 'wbtn dark', href: '#/clientes' }, h('i', { class: 'arr dl' }, icon('arrow')), 'Cliente'), h('a', { class: 'wbtn light', href: '#/vendas' }, h('i', { class: 'arr ur' }, icon('arrow')), 'Venda')),
             h('div', { class: 'row', style: 'justify-content:space-between;margin-top:6px' }, h('h2', 'Vendas recentes'), h('a', { href: '#/vendas', class: 'vt' }, 'Ver todas')),
             h('div', { class: 'recent' }, d.recentSales.length ? h('ul', { class: 'list-plain' }, d.recentSales.map((s) => h('li',
               h('span', { class: 'sale-avatar', 'aria-hidden': 'true' }, (s.client_name || s.description || 'V').slice(0, 2).toUpperCase()),
               h('span', { class: 'sale-info' }, h('strong', s.description), h('small', s.client_name || (s.sold_at ? dt(s.sold_at) : ''))),
-              h('b', { class: 'sale-amount' }, fmt(s.amount)))))
+              money('b', s.amount, { class: 'sale-amount' }))))
               : h('div', { class: 'empty' }, h('b', 'Nenhuma venda registrada'), h('span', 'Seus resultados aparecerão aqui.'), canWrite && h('a', { class: 'npill', href: '#/vendas', style: 'margin-top:14px' }, 'Registrar primeira venda'))))));
       drawBar();
       // Card da carteira com inclinação 3D e brilho (porte do TiltCard); a cada redesenho o card é novo, então liga de novo.

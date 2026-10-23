@@ -738,6 +738,7 @@ body{background:#e6f0fa}
 .emptyart .whitepill{box-shadow:0 10px 26px rgba(47,123,189,.2)}
 /* quadro: rolagem horizontal com barra visível, como no original */
 .kanban{scrollbar-width:thin;scrollbar-color:var(--ice-500) var(--ice-100)}
+.kanban{cursor:grab}.kanban.panning{cursor:grabbing;user-select:none;scroll-snap-type:none}
 .kanban::-webkit-scrollbar{height:10px}.kanban::-webkit-scrollbar-track{background:var(--ice-100);border-radius:99px}
 .kanban::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#7fb4e0,#2f7bbd);border-radius:99px;border:2px solid var(--ice-100)}
 .col .colhead::after{content:"";position:absolute;right:-30px;top:-30px;width:130px;height:130px;border-radius:50%;border:1px solid rgba(255,255,255,.22);box-shadow:0 0 0 22px rgba(255,255,255,.05);pointer-events:none}
@@ -1892,6 +1893,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .dash3 .profit .top{align-items:flex-start;gap:12px}.dash3 .profit .top>div:last-child{gap:8px}.dash3 .profit .ptitle{margin-bottom:5px}
 .dash3 .profit .lwrap{margin-top:4px}.dash3 .profit .lchart{min-height:160px}.dash3 .profit .foot{padding-top:8px;border-top:1px solid var(--line)}
 .profit-foot-left{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.currencybar{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--ice-50)}.currencybar button{border:0;border-radius:999px;background:transparent;color:var(--mut);font-size:.69rem;font-weight:700;padding:6px 9px;cursor:pointer}.currencybar button.on{background:#fff;color:var(--ink);box-shadow:0 2px 7px rgba(14,34,54,.12)}.currencybar button:hover{color:var(--ice-700)}.exchange-note{font-size:.68rem;color:var(--mut);white-space:nowrap}
+.dash-money{display:inline-block;font-variant-numeric:tabular-nums}
 .dash3 .lchart .area{fill:url(#dash-area)}
 .dash3 .promo{border-radius:24px}
 .dash3 .lucroper{min-height:260px;border-radius:24px}
@@ -1979,3 +1981,20 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 @media(max-width:820px){.sm-art{max-height:none;width:100%!important}}
 @media(max-width:820px){.sm-card{grid-template-columns:minmax(0,1fr)!important}.sm-left{max-width:380px;margin:0 auto;width:100%}}
 @media(max-width:820px){.sm-card{padding-top:64px}.sm-x{top:12px;right:12px}}
+
+/* Música: controle compacto e vídeo oficial do YouTube. */
+.music-widget{position:relative;z-index:55;flex:none}
+.music-toggle{display:flex;align-items:center;justify-content:center;gap:2px;color:var(--ice-700)}
+.music-toggle.playing{background:var(--ice-100);box-shadow:0 0 0 2px var(--ice-300)}
+.music-note{font-size:1.25rem;line-height:1}.music-bars{display:flex;flex-direction:column;gap:2px}.music-bars i{display:block;width:7px;height:2px;border-radius:2px;background:currentColor}
+.music-panel{position:absolute;top:calc(100% + 12px);right:0;width:min(350px,calc(100vw - 24px));max-height:calc(100dvh - 86px);overflow-y:auto;padding:18px;border:1px solid rgba(174,219,255,.35);border-radius:20px;background:linear-gradient(155deg,#0b2745,#123d66);color:#fff;box-shadow:0 24px 65px rgba(9,35,65,.4);visibility:hidden;opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .18s,transform .18s,visibility .18s}
+.music-panel.open{visibility:visible;opacity:1;pointer-events:auto;transform:none}
+.music-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}.music-head b{display:block;font-size:1rem}.music-head small{display:block;margin-top:4px;color:#aacfee;font-size:.72rem}
+.music-close{width:30px;height:30px;border:1px solid rgba(174,219,255,.3);border-radius:9px;background:rgba(255,255,255,.08);color:#fff;font-size:1.2rem;cursor:pointer}
+.music-video{width:100%;min-height:200px;border-radius:13px;overflow:hidden;background:#0a1d33}.music-video iframe{display:block;width:100%;height:200px;border:0}
+.music-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:14px}.music-play{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-width:108px;height:38px;padding:0 12px;border:0;border-radius:10px;background:#4a95d2;color:#fff;font-weight:700;cursor:pointer}.music-play:disabled{opacity:.55;cursor:wait}.music-play .ico,.music-actions a .ico{width:16px;height:16px}.music-actions a{display:inline-flex;align-items:center;gap:4px;color:#bfe3ff;font-size:.74rem;font-weight:700;text-decoration:none}
+.music-volume{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;margin-top:18px;color:#eaf4fd;font-size:.76rem;font-weight:700}.music-volume input{width:100%;min-width:0;accent-color:#7fb4e0}.music-volume-value{min-width:34px;text-align:right;color:#aacfee;font-variant-numeric:tabular-nums}
+.music-change{margin-top:18px}.music-change label{display:block;margin-bottom:7px;font-size:.76rem;font-weight:700}.music-change>div{display:flex;gap:6px}.music-change input{min-width:0;flex:1;padding:9px 10px;border:1px solid rgba(174,219,255,.3);border-radius:9px;background:rgba(0,0,0,.2);color:#fff;font:inherit;font-size:.75rem}.music-change input::placeholder{color:#aacfee}.music-change button{flex:none;padding:0 10px;border:0;border-radius:9px;background:#d3e6f6;color:#0b2745;font-weight:700;cursor:pointer}.music-error{display:block;margin-top:6px;color:#ffc0c6}.music-error[hidden]{display:none}.music-status{display:block;margin-top:12px;color:#aacfee;font-size:.72rem}
+.music-toggle:focus-visible,.music-panel button:focus-visible,.music-panel input:focus-visible,.music-panel a:focus-visible{outline:2px solid var(--ice-500);outline-offset:2px}
+@media(max-width:860px){.music-widget{z-index:65}.music-panel{position:fixed;top:68px;right:12px}}
+@media(prefers-reduced-motion:reduce){.music-panel{transition:none}}

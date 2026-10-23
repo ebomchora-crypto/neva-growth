@@ -128,6 +128,7 @@ export function parseCSV(text) {
 }
 export const icon = (name) => {
   const paths = {
+    pause: 'M8 5v14M16 5v14',
     home: 'M3 11l9-8 9 8M5 10v10h14V10', users: 'M16 20v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2M9.5 10a3.5 3.5 0 100-7 3.5 3.5 0 000 7M21 20v-2a4 4 0 00-3-3.9M16 3.1a3.5 3.5 0 010 6.8',
     copy: 'M9 9h11v11H9zM5 15V5a1 1 0 011-1h10', message: 'M21 12a8 8 0 01-11.6 7.1L3 21l1.9-5.4A8 8 0 1121 12z',
     funnel: 'M3 4h18l-7 8v6l-4 2v-8z', check: 'M9 11l3 3 8-8M20 12v7a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h9', cart: 'M3 4h2l2.4 11h10.2L20 8H6M9 20a1 1 0 100-2 1 1 0 000 2M17 20a1 1 0 100-2 1 1 0 000 2',
