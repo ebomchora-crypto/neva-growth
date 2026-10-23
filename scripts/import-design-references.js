@@ -16,6 +16,8 @@ const known = [
 ];
 const normalize = (value) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]/g, '');
 const knownUrls = new Map(known.filter((item) => item.url).map((item) => [normalize(item.title), item.url]));
+// Domínio exibido na captura da referência fornecida pelo usuário.
+knownUrls.set(normalize('10X HUB'), 'https://10xdesigners.co');
 
 const luminance = (hex) => {
   const channels = hex.slice(1).match(/../g).map((n) => parseInt(n, 16) / 255);
@@ -47,12 +49,16 @@ const entries = fs.readdirSync(source).filter((name) => /^[^/\\]+\.md$/i.test(na
     : palette.find((color) => luminance(color) < 0.18) || '#111111';
   const variant = file.match(/\((\d+)\)\.md$/)?.[1];
   const id = crypto.createHash('sha256').update(file).digest('hex').slice(0, 16);
+  const url = knownUrls.get(normalize(title)) || null;
+  const screenshotFile = url && crypto.createHash('sha256').update(url).digest('hex').slice(0, 16) + '.png';
+  const screenshot = screenshotFile && fs.existsSync(path.join(__dirname, '..', 'public', 'img', 'design-references', screenshotFile))
+    ? '/img/design-references/' + screenshotFile : null;
   fs.writeFileSync(path.join(files, file), content);
   return {
     id, file, kind: 'design', source: 'archive', title: variant ? `${title} (arquivo ${Number(variant) + 1})` : title,
-    category: 'Arquivo importado', summary: description.slice(0, 400), niche: 'Sites', url: knownUrls.get(normalize(title)) || null,
+    category: 'Arquivo importado', summary: description.slice(0, 400), niche: 'Sites', url,
     style: { light: 'Claro', dark: 'Escuro', mixed: 'Misto' }[theme], site_type: 'Referência visual',
-    theme, hero: { description, background, foreground, accent, palette },
+    theme, hero: { description, background, foreground, accent, palette, screenshot },
     published: 1, locked: false
   };
 });
