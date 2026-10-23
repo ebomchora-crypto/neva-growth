@@ -218,7 +218,9 @@ function cleanBrief(input) {
     rating: Number.isFinite(rating) && rating > 0 && rating <= 5 ? rating : null,
     reviews: Number.isFinite(reviews) && reviews > 0 ? Math.round(reviews) : null,
     // A Neva ainda não guarda imagens enviadas: o site usa as fotos de banco do Code Maker.
-    assets: []
+    assets: [],
+    // Referências de design escolhidas pelo usuário no Builder (DESIGN.md da página Referências de design): até 3.
+    designIds: (Array.isArray(input.designIds) ? input.designIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 3)
   };
 }
 
@@ -540,6 +542,33 @@ r.get('/:id(\\d+)/progress', async (req, res) => {
   const site = await loadSite(req.params.id, req);
   if (!site) throw new HttpError(404, 'Site não encontrado.');
   res.json(await T.progress(site, site.plan ? E.partOrder(site.plan) : []));
+});
+
+// Medidor de contexto do Builder: quanto da janela do modelo cada fonte ocupa (estimativa: ~4 caracteres por token).
+r.get('/context', async (req, res) => {
+  const tk = (n) => Math.round(Number(n || 0) / 4);
+  const ids = String(req.query.design_ids || '').split(',').map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 3);
+  const site = req.query.site_id ? await loadSite(req.query.site_id, req) : null;
+  const brief = site?.brief || {};
+  const stage = site?.plan ? 'edit' : 'plan';
+  let refs = 0;
+  if (ids.length) {
+    const rows = await all(`SELECT content FROM library_items WHERE kind='design' AND published=1 AND id IN (${ids.map(() => '?').join(',')})`, ...ids);
+    refs = rows.reduce((n, r) => n + Math.min(1300, String(r.content || '').length), 0) + 400;
+  } else if (brief.designRefs) refs = String(brief.designRefs).length;
+  let files = 0; let talk = String(brief.details || '').length;
+  if (site?.plan) {
+    const tree = E.projectTree(site.plan, site.parts, site.files);
+    files = Object.values(tree).reduce((n, t) => n + String(t || '').length, 0);
+    const rows = await all('SELECT instruction, actions FROM site_versions WHERE project_id=? ORDER BY id DESC LIMIT 30', site.id);
+    talk += rows.reduce((n, r) => n + String(r.instruction || '').length + String(r.actions || '').length, 0);
+  }
+  res.json({ limit: 200000, compactAt: 0.8, segments: [
+    { id: 'system', label: 'Regras e DESIGN.md', tokens: tk(systemFor(stage, brief).length) },
+    { id: 'refs', label: 'Referências de design', tokens: tk(refs) },
+    { id: 'files', label: 'Arquivos do site', tokens: tk(files) },
+    { id: 'talk', label: 'Conversa', tokens: tk(talk) },
+  ] });
 });
 
 r.get('/:id(\\d+)', async (req, res) => {

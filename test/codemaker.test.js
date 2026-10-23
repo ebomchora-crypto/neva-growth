@@ -97,3 +97,18 @@ test('repara os marcadores da DeepSeek e o fechamento trocado', () => {
   assert.equal(edit.operations.length, 2); assert.equal(edit.invalid, 0);
   assert.equal(repairDsml('texto normal'), 'texto normal');
 });
+
+test('medidor de contexto do Builder: segmentos com tokens estimados', async () => {
+  const r = await call('GET', `/api/code-maker/context?site_id=${id}`);
+  assert.equal(r.status, 200); assert.equal(r.body.limit, 200000);
+  assert.deepEqual(r.body.segments.map((s) => s.id), ['system', 'refs', 'files', 'talk']);
+  assert.ok(r.body.segments[0].tokens > 1000, 'as regras e o DESIGN.md contam');
+  assert.ok(r.body.segments[2].tokens > 0, 'os arquivos do site contam');
+});
+
+test('referência de design escolhida no Builder fica no pedido (até 3)', async () => {
+  const r = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site para estúdio de pilates', designIds: [5, 'x', 7, 9, 11] } });
+  assert.equal(r.status, 200);
+  const s = (await call('GET', '/api/code-maker/' + r.body.site.id)).body.site;
+  assert.deepEqual(s.brief.designIds, [5, 7, 9]);
+});

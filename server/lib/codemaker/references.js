@@ -109,12 +109,15 @@ function describe(sel, facts) {
 async function buildReferences(brief, { siteId } = {}) {
   const t0 = Date.now();
   const items = await all("SELECT id,title,niche,style,site_type,url,content FROM library_items WHERE kind='design' AND published=1");
-  const picked = pickDesigns(brief, items);
+  // Escolhidas pelo usuário no Builder: valem como estão (sem filtro de ramo), na ordem em que foram escolhidas.
+  const forced = (brief.designIds || []).map((id) => items.find((it) => it.id === Number(id))).filter(Boolean)
+    .map((it, i) => ({ it, score: 99, why: ['escolhida pelo usuário no Builder'], role: ROLES[i % ROLES.length] }));
+  const picked = forced.length ? { selected: forced, discarded: [] } : pickDesigns(brief, items);
   // SYSTEM_PROMPT "REFERENCE SELECTION ENGINE": só referência de tecnologia/SaaS e negócio de outro ramo = não forçar layout SaaS.
   // Fora do ramo tecnologia, só entra referência do mesmo segmento; senão a cobertura é declarada ausente.
   const sector = require('./design-context').sectorOf(brief).id;
   const sameSector = (x) => x.why.some((w) => /mesmo nicho/.test(w));
-  const selected = sector === 'saas' ? picked.selected : picked.selected.filter(sameSector);
+  const selected = forced.length || sector === 'saas' ? picked.selected : picked.selected.filter(sameSector);
   const discarded = [...picked.discarded, ...picked.selected.filter((x) => !selected.includes(x)).map((x) => ({ id: x.it.id, title: x.it.title, score: Math.round(x.score * 10) / 10, reason: 'cobertura de setor ausente: referência de outro ramo não é forçada' }))];
   const targets = [...selected.map((s) => s.it.url).filter(Boolean), ...urlsIn(brief.details)].filter((u, i, a) => a.indexOf(u) === i);
   const inspectOn = process.env.CM_REF_INSPECT !== '0';
