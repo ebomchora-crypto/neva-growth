@@ -1892,6 +1892,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .dash3 .profit .top{align-items:flex-start;gap:12px}.dash3 .profit .top>div:last-child{gap:8px}.dash3 .profit .ptitle{margin-bottom:5px}
 .dash3 .profit .lwrap{margin-top:4px}.dash3 .profit .lchart{min-height:160px}.dash3 .profit .foot{padding-top:8px;border-top:1px solid var(--line)}
 .profit-foot-left{display:flex;align-items:center;gap:7px;flex-wrap:wrap}.currencybar{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:999px;background:var(--ice-50)}.currencybar button{border:0;border-radius:999px;background:transparent;color:var(--mut);font-size:.69rem;font-weight:700;padding:6px 9px;cursor:pointer}.currencybar button.on{background:#fff;color:var(--ink);box-shadow:0 2px 7px rgba(14,34,54,.12)}.currencybar button:hover{color:var(--ice-700)}.exchange-note{font-size:.68rem;color:var(--mut);white-space:nowrap}
+.dash-money{display:inline-block;font-variant-numeric:tabular-nums}
 .dash3 .lchart .area{fill:url(#dash-area)}
 .dash3 .promo{border-radius:24px}
 .dash3 .lucroper{min-height:260px;border-radius:24px}
