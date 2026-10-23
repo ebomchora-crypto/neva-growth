@@ -32,6 +32,8 @@ export function musicPlayer() {
   const playButton = h('button', { type: 'button', class: 'music-play', disabled: true, 'aria-label': 'Tocar música' }, icon('play'), h('span', 'Tocar'));
   const volumeInput = h('input', { type: 'range', min: 0, max: 100, value: volume, 'aria-label': 'Volume da música' });
   const volumeValue = h('output', { class: 'music-volume-value' }, `${volume}%`);
+  const paint = () => { volumeInput.style.setProperty('--p', volume + '%'); volumeValue.classList.remove('pop'); void volumeValue.offsetWidth; volumeValue.classList.add('pop'); volumeInput.closest('.music-volume')?.classList.toggle('muted', volume === 0); };
+  volumeInput.style.setProperty('--p', volume + '%');
   const linkInput = h('input', { type: 'url', inputmode: 'url', placeholder: 'Cole um link do YouTube', 'aria-label': 'Link de outra música do YouTube' });
   const linkError = h('small', { class: 'music-error', role: 'alert', hidden: true });
   const external = h('a', { href: `https://www.youtube.com/watch?v=${current}`, target: '_blank', rel: 'noopener noreferrer' }, 'Abrir no YouTube', icon('arrow'));
@@ -74,7 +76,7 @@ export function musicPlayer() {
     send(playing ? 'pauseVideo' : 'playVideo');
     playing = !playing; syncPlay(); status.textContent = playing ? 'Tocando agora.' : 'Música pausada.';
   });
-  volumeInput.addEventListener('input', () => { volume = Number(volumeInput.value); volumeValue.textContent = `${volume}%`; save(VOLUME_KEY, volume); if (ready) send('setVolume', [volume]); });
+  volumeInput.addEventListener('input', () => { volume = Number(volumeInput.value); volumeValue.textContent = `${volume}%`; paint(); save(VOLUME_KEY, volume); if (ready) send('setVolume', [volume]); });
   panel.querySelector('form').addEventListener('submit', (event) => {
     event.preventDefault();
     const next = videoId(linkInput.value);
