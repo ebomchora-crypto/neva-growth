@@ -1,5 +1,9 @@
 // Revisão de diff por IA — porte em JS puro do componente "AI Diff Review" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
-import { h, icon, ensureStyle, reduced, PALETTE } from '../kit.js';
+import { h, svg, icon, ensureStyle, reduced, PALETTE } from '../kit.js';
+
+// Ícones de traço próprios (o ícone 'check' do app é uma caixa marcada)
+const I = (d) => svg('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d }));
+const CHECK = 'M5 12.5l4.5 4.5L19 7';
 
 const L = (type, text) => ({ type, text });
 // Alterações simuladas de um agente que mexe no checkout de uma loja
@@ -145,7 +149,7 @@ export default function mount(stage, ctx) {
     const wrapId = 'kk-diff-' + run + '-' + f.path.replace(/\W/g, '');
     const nameBtn = h('button', { type: 'button', class: 'kk-ai-diff-review-name', 'aria-controls': wrapId, 'aria-expanded': String(isOpen), disabled: d !== 'pending' || busy,
       onclick: () => { opened[f.path] = !isOpen; paint(); } },
-      h('span', { class: 'kk-ai-diff-review-chev' + (isOpen ? ' open' : '') + (d !== 'pending' ? ' off' : ''), 'aria-hidden': 'true' }, icon('chevron')),
+      h('span', { class: 'kk-ai-diff-review-chev' + (isOpen ? ' open' : '') + (d !== 'pending' ? ' off' : ''), 'aria-hidden': 'true' }, I('M9 6l6 6-6 6')),
       h('span', { class: 'kk-ai-diff-review-path' }, h('small', f.path.slice(0, sl + 1)), f.path.slice(sl + 1)),
       f.created && d !== 'rejected' && h('span', { class: 'kk-ai-diff-review-new' }, 'novo'));
     const ctl = d === 'pending'
@@ -155,7 +159,7 @@ export default function mount(stage, ctx) {
         // reservados no layout durante a escrita para os contadores não pularem
         h('span', { class: 'kk-ai-diff-review-icons' + (busy ? ' busy' : '') },
           h('button', { type: 'button', class: 'kk-ai-diff-review-ic rej', tabindex: busy ? -1 : 0, 'aria-label': `Rejeitar ${f.path}`, onclick: () => decide(f.path, 'rejected') }, icon('x')),
-          h('button', { type: 'button', class: 'kk-ai-diff-review-ic acc', tabindex: busy ? -1 : 0, 'aria-label': `Aceitar ${f.path}`, onclick: () => decide(f.path, 'accepted') }, icon('check'))))
+          h('button', { type: 'button', class: 'kk-ai-diff-review-ic acc', tabindex: busy ? -1 : 0, 'aria-label': `Aceitar ${f.path}`, onclick: () => decide(f.path, 'accepted') }, I(CHECK))))
       : h('div', { class: 'kk-ai-diff-review-ctl' }, h('span', { class: 'kk-ai-diff-review-state ' + d }, d === 'accepted' ? 'Aceito' : 'Revertido'),
         h('button', { type: 'button', class: 'kk-ai-diff-review-ic und', 'aria-label': `Desfazer decisão de ${f.path}`, onclick: () => decide(f.path, 'pending') }, icon('undo')));
 

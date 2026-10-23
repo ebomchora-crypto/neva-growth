@@ -1,5 +1,9 @@
 // Seletor de modelo — porte em JS puro do componente "AI Model Selector" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
-import { h, icon, ensureStyle, PALETTE } from '../kit.js';
+import { h, svg, icon, ensureStyle, PALETTE } from '../kit.js';
+
+// Ícones de traço próprios (o ícone 'check' do app é uma caixa marcada)
+const I = (d) => svg('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d }));
+const CHECK = 'M5 12.5l4.5 4.5L19 7';
 
 const NIVEL = {
   baixo: { id: 'low', label: 'Baixo', hint: 'Responde na hora. Ideal para ajustes rápidos e consultas.' },
@@ -100,7 +104,7 @@ export default function mount(stage) {
         onkeydown: (ev) => { const d = { ArrowDown: 1, ArrowUp: -1 }[ev.key]; if (d === undefined) return; ev.preventDefault(); const nx = (k + d + MODELS.length) % MODELS.length; radios.children[nx].focus(); pickModel(MODELS[nx]); } },
         h('span', { class: 'kk-ai-model-selector-name' }, h('b', o.name), h('small', o.description)), h('span', { class: 'kk-ai-model-selector-check' }))));
     }
-    MODELS.forEach((o, k) => { const b = radios.children[k], on = o.id === m.id; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; b.lastChild.replaceChildren(...(on ? [icon('check')] : [])); });
+    MODELS.forEach((o, k) => { const b = radios.children[k], on = o.id === m.id; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; b.lastChild.replaceChildren(...(on ? [I(CHECK)] : [])); });
     inner.replaceChildren(thumb, ...m.efforts.map((x, k) => h('span', { class: 'kk-ai-model-selector-lab' + (k === i ? ' on' : ''), 'aria-hidden': 'true' }, x.label)));
     thumb.style.left = `${(i / n) * 100}%`; thumb.style.width = `${100 / n}%`;
     track.setAttribute('aria-valuemax', String(n - 1)); track.setAttribute('aria-valuenow', String(i)); track.setAttribute('aria-valuetext', e.label);

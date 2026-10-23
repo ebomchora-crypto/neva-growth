@@ -33,6 +33,7 @@ function cordPath(xs, ys) {
   return d + ` L${xs[n].toFixed(2)} ${ys[n].toFixed(2)}`;
 }
 const REST = { xs: new Float64Array(LINKS + 1).fill(ANCHOR.x), ys: Float64Array.from({ length: LINKS + 1 }, (_, i) => ANCHOR.y + i * LINK) };
+let uid = 0;
 const REST_PATH = cordPath(REST.xs, REST.ys);
 
 export default function mount(stage, ctx) {
@@ -43,7 +44,7 @@ export default function mount(stage, ctx) {
 .kk-pull-cord-wire{stroke:var(--ice-300,#a5cdee);transition:stroke .3s}.is-off .kk-pull-cord-wire{stroke:#2a4a6b}
 .kk-pull-cord-shade{fill:var(--ice-800,#164a7c);transition:fill .3s}.is-off .kk-pull-cord-shade{fill:#1b3552}
 .kk-pull-cord-bulb{fill:var(--ice-200,#c9e1f6);transition:fill .3s,filter .3s;filter:drop-shadow(0 6px 10px rgba(74,149,210,.7))}.is-off .kk-pull-cord-bulb{fill:#2a4a6b;filter:none}
-.kk-pull-cord-glow{fill:url(#kk-pull-cord-g);opacity:1;transition:opacity .3s}.is-off .kk-pull-cord-glow{opacity:0}
+.kk-pull-cord-glow{opacity:1;transition:opacity .3s}.is-off .kk-pull-cord-glow{opacity:0}
 .kk-pull-cord-rope{stroke:var(--ice-500,#4a95d2);transition:stroke .3s}.is-off .kk-pull-cord-rope{stroke:#4a6f93}
 .kk-pull-cord-pull{fill:var(--ice-800,#164a7c);transition:fill .3s}.is-off .kk-pull-cord-pull{fill:var(--ice-300,#a5cdee)}
 .kk-pull-cord-focus{fill:none;stroke:var(--ice-500,#4a95d2);stroke-width:2}
@@ -61,11 +62,11 @@ export default function mount(stage, ctx) {
   const focusRing = svg('rect', { class: 'kk-pull-cord-focus', x: -10, y: -4, width: 20, height: 30, rx: 9, style: 'display:none' });
   const bead = svg('g', { class: 'kk-pull-cord-grab', transform: `translate(${ANCHOR.x} ${ANCHOR.y + LINKS * LINK})` },
     svg('circle', { fill: 'transparent', r: 22 }), focusRing, svg('rect', { class: 'kk-pull-cord-pull', x: -5, y: 1, width: 10, height: 20, rx: 5 }));
-  const cx = WIDTH / 2;
-  const grad = svg('radialGradient', { id: 'kk-pull-cord-g', cx: '50%', cy: '0%', r: '100%' }, svg('stop', { offset: '0', 'stop-color': '#7fb4e0', 'stop-opacity': '.45' }), svg('stop', { offset: '1', 'stop-color': '#7fb4e0', 'stop-opacity': '0' }));
+  const cx = WIDTH / 2, gid = 'kk-pull-cord-g' + (++uid); // id único: o demo pode aparecer no cartão e no modal
+  const grad = svg('radialGradient', { id: gid, cx: '50%', cy: '0%', r: '100%' }, svg('stop', { offset: '0', 'stop-color': '#7fb4e0', 'stop-opacity': '.45' }), svg('stop', { offset: '1', 'stop-color': '#7fb4e0', 'stop-opacity': '0' }));
   const svgEl = svg('svg', { class: 'kk-pull-cord-svg', viewBox: `0 0 ${WIDTH} ${HEIGHT}`, 'aria-hidden': 'true' },
     svg('defs', {}, grad),
-    svg('path', { class: 'kk-pull-cord-glow', d: `M${cx - 15} 120 L${cx - 120} ${HEIGHT} H${cx + 120} L${cx + 15} 120 Z` }),
+    svg('path', { class: 'kk-pull-cord-glow', fill: `url(#${gid})`, d: `M${cx - 15} 120 L${cx - 120} ${HEIGHT} H${cx + 120} L${cx + 15} 120 Z` }),
     svg('line', { class: 'kk-pull-cord-wire', 'stroke-width': 1.5, x1: cx, x2: cx, y1: 0, y2: 62 }),
     svg('path', { class: 'kk-pull-cord-shade', d: `M${cx - 14} 62 h28 l38 50 q2 4 -3 4 h-98 q-5 0 -3 -4 Z` }),
     svg('path', { class: 'kk-pull-cord-bulb', d: `M${cx - 15} 116 a15 13 0 0 0 30 0 Z` }),
@@ -143,7 +144,7 @@ export default function mount(stage, ctx) {
   };
   const move = (e) => {
     if (s.held < 0) return;
-    const t = reach(s.held, ...Object.values(local(e)));
+    const p = local(e), t = reach(s.held, p.x, p.y);
     s.tx = t.x; s.ty = t.y;
     // O interruptor clica uma vez por puxada, assim que o cordão passa do ponto, e rearma quando ele volta.
     if (s.armed && t.pull > CLICK_PULL) { s.armed = false; haptic(); toggle(); }
