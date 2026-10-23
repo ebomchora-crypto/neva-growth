@@ -42,6 +42,15 @@ async function seedLibraryV2() {
   });
 }
 
+// Prompts de animação do Acervo: idempotente a cada partida (o seed ampliado acima só roda uma vez por banco, então os novos títulos entram por aqui).
+async function seedAnimationPrompts() {
+  const { ITEMS } = require('./seed-animations');
+  for (const i of ITEMS) {
+    if (await get('SELECT 1 x FROM library_items WHERE kind=? AND title=? AND category=?', i.kind, i.title, i.category)) continue;
+    await run('INSERT INTO library_items(kind,title,category,summary,content,min_plan) VALUES (?,?,?,?,?,?)', i.kind, i.title, i.category, i.summary, i.content, i.min_plan);
+  }
+}
+
 // Referências verificadas (docs/referencias-verificadas.json, criado por scripts/add-reference.js): só entra URL que
 // respondeu e foi medida; o texto vem das medidas, nunca de descrição inventada. Idempotente: roda a cada partida.
 async function seedVerifiedReferences() {
@@ -59,4 +68,4 @@ async function seedVerifiedReferences() {
     await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,url,min_plan) VALUES (?,?,?,?,?,?,?,?,?,?)', 'design', r.title, 'Referência verificada', `${r.niche} · ${r.style} (medido em site real)`, content, r.niche, r.style, r.site_type || 'Institucional', r.url, 'member');
   }
 }
-module.exports = { seedLibrary, seedLibraryV2, seedVerifiedReferences };
+module.exports = { seedLibrary, seedLibraryV2, seedAnimationPrompts, seedVerifiedReferences };

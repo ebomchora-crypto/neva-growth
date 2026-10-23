@@ -9,7 +9,7 @@ function createApp() {
   // A inicialização roda na primeira requisição (e é repetida se falhar). Nunca deixa uma rejeição sem tratamento:
   // isso derrubaria a função serverless com FUNCTION_INVOCATION_FAILED em vez de devolver um erro legível.
   let initP = null;
-  const ready = () => (initP ||= db.ready().then(() => require('./lib/seed').seedLibrary().then(() => require('./lib/seed').seedLibraryV2()).then(() => require('./lib/seed').seedVerifiedReferences())).catch((e) => { initP = null; throw e; }));
+  const ready = () => (initP ||= db.ready().then(() => require('./lib/seed').seedLibrary().then(() => require('./lib/seed').seedLibraryV2()).then(() => require('./lib/seed').seedAnimationPrompts()).then(() => require('./lib/seed').seedVerifiedReferences())).catch((e) => { initP = null; throw e; }));
   const app = express();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
