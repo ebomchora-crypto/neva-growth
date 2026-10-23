@@ -40,6 +40,8 @@ const CSS = `
 .ant-magnetic-button .btn2{padding:11px 20px;border-radius:99px;background:#fff;color:#164a7c;font-weight:800;font-size:.8rem;animation:an-mag 3.2s ease-in-out infinite}
 .an-pn{position:absolute;inset:0;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center;padding:0 16px}.an-pn .pan{aspect-ratio:1;border-radius:14px;background:linear-gradient(145deg,#cfe8ff,#4a95d2);box-shadow:0 10px 24px rgba(120,190,255,.4)}.an-pn .st{display:grid;gap:8px}.an-pn .st i{height:12px;border-radius:6px;background:rgba(255,255,255,.28);animation:an-pin 3.2s ease-in-out infinite}.an-pn .st i:nth-child(2){animation-delay:1s}.an-pn .st i:nth-child(3){animation-delay:2s}
 .ant-generic .an-o{animation:an-fade 3.4s ease-out infinite}
+.an-photo{background:#06182c}.an-photo::before{display:none}.an-photo img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .5s cubic-bezier(.22,1,.36,1)}.an-card:hover .an-photo img{transform:scale(1.04)}
+@media(prefers-reduced-motion:reduce){.an-card:hover .an-photo img{transform:none}}
 @media(prefers-reduced-motion:reduce){.an-tile *{animation:none!important}.an-tile .an-o,.an-tile .an-row i{opacity:1}}
 `;
 const FLAG = 'an-style';
@@ -57,7 +59,13 @@ const ART = {
 const key = (title) => String(title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /** Cartão-miniatura de uma animação: arte viva + nome + frase. */
+const IMG = new Set(['rotate', 'zoom', 'fade', 'slide', 'stagger', 'flip', 'reveal', 'parallax', 'hover', 'morph', 'smooth-scroll', 'motion-path', 'split-text', 'magnetic-button', 'scroll-pin']);
 export function animTile(item) {
+  // Os 15 efeitos principais têm arte própria (já com o nome e a frase na imagem); os demais usam a miniatura animada em CSS.
+  if (isPromptAnim(item) && IMG.has(key(item.title))) {
+    if (!document.getElementById(FLAG)) { const s = document.createElement('style'); s.id = FLAG; s.textContent = CSS; document.head.append(s); }
+    return h('div', { class: 'an-tile an-photo' }, h('img', { src: `/img/anim/${key(item.title)}.webp`, alt: `${item.title}: ${item.summary || ''}`, loading: 'lazy', decoding: 'async', width: 430, height: 538 }));
+  }
   if (!document.getElementById(FLAG)) { const s = document.createElement('style'); s.id = FLAG; s.textContent = CSS; document.head.append(s); }
   const k = key(item.title); const make = ART[k];
   return h('div', { class: `an-tile ant-${make ? k : 'generic'}`, role: 'img', 'aria-label': `Prévia da animação ${item.title}` },
