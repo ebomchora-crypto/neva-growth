@@ -27,7 +27,7 @@ const REPLIES = ['Entendi. Para esse pedido eu começaria separando os clientes 
 const size = (b) => (b < 1024 ? `${b} B` : b < 1048576 ? `${Math.round(b / 1024)} KB` : `${(b / 1048576).toFixed(1)} MB`);
 
 const CSS = `
-.kk-ai-prompt-root{width:100%;display:flex;flex-direction:column;gap:10px;min-height:340px;container-type:inline-size;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-prompt-root{min-width:0;box-sizing:border-box;width:100%;display:flex;flex-direction:column;gap:10px;min-height:340px;container-type:inline-size;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-prompt-thread{flex:1;display:flex;flex-direction:column;gap:8px;overflow-y:auto;max-height:220px;padding:2px}
 .kk-ai-prompt-empty{margin:auto;text-align:center;font-size:13px;color:var(--mut,#4a6f93);padding:12px;line-height:1.5}
 .kk-ai-prompt-msg{max-width:88%;padding:8px 12px;border-radius:14px;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}

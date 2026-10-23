@@ -11,7 +11,7 @@ const pct = (v, d = 0) => (v * 100).toFixed(d).replace('.', ',');
 const levelColor = (s) => (s >= COMPACT_AT + (1 - COMPACT_AT) / 2 ? PALETTE.bad : s >= COMPACT_AT - 0.1 ? '#b7791f' : PALETTE.ink);
 
 const CSS = `
-.kk-ai-context-meter-root{width:100%;min-height:330px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-context-meter-root{min-width:0;box-sizing:border-box;width:100%;min-height:330px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-context-meter-chat{flex:1;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:12px;color:${PALETTE.mut};padding:0 2px}
 .kk-ai-context-meter-chat p{margin:0}
 .kk-ai-context-meter-bar{position:relative;display:flex;align-items:center;justify-content:space-between;gap:6px;min-height:44px;padding:0 6px 0 12px;border-radius:14px;background:${PALETTE.ice50};box-shadow:inset 0 0 0 1px ${PALETTE.line}}

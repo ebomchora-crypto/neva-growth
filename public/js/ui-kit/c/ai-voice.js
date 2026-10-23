@@ -28,7 +28,7 @@ const condense = (take) => (!take.length ? STILL.slice(0, BAR_COUNT) : Array.fro
 const ico = (d, fill) => svg('svg', { viewBox: '0 0 24 24', fill: fill ? 'currentColor' : 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d }));
 
 const CSS = `
-.kk-ai-voice-root{width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-voice-root{min-width:0;box-sizing:border-box;width:100%;display:flex;flex-direction:column;align-items:center;gap:8px;padding:8px 0;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-voice-btnwrap{position:relative}
 .kk-ai-voice-ring{position:absolute;inset:0;border-radius:14px;background:${PALETTE.ice200};opacity:0;pointer-events:none}
 .kk-ai-voice-main{position:relative;width:64px;height:64px;border:0;border-radius:14px;display:grid;place-items:center;background:transparent;color:${PALETTE.ink};cursor:pointer;transition:background .15s}

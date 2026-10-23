@@ -21,7 +21,7 @@ const summary = (i) => (typeof i === 'string' ? i : String(Object.values(i)[0]))
 const P = (d, cls) => svg('svg', { class: cls, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'aria-hidden': 'true' }, svg('path', { d }));
 
 const CSS = `
-.kk-ai-tool-approval-root{width:100%;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-tool-approval-root{min-width:0;box-sizing:border-box;width:100%;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-tool-approval-wrap{border-radius:16px;background:${PALETTE.ice50};box-shadow:inset 0 0 0 1px ${PALETTE.line};padding:6px}
 .kk-ai-tool-approval-trace{padding:4px 8px 6px}
 .kk-ai-tool-approval-line{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:0;border:0;background:none;font:inherit;font-size:13px;color:inherit;text-align:left;border-radius:6px;cursor:pointer}

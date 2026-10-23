@@ -13,7 +13,7 @@ const fmt = (s) => (s < 60 ? `${s}s` : `${Math.floor(s / 60)}m ${String(s % 60).
 const fmtStep = (ms) => (ms < 10000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.round(ms / 1000)}s`);
 
 const CSS = `
-.kk-ai-loading-root{width:100%;max-width:360px;margin:0 auto;display:flex;flex-direction:column;gap:12px;color:var(--ink,#0e2236);font-family:inherit}
+.kk-ai-loading-root{min-width:0;box-sizing:border-box;width:100%;max-width:360px;margin:0 auto;display:flex;flex-direction:column;gap:12px;color:var(--ink,#0e2236);font-family:inherit}
 .kk-ai-loading-head{display:flex;align-items:center;gap:8px;width:100%;box-sizing:border-box;min-height:36px;padding:4px 0;border:0;border-radius:8px;background:none;font:inherit;font-size:14px;font-weight:600;color:${PALETTE.ink};text-align:left;cursor:pointer}
 .kk-ai-loading-head:focus-visible,.kk-ai-loading-btns button:focus-visible{outline:2px solid ${PALETTE.ice500};outline-offset:1px}
 .kk-ai-loading-title{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

@@ -134,8 +134,8 @@ export default function mount(stage, ctx) {
 .kk-timezone-planner-btn:disabled{color:var(--mut,#4a6f93);opacity:.7;cursor:default}
 .kk-timezone-planner-btn:focus-visible,.kk-timezone-planner-step:focus-visible{outline:2px solid var(--ice-500,#4a95d2);outline-offset:1px}
 .kk-timezone-planner-grid{margin-top:14px;display:grid;grid-template-columns:minmax(0,1fr);gap:14px;align-items:center}
-@container (min-width:34rem){.kk-timezone-planner-grid{grid-template-columns:minmax(0,19rem) minmax(0,1fr);gap:24px}}
-.kk-timezone-planner-dialbox{position:relative;width:100%;max-width:19rem;margin:0 auto;aspect-ratio:1}
+@container (min-width:34rem){.kk-timezone-planner-grid{grid-template-columns:minmax(0,19rem) minmax(0,1fr);gap:24px}.kk-timezone-planner-dialbox{max-width:19rem}}
+.kk-timezone-planner-dialbox{position:relative;width:100%;max-width:16rem;margin:0 auto;aspect-ratio:1}
 .kk-timezone-planner-svg{width:100%;height:100%;overflow:visible;touch-action:none;cursor:grab}
 .kk-timezone-planner-svg.drag{cursor:grabbing}
 .kk-timezone-planner-svg text{font-size:9.5px;font-weight:600;fill:var(--mut,#4a6f93);font-variant-numeric:tabular-nums}

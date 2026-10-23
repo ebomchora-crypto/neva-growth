@@ -23,7 +23,7 @@ const PARTS = [
 const initial = (s) => s.site.charAt(0);
 
 const CSS = `
-.kk-ai-citations-root{position:relative;width:100%;font-family:inherit;color:var(--ink,#0e2236)}
+.kk-ai-citations-root{min-width:0;box-sizing:border-box;position:relative;width:100%;font-family:inherit;color:var(--ink,#0e2236)}
 .kk-ai-citations-text{margin:0;font-size:15px;line-height:1.9}
 .kk-ai-citations-claim{border-radius:3px;text-decoration:underline;text-decoration-color:transparent;text-decoration-thickness:1px;text-underline-offset:4px;transition:background-color .15s,text-decoration-color .15s}
 .kk-ai-citations-claim.on{background:${PALETTE.ice100};text-decoration-color:${PALETTE.ice400}}
