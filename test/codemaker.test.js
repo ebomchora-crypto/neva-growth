@@ -112,3 +112,15 @@ test('referência de design escolhida no Builder fica no pedido (até 3)', async
   const s = (await call('GET', '/api/code-maker/' + r.body.site.id)).body.site;
   assert.deepEqual(s.brief.designIds, [5, 7, 9]);
 });
+
+test('referências escolhidas pelo usuário entram no bloco mesmo fora do ramo', async () => {
+  process.env.CM_REF_INSPECT = '0';
+  const refs = require('../server/lib/codemaker/references');
+  const { all } = require('../server/lib/db');
+  const designs = await all("SELECT id,title FROM library_items WHERE kind='design' AND published=1 ORDER BY id LIMIT 2");
+  assert.ok(designs.length >= 2);
+  const out = await refs.buildReferences({ details: 'Padaria artesanal em Recife', niche: 'padaria', designIds: designs.map((d) => d.id) });
+  assert.deepEqual(out.trace.selected.map((s) => s.title), designs.map((d) => d.title));
+  assert.ok(out.trace.selected.every((s) => s.why.includes('escolhida pelo usuário no Builder')));
+  for (const d of designs) assert.match(out.block, new RegExp(d.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});
