@@ -29,8 +29,19 @@ export function control(f, value) {
       rows.forEach((r) => { const on = r.dataset.v === String(sel.value); r.classList.toggle('on', on); r.setAttribute('aria-selected', String(on)); }); };
     let open = false; let onDoc;
     const close = () => { if (!open) return; open = false; panel.hidden = true; wrap.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', onDoc, true); };
+    // O painel cabe no recorte do contêiner (gaveta/modal com overflow escondido), não só na janela.
+    const fit = (r) => {
+      let c = wrap.parentElement; while (c && c !== document.body && getComputedStyle(c).overflow === 'visible' && getComputedStyle(c).overflowX === 'visible') c = c.parentElement;
+      const box = c && c !== document.body ? c.getBoundingClientRect() : { left: 0, right: window.innerWidth };
+      const lo = Math.max(box.left, 0) + 8; const hi = Math.min(box.right, window.innerWidth) - 8;
+      const want = Math.max(r.width, Math.min(380, hi - lo));
+      const right = hi - r.left; const left = r.right - lo;
+      const alignRight = right < want && left > right;
+      wrap.classList.toggle('ral', alignRight);
+      panel.style.width = `${Math.max(r.width, Math.min(want, alignRight ? left : right))}px`;
+    };
     const show = () => { open = true; panel.hidden = false; wrap.classList.add('open'); trigger.setAttribute('aria-expanded', 'true');
-      const r = trigger.getBoundingClientRect(); const need = Math.min(panel.offsetHeight, 330) + 14; wrap.classList.toggle('ral', r.left > window.innerWidth / 2); wrap.classList.toggle('up', window.innerHeight - r.bottom < need && r.top > window.innerHeight - r.bottom);
+      const r = trigger.getBoundingClientRect(); const need = Math.min(panel.offsetHeight, 330) + 14; fit(r); wrap.classList.toggle('up', window.innerHeight - r.bottom < need && r.top > window.innerHeight - r.bottom);
       panel.querySelector('.fs-opt.on')?.scrollIntoView({ block: 'nearest' });
       onDoc = (e) => { if (!wrap.contains(e.target)) close(); }; document.addEventListener('mousedown', onDoc, true); };
     function pick(val) { sel.value = String(val); sel.dispatchEvent(new Event('change', { bubbles: true })); close(); trigger.focus(); }
