@@ -82,8 +82,8 @@ export default function mount(stage, ctx) {
 .kk-metric-card-label{margin:0;font-size:14px;color:var(--mut,#4a6f93);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .kk-metric-card-label b{font-weight:500;color:var(--ink,#0e2236)}
 .kk-metric-card-seg{position:relative;display:flex;flex-shrink:0;padding:2px;border-radius:999px;background:var(--ice-100,#e3f0fb)}
-.kk-metric-card-pill{position:absolute;top:2px;bottom:2px;left:2px;width:44px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(15,53,96,.15);transition:transform .2s cubic-bezier(.23,1,.32,1)}
-.kk-metric-card-seg button{position:relative;width:44px;min-height:36px;border:0;border-radius:999px;background:none;font:600 12px/1 inherit;font-family:inherit;font-variant-numeric:tabular-nums;color:var(--mut,#4a6f93);cursor:pointer;transition:color .2s}
+.kk-metric-card-pill{position:absolute;top:2px;bottom:2px;left:2px;width:48px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(15,53,96,.15);transition:transform .2s cubic-bezier(.23,1,.32,1)}
+.kk-metric-card-seg button{position:relative;width:48px;white-space:nowrap;min-height:36px;border:0;border-radius:999px;background:none;font:600 12px/1 inherit;font-family:inherit;font-variant-numeric:tabular-nums;color:var(--mut,#4a6f93);cursor:pointer;transition:color .2s}
 .kk-metric-card-seg button[aria-pressed=true]{color:var(--ink,#0e2236)}
 .kk-metric-card button:focus-visible{outline:2px solid var(--ice-500,#4a95d2);outline-offset:1px}
 .kk-metric-card-value{margin:10px 0 0;font-weight:700;font-size:36px;line-height:1.1;letter-spacing:-.02em}

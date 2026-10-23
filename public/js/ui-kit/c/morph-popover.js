@@ -21,7 +21,7 @@ button.kk-morph-popover-pill:focus-visible{outline:2px solid var(--ice-500,#4a95
 .kk-morph-popover-ico{color:var(--mut,#4a6f93);display:inline-flex}
 .kk-morph-popover-form{display:flex;flex-direction:column}
 .kk-morph-popover-title{display:flex;align-items:center;gap:8px;padding:10px 14px 0;font:600 14px/20px inherit}
-.kk-morph-popover-ta{display:block;box-sizing:border-box;width:100%;height:112px;resize:none;border:0;outline:0;background:transparent;padding:8px 14px 0;font:400 16px/1.5 inherit;color:var(--ink,#0e2236)}
+.kk-morph-popover-panel .kk-morph-popover-ta,.kk-morph-popover-panel .kk-morph-popover-ta:focus{display:block;border:0;border-radius:0;box-shadow:none;margin:0;box-sizing:border-box;width:100%;height:112px;resize:none;border:0;outline:0;background:transparent;padding:8px 14px 0;font:400 16px/1.5 inherit;color:var(--ink,#0e2236)}
 .kk-morph-popover-ta::placeholder{color:#8aa6c1}.kk-morph-popover-ta:disabled{opacity:.6}
 .kk-morph-popover-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-top:1px solid var(--ice-100,#e3f0fb);background:rgba(242,248,254,.8)}
 .kk-morph-popover-keys{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--mut,#4a6f93)}

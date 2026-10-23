@@ -7,7 +7,7 @@ import { dotField } from '../../dot-field.js';
 const DENSITIES = [['Fino', 12], ['Médio', 16], ['Grosso', 24]];
 
 const CSS = `
-.kk-dot-field-root{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px 16px 56px;overflow:hidden;touch-action:pan-y;background:#fff}
+.kk-dot-field-root{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:12px 16px 92px;overflow:hidden;touch-action:pan-y;background:#fff}
 .kk-dot-field-root>.dotfield{z-index:0}
 .kk-dot-field-text{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:8px;max-width:26em;text-align:center;pointer-events:none}
 .kk-dot-field-text h3{margin:0;font-size:clamp(22px,8cqw,46px);line-height:1.05;letter-spacing:-.03em;font-weight:700;color:var(--ink,${PALETTE.ink});text-wrap:balance}
@@ -32,7 +32,7 @@ export default function mount(stage) {
   const root = h('div', { class: 'kk-dot-field-root' },
     h('div', { class: 'kk-dot-field-text' },
       h('h3', {}, 'Meio-tom em movimento'),
-      h('p', {}, 'Passe o cursor para deixar uma esteira nos pontos e clique para soltar uma onda de choque.')),
+      h('p', {}, 'Passe o cursor para deixar uma esteira; clique para soltar uma onda.')),
     h('div', { class: 'kk-dot-field-bar', role: 'group', 'aria-label': 'Densidade dos pontos' }, ...chips,
       h('button', { type: 'button', class: 'kk-dot-field-chip', onclick: () => { seed = (seed * 7 + 3) % 97 + 1; remount(); } }, 'Novo desenho')));
   stage.append(root);

@@ -7,7 +7,7 @@ const WINDS = [['Calmo', 0.4], ['Brisa', 1], ['Vento forte', 2.2]];
 const PLEATS = [['Pregas finas', 22], ['Pregas largas', 44]];
 
 const CSS = `
-.kk-drape-background-root{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px 16px 92px;overflow:hidden;touch-action:pan-y;background:linear-gradient(160deg,${PALETTE.ice100},#fff)}
+.kk-drape-background-root{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 16px 92px;overflow:hidden;touch-action:pan-y;background:linear-gradient(160deg,${PALETTE.ice100},#fff)}
 /* o app deixa .drape fixo em telas estreitas (tela de acesso); no palco ele precisa ficar preso ao cartão */
 .kk-drape-background-root .drape{position:absolute}
 .kk-drape-background-root[data-grabbing]{cursor:grabbing}
