@@ -60,8 +60,10 @@ test('cabeçalho sai do plano sem IA; finish monta, sincroniza os arquivos e pub
   const parts = JSON.parse((await get('SELECT parts FROM code_sites WHERE project_id=?', id)).parts);
   assert.ok(parts.header);
   parts.hero = '<section id="hero"><h1>Pão quentinho</h1></section>'; parts.contato = '<section id="contato"><p>Fale conosco</p></section>';
-  parts.footer = E.fixedPart('footer', plan, brief);
   await run('UPDATE code_sites SET parts=? WHERE project_id=?', JSON.stringify(parts), id);
+  const footer = await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: 'footer' });
+  assert.match(footer.body, /<<<OK>>>\s*$/, 'a última parte responde sem esperar a inspeção visual');
+  assert.equal((await get('SELECT status FROM code_sites WHERE project_id=?', id)).status, 'building');
   const fin = await call('POST', '/api/code-maker', { action: 'finish', site_id: id });
   assert.equal(fin.status, 200); assert.equal(fin.body.site.status, 'ready');
   const file = await get("SELECT content FROM project_files WHERE project_id=? AND path='index.html'", id);

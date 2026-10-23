@@ -64,6 +64,7 @@ test('criação com Neva 1.5 · Máximo: DESIGN.md vem primeiro, análise prévi
   let site = (await call('GET', '/api/code-maker/' + siteId)).body.site;
   assert.equal(site.brief.ai.effort, 'xhigh'); assert.ok(site.brief.analysis.notes.includes('Contexto'));
   for (const pid of E.partOrder(site.plan)) assert.match((await call('POST', '/api/code-maker', { action: 'part', site_id: siteId, part_id: pid })).body, /<<<OK>>>\s*$/);
+  assert.equal((await call('POST', '/api/code-maker', { action: 'finish', site_id: siteId })).status, 200);
   site = (await call('GET', '/api/code-maker/' + siteId)).body.site;
   assert.equal(site.status, 'ready');
   const calls = await seen();
@@ -265,6 +266,7 @@ test('alteração com formato quebrado: o servidor pede a correção ao modelo e
   await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
   const site = (await call('GET', '/api/code-maker/' + id)).body.site;
   for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  await call('POST', '/api/code-maker', { action: 'finish', site_id: id });
   const before = (await seen()).length;
   const edit = await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Troque a chamada final (QUEBRAR_FORMATO)' });
   assert.match(edit.body, /<<<OK>>>\s*$/, edit.body.slice(-300));
@@ -280,6 +282,7 @@ async function builtSite() {
   await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
   const site = (await call('GET', '/api/code-maker/' + id)).body.site;
   for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  await call('POST', '/api/code-maker', { action: 'finish', site_id: id });
   return id;
 }
 test('alteração cujo trecho "antes" não bate: o servidor pede o arquivo inteiro reescrito e a alteração é aplicada', async () => {
@@ -331,6 +334,7 @@ test('fotos enviadas pelo cliente: ficam guardadas, são servidas em /u/<id>, en
   await call('POST', '/api/code-maker', { action: 'plan', site_id: id });
   const site = (await call('GET', '/api/code-maker/' + id)).body.site;
   for (const pid of E.partOrder(site.plan)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid });
+  await call('POST', '/api/code-maker', { action: 'finish', site_id: id });
   const before = (await seen()).length;
   await call('POST', '/api/code-maker', { action: 'edit', site_id: id, instruction: 'Use minha foto no topo', assets: [{ url: up.body.url, name: 'fachada.png', kind: 'photo' }] });
   const edit = (await seen()).slice(before).find((c) => c.stage === 'edit');
@@ -575,6 +579,18 @@ test('regressão Brasa Burger: a mesma foto em 12 lugares vira fotos diferentes;
   assert.ok(r.fixes.length >= 4);
 });
 
+test('fotos seguem o ramo descrito no pedido e URLs inventadas não sobrevivem ao catálogo esgotado', () => {
+  const brief = { businessName: 'Casa do Pão', niche: '', details: 'Site de padaria artesanal com fotos dos pães', style: 'auto', assets: [] };
+  const plan = { sections: [{ id: 'hero', layout: 'hero-cinema', bg: 'paper' }] };
+  const photos = E.photoPlan(plan, brief).hero;
+  assert.ok(photos.length > 0);
+  assert.match(photos[0].about, /pães|pão|padaria|forno/i);
+  const invented = 'https://images.unsplash.com/photo-0000000000-inventada?w=800';
+  const many = Array.from({ length: 30 }, () => `<img src="${invented}">`).join('');
+  const result = E.dedupeImages(plan, { hero: many }, brief);
+  assert.doesNotMatch(result.parts.hero, /photo-0000000000-inventada/);
+});
+
 test('refino visual: corrige texto sobre foto em ciclos, verifica e para quando não há pendência; sem navegador não simula', async () => {
   const { refineVisually } = require('../server/lib/codemaker/refine');
   const plan = { title: 'x' };
@@ -657,6 +673,7 @@ test('progresso real: etapas derivadas do que foi gravado (briefing, referência
   const mid = (await call('GET', `/api/code-maker/${id}/progress`)).body;
   assert.equal(mid.parts.done, 1); assert.equal(mid.stages.find((s) => s.key === 'code').detail.feitas, 1);
   for (const pid of ids.slice(1)) await call('POST', '/api/code-maker', { action: 'part', site_id: id, part_id: pid, model: 'neva-1-2', effort: 'medium' });
+  await call('POST', '/api/code-maker', { action: 'finish', site_id: id });
   const end = (await call('GET', `/api/code-maker/${id}/progress`)).body;
   assert.equal(end.finished, true); assert.equal(end.current, null);
   assert.ok(end.stages.every((s) => ['done', 'skipped'].includes(s.status)), JSON.stringify(end.stages.map((s) => [s.key, s.status])));

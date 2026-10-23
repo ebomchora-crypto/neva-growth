@@ -870,20 +870,12 @@ r.post('/', async (req, res) => {
     if (!E.partOrder(plan).includes(partId)) throw bad('Parte inválida.');
     if (site.status === 'error') await setStatus(site.id, 'building', 'error');
     const markError = () => setStatus(site.id, 'error', 'building');
-    // Salva a parte pronta; quando é a última, marca o site como pronto.
+    // Salva cada parte rapidamente. A inspeção visual é feita pela ação finish,
+    // depois que todas as requisições paralelas terminarem; ela não cabe no prazo
+    // da resposta em streaming da última seção.
     const savePart = async (html, signal) => {
       signal.throwIfAborted();
-      const parts = await mergePart(site.id, partId, html);
-      if (E.partOrder(plan).every((id) => parts[id])) {
-        const fin = await finalizeParts(site, plan, parts, user.id);
-        const finalParts = fin.parts;
-        const document = E.assembleSite(fin.plan, finalParts);
-        signal.throwIfAborted();
-        if (await markReady(site.id, document)) {
-          await syncProjectFiles(site.id, document, {});
-          await versionInsert(site, user.id, { kind: 'create', actions: plan.actions ?? [], plan: fin.plan, parts: finalParts });
-        }
-      }
+      await mergePart(site.id, partId, html);
       return null;
     };
 

@@ -34,6 +34,21 @@ test('esquema Postgres aplicado, com seed de planos, etapas e biblioteca', async
   assert.ok((await A('GET', '/api/library?kind=prompt')).body.total >= 3);
 });
 
+test('referências importadas preservam cada DESIGN.md e exigem sessão', async () => {
+  const guest = await call('guest', 'GET', '/api/design-references');
+  assert.equal(guest.status, 401);
+  const listing = await M('GET', '/api/design-references');
+  assert.equal(listing.status, 200);
+  assert.equal(listing.body.total, 1289);
+  assert.equal(new Set(listing.body.items.map((item) => item.id)).size, 1289);
+  const item = listing.body.items.find((entry) => entry.title === 'Airbnb');
+  assert.equal(item.url, 'https://www.airbnb.com.br');
+  const detail = await M('GET', `/api/design-references/${item.id}`);
+  assert.equal(detail.status, 200);
+  assert.match(detail.body.content, /^# Airbnb\s+[—–-]\s+Style Reference/m);
+  assert.equal((await M('GET', '/api/design-references/inexistente')).status, 404);
+});
+
 test('vendas: custo, margem, entrega, visões com contadores e indicadores', async () => {
   const c = (await A('POST', '/api/clients', { name: 'Cliente A' })).body; assert.equal(c.stage, 'lead');
   assert.equal((await A('POST', '/api/sales', { description: 'x', amount: 100, cost: 200 })).status, 400);
