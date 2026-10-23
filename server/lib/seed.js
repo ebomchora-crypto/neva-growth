@@ -62,6 +62,17 @@ async function seedSkillVault() {
   await run(`UPDATE library_items SET published=0 WHERE kind='skill' AND published=1 AND title NOT IN (${names.map(() => '?').join(',')})`, ...names);
 }
 
+// Prompt Lab: os 7 prompts completos. Idempotente; os prompts de exemplo antigos saem de cena (despublicados, não apagados).
+async function seedPromptLab() {
+  const list = require('./seed-prompts-data');
+  for (const k of list) {
+    if (await get("SELECT 1 x FROM library_items WHERE kind='prompt' AND title=?", k.title)) continue;
+    await run('INSERT INTO library_items(kind,title,category,summary,content,niche,min_plan) VALUES (?,?,?,?,?,?,?)', 'prompt', k.title, k.category, k.summary, k.content, k.tags, 'member');
+  }
+  const names = list.map((k) => k.title);
+  await run(`UPDATE library_items SET published=0 WHERE kind='prompt' AND published=1 AND title NOT IN (${names.map(() => '?').join(',')}) AND category<>'Prompt de animação'`, ...names);
+}
+
 // Referências verificadas (docs/referencias-verificadas.json, criado por scripts/add-reference.js): só entra URL que
 // respondeu e foi medida; o texto vem das medidas, nunca de descrição inventada. Idempotente: roda a cada partida.
 async function seedVerifiedReferences() {
@@ -79,4 +90,4 @@ async function seedVerifiedReferences() {
     await run('INSERT INTO library_items(kind,title,category,summary,content,niche,style,site_type,url,min_plan) VALUES (?,?,?,?,?,?,?,?,?,?)', 'design', r.title, 'Referência verificada', `${r.niche} · ${r.style} (medido em site real)`, content, r.niche, r.style, r.site_type || 'Institucional', r.url, 'member');
   }
 }
-module.exports = { seedLibrary, seedLibraryV2, seedAnimationPrompts, seedSkillVault, seedVerifiedReferences };
+module.exports = { seedLibrary, seedLibraryV2, seedAnimationPrompts, seedSkillVault, seedPromptLab, seedVerifiedReferences };

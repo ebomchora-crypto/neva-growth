@@ -44,7 +44,7 @@ export function musicPlayer() {
     status);
   linkInput.id = 'music-link';
   const toggle = h('button', { type: 'button', class: 'iconbtn music-toggle', title: 'Música do site', 'aria-label': 'Abrir controles de música', 'aria-expanded': 'false' },
-    h('span', { class: 'music-note', 'aria-hidden': 'true' }, '♫'), h('span', { class: 'music-bars', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')));
+    icon('music'), h('span', { class: 'music-eq', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')));
   const root = h('div', { class: 'music-widget' }, toggle, panel);
 
   const send = (func, args = []) => frame?.contentWindow?.postMessage(JSON.stringify({ event: 'command', func, args }), YOUTUBE_ORIGIN);

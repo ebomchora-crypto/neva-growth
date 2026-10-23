@@ -59,12 +59,12 @@ const ART = {
 const key = (title) => String(title || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
 /** Cartão-miniatura de uma animação: arte viva + nome + frase. */
-const IMG = new Set(['rotate', 'zoom', 'fade', 'slide', 'stagger', 'flip', 'reveal', 'parallax', 'hover', 'morph', 'smooth-scroll', 'motion-path', 'split-text', 'magnetic-button', 'scroll-pin']);
+const IMG = new Set(['rotate', 'zoom', 'fade', 'slide', 'stagger', 'flip', 'reveal', 'parallax', 'hover', 'morph', 'smooth-scroll', 'motion-path', 'split-text', 'magnetic-button', 'scroll-pin', 'botao-magnetico', 'cartao-com-inclinacao-3d', 'faixa-de-logos-infinita-marquee', 'contador-animado-de-numeros', 'borda-com-gradiente-girando', 'esqueleto-de-carregamento-shimmer', 'cabecalho-que-encolhe-ao-rolar', 'texto-que-aparece-palavra-por-palavra', 'acordeao-de-faq-suave', 'rolagem-suave-com-destaque-no-menu', 'revelar-ao-rolar-scroll-reveal', 'cartao-com-elevacao-no-hover']);
 export function animTile(item) {
-  // Os 15 efeitos principais têm arte própria (já com o nome e a frase na imagem); os demais usam a miniatura animada em CSS.
-  if (isPromptAnim(item) && IMG.has(key(item.title))) {
+  // Todos os efeitos do Acervo têm arte própria (já com o nome e a frase na imagem); os demais usam a miniatura animada em CSS.
+  if (IMG.has(key(item.title))) {
     if (!document.getElementById(FLAG)) { const s = document.createElement('style'); s.id = FLAG; s.textContent = CSS; document.head.append(s); }
-    return h('div', { class: 'an-tile an-photo' }, h('img', { src: `/img/anim/${key(item.title)}.webp`, alt: `${item.title}: ${item.summary || ''}`, loading: 'lazy', decoding: 'async', width: 430, height: 538 }));
+    return h('div', { class: 'an-tile an-photo' }, h('img', { src: `/img/anim/${key(item.title)}.webp`, alt: `${item.title}: ${item.summary || ''}`, loading: 'lazy', decoding: 'async', width: 860, height: 1076 }));
   }
   if (!document.getElementById(FLAG)) { const s = document.createElement('style'); s.id = FLAG; s.textContent = CSS; document.head.append(s); }
   const k = key(item.title); const make = ART[k];
