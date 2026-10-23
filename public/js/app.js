@@ -235,6 +235,32 @@ function shell() {
   const bell = h('button', { class: 'iconbtn', 'aria-label': 'Notificações', onclick: () => openNotifications(bell) }, icon('bell'), h('span', { class: 'dot hide', id: 'notif-badge' }, '0'));
   const view = h('div', { id: 'view' });
   const roleName = { admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[state.user.role];
+  // Menu da conta (estilo "Profile Dropdown" do Kokonut): o chip do usuário abre o menu; Esc ou clique fora fecha.
+  const userPill = () => {
+    const who = state.me?.user?.username ? '@' + state.me.user.username : `${roleName} · ${state.me?.plan?.name || ''}`;
+    const btn = h('button', { type: 'button', class: 'userpill', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),
+      h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', who)), h('i', { class: 'uchev' }, icon('chevron')));
+    const item = (ico, label, value, go) => h('button', { type: 'button', role: 'menuitem', class: 'acm-it', onclick: () => { close(); go(); } }, icon(ico), h('span', label), value && h('em', value));
+    let menu = null;
+    const close = () => { if (!menu) return; menu.classList.add('out'); const m = menu; menu = null; setTimeout(() => m.remove(), 140); btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); };
+    const away = (e) => { if (menu && !menu.contains(e.target) && !btn.contains(e.target)) close(); };
+    const esc = (e) => { if (e.key === 'Escape') { close(); btn.focus(); } };
+    btn.addEventListener('click', () => {
+      if (menu) return close();
+      menu = h('div', { class: 'acm', role: 'menu', 'aria-label': 'Conta' },
+        h('div', { class: 'acm-head' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()), h('div', h('b', state.user.name), h('small', state.user.email || who))),
+        h('div', { class: 'acm-list' },
+          item('user', 'Meu perfil', null, () => { location.hash = '#/configuracoes'; }),
+          item('card', 'Assinatura', state.me?.plan?.name || '—', () => { location.hash = '#/associacao'; }),
+          item('cog', 'Configurações', null, () => { location.hash = '#/configuracoes'; })),
+        h('div', { class: 'acm-sep' }),
+        h('button', { type: 'button', role: 'menuitem', class: 'acm-out', onclick: () => { close(); logout(); } }, icon('logout'), h('span', 'Sair')));
+      btn.parentElement.append(menu); btn.setAttribute('aria-expanded', 'true');
+      document.addEventListener('mousedown', away); document.addEventListener('keydown', esc);
+      menu.querySelector('.acm-it')?.focus();
+    });
+    return btn;
+  };
   const top = h('div', { class: 'topbar2' },
     h('button', { class: 'iconbtn menu-btn', 'aria-label': 'Abrir menu', onclick: () => toggle(true) }, icon('menu')),
     h('button', { class: 'searchbtn', onclick: openPalette }, icon('search'), h('span', { id: 'searchlbl' }, 'Buscar cliente ou projeto'), h('span', { class: 'kbd' }, icon('cmd'), '+ Espaço')),
@@ -242,8 +268,7 @@ function shell() {
     h('span', { class: 'grow' }), h('a', { class: 'livepill', id: 'syncinfo', href: '#/ao-vivo', title: 'Abrir as vendas de hoje ao vivo' }, h('i'), h('span', 'AO VIVO')), musicControl.el, eye,
     h('button', { class: 'iconbtn', title: 'Atualizar a página atual', 'aria-label': 'Atualizar dados', onclick: () => route() }, icon('refresh')),
     h('div', { style: 'position:relative' }, bell),
-    h('a', { class: 'userpill', href: '#/configuracoes', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),
-      h('span', { class: 'who' }, h('b', state.user.name.split(' ')[0]), h('small', state.me?.user?.username ? '@' + state.me.user.username : `${roleName} · ${state.me?.plan?.name || ''}`)), h('i', { class: 'uchev' }, icon('chevron'))));
+    h('div', { class: 'acct', style: 'position:relative' }, userPill()));
   mount(root, h('div', { class: 'shell' }, side, scrim, h('div', { class: 'main' }, top, view)));
     clearInterval(pollTimer); pollNotifications(); pollTimer = setInterval(pollNotifications, 30000);
   shellIn(); route();
