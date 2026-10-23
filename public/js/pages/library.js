@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { animTile, isPromptAnim, animOrder } from '../anim-tiles.js';
 import { h, mount, mascotImg, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard, icon } from '../ui.js';
 
 const KIND = { prompt: ['Prompt Lab', 'Prompts prontos para usar'], skill: ['Skill Vault', 'Métodos e instalação'], animation: ['Animações', 'Movimento para sites'], design: ['Design', 'Referências'] };
@@ -145,13 +146,21 @@ export const design = {
 export const acervo = {
   async render(box, ctx) {
     const isAdmin = ctx.user.role === 'admin'; let kind = 'prompt'; let selected = null; const st = { q: '', category: '' };
-    const listBox = h('div'); const detail = h('div'); const tabs = h('div'); const toolbar = h('div');
+    let lib; const listBox = h('div'); const detail = h('div'); const galleryBox = h('div', { class: 'galleryBox' }); const tabs = h('div'); const toolbar = h('div');
     async function load() {
       const meta = await api.get('/library/meta', { kind });
       const { items } = await api.get('/library', { kind, q: st.q, category: st.category, all: isAdmin ? 1 : '' });
       total = items.filter((x) => x.published).length; try { drawHero(); } catch { /* ainda não montado */ } const c2 = document.getElementById('cnt2'); if (c2) c2.textContent = String(items.length).padStart(2, '0');
       mount(toolbar, h('div', { class: 'row' }, h('input', { type: 'search', style: 'max-width:340px', placeholder: 'Buscar por objetivo, área ou palavra-chave', 'aria-label': 'Buscar', value: st.q, oninput: debounce((e) => { st.q = e.target.value; load(); }) }),
         pills({ items: [['', 'Todos'], ...meta.categories.map((c) => [c, c])], value: st.category, onChange: (v) => { st.category = v; load(); } }), h('span', { class: 'sm mut' }, `${items.length} encontrado(s)`)));
+      lib.classList.toggle('gallery', kind === 'animation');
+      if (kind === 'animation') { // galeria: o efeito rodando em miniatura + "Copiar prompt"
+        const full = async (it) => { try { return (await api.get('/library/' + it.id)).content; } catch (e) { fail(e); return null; } };
+        mount(galleryBox, items.length ? h('div', { class: 'an-grid' }, [...items].sort((a, b) => animOrder(a) - animOrder(b)).map((it) => h('article', { class: 'an-card' }, animTile(it),
+          h('button', { class: 'an-copy', type: 'button', disabled: !!it.locked, onclick: async () => { const c = await full(it); if (c) copyText(c, 'Prompt copiado.'); } }, icon('copy'), it.locked ? 'Plano superior' : isPromptAnim(it) ? 'Copiar prompt' : 'Copiar código')))) : h('div', { class: 'empty' }, h('b', 'Nenhum recurso'), isAdmin ? 'Use "+ Novo recurso" para cadastrar.' : 'Nada publicado ainda.'));
+        mount(listBox); mount(detail); return;
+      }
+      mount(galleryBox);
       mount(listBox, items.length ? items.map((it, i) => h('button', { class: 'libitem' + (selected === it.id ? ' on' : '') + (it.locked ? ' lock' : ''), onclick: () => show(it) }, h('span', { class: 'lnum' }, String(i + 1).padStart(2, '0')), h('span', { class: 'lbody' }, h('span', { class: 'lcat' }, `${it.category || KIND[kind][0]}${it.locked ? ' · 🔒' : ''}${it.published ? '' : ' · rascunho'}`), h('b', { class: 't' }, it.title), it.summary && h('span', { class: 'lsum' }, it.summary)), h('span', { class: 'larr' }, icon('chevron'))))
         : h('div', { class: 'empty' }, h('b', 'Nenhum recurso'), isAdmin ? 'Use "+ Novo recurso" para cadastrar.' : 'Nada publicado ainda.'));
       if (!selected && items[0] && !items[0].locked) show(items[0]); else if (!items.length) mount(detail, h('div', { class: 'empty' }, 'Selecione um recurso.'));
@@ -169,7 +178,7 @@ export const acervo = {
               h('div', { class: 'row' }, h('button', { class: 'btn', onclick: () => copyText(full.content, 'Copiado.') }, 'Copiar'), h('button', { class: 'btn ghost', onclick: () => downloadFile(`${slug(full.title)}.${EXT[full.kind]}`, full.content) }, 'Baixar'), isAdmin && h('button', { class: 'btn ghost', onclick: () => itemForm(full, load) }, 'Editar'))))));
       } catch (e) { mount(detail, h('div', { class: 'empty' }, e.message)); }
     }
-    const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Métodos prontos para instalar.', 'Guias e skills para repetir bons resultados com a sua IA, sem começar do zero.'], animation: ['Movimento para sites.', 'Animações em HTML e CSS para copiar, ajustar e colocar nos seus projetos.'] };
+    const TITLES = { prompt: ['Prompts para sair do rascunho.', 'Escolha um prompt completo, copie ou baixe e ajuste os detalhes no seu próprio chat.'], skill: ['Métodos prontos para instalar.', 'Guias e skills para repetir bons resultados com a sua IA, sem começar do zero.'], animation: ['Movimento para dar vida ao seu site.', 'Explore as animações, copie o prompt completo e ajuste os detalhes no editor do seu projeto.'] };
     const heroBox = h('div'); let total = 0;
     const drawHero = () => mount(heroBox, hero({ kicker: `Neva Growth / ${KIND[kind][0]}`, title: TITLES[kind][0], art: 'acervo', subtitle: TITLES[kind][1],
       stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('box'), `${total} recurso(s) publicado(s)`), h('span', { class: 'chipk' }, icon('check'), 'Texto completo'), h('span', { class: 'chipk' }, icon('refresh'), 'Sincronizado')),
@@ -177,7 +186,7 @@ export const acervo = {
     const drawTabs = () => mount(tabs, h('div', { class: 'card acervobar' }, h('span', { class: 'ex' }, 'ACERVO NEVA'), h('div', { class: 'atabs' }, ['prompt', 'skill', 'animation'].map((k) => h('button', { class: kind === k ? 'on' : '', onclick: () => { kind = k; selected = null; st.category = ''; drawTabs(); load(); } }, h('b', KIND[k][0]), h('small', KIND[k][1])))),
       h('a', { class: 'btn', href: '#/prompts' }, '✦ Gerar com IA')));
     drawTabs();
-    mount(box, tabs, heroBox, h('div', { class: 'card pad stack', style: 'margin:14px 0' }, toolbar), h('div', { class: 'lib' }, h('div', { class: 'card', style: 'overflow:hidden' }, h('div', { class: 'pad libhead' }, h('div', h('div', { class: 'k' }, 'Neva / Biblioteca'), h('b', { style: 'font-size:1.2rem' }, 'Explore os recursos')), h('span', { class: 'cnt2', id: 'cnt2' }, '00')), listBox), h('div', { class: 'card' }, detail)));
+    mount(box, tabs, heroBox, h('div', { class: 'card pad stack', style: 'margin:14px 0' }, toolbar), (lib = h('div', { class: 'lib' }, h('div', { class: 'card', style: 'overflow:hidden' }, h('div', { class: 'pad libhead' }, h('div', h('div', { class: 'k' }, 'Neva / Biblioteca'), h('b', { style: 'font-size:1.2rem' }, 'Explore os recursos')), h('span', { class: 'cnt2', id: 'cnt2' }, '00')), listBox), h('div', { class: 'card' }, detail))), galleryBox);
     drawHero();
     await load();
   }

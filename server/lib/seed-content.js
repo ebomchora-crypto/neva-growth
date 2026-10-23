@@ -77,4 +77,4 @@ const animations = [
   A('Rolagem suave com destaque no menu', 'Âncoras suaves e item ativo conforme a seção visível.', `<nav class="nv"><a href="#a">Serviços</a><a href="#b">Sobre</a><a href="#c">Contato</a></nav>\n<style>html{scroll-behavior:smooth}@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}.nv a{margin-right:16px;color:#5b7087;text-decoration:none;padding-bottom:4px;border-bottom:2px solid transparent}.nv a.on{color:#0e2236;border-color:#2f7bbd}</style>\n<script>\nconst links=[...document.querySelectorAll('.nv a')];\nconst io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting)links.forEach(l=>l.classList.toggle('on',l.hash==='#'+e.target.id))}),{rootMargin:'-45% 0px -50% 0px'});\nlinks.forEach(l=>{const s=document.querySelector(l.hash);s&&io.observe(s)});\n</script>`, 'creator'),
 ];
 
-module.exports = { ITEMS: [...design, ...prompts, ...skills, ...animations] };
+module.exports = { ITEMS: [...design, ...prompts, ...skills, ...require('./seed-animations').ITEMS, ...animations] };
