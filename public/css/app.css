@@ -2357,3 +2357,18 @@ html.bare-page .shell::after{display:none}
 .bare-page .nc .nc-hello p{max-width:56ch}
 .bare-page .nc .nc-refs:last-child{margin-top:0}
 @media (max-width:900px){.bare-page .nc{grid-template-columns:minmax(0,1fr)}.bare-page .nc .nc-side{border-radius:0 18px 18px 0;left:0;top:0;bottom:0}}
+
+/* Referências de design: cartões todos do mesmo tamanho, prévia sempre 16:10 e textos cortados em linhas fixas */
+.dgrid{align-items:stretch;grid-auto-rows:auto}
+.dgrid>.dcard2{height:100%}
+.dc-shot{aspect-ratio:16/10;flex:none}
+.dc-shot>.reference-hero,.dc-shot>.reference-hero.large{position:absolute;inset:0;width:100%;height:100%;aspect-ratio:auto;min-height:0;border-radius:0}
+.dc-shot .rh-copy{max-width:78%}.dc-shot .rh-copy strong{font-size:clamp(1.1rem,1.8vw,1.5rem);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dc-shot .rh-copy p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:.7rem}
+.dc-body{flex:1;padding:14px 16px 16px}
+.dc-top{min-height:64px}
+.dc-top b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dc-top p{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.8em}
+.dc-tags{flex-wrap:nowrap;overflow:hidden;min-height:28px}.dc-tags span{white-space:nowrap;max-width:40%;overflow:hidden;text-overflow:ellipsis;flex:none}
+.dc-meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%}
+.dc-bar{margin-top:auto}

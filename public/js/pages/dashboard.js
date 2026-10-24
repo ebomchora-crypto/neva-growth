@@ -1,6 +1,6 @@
 import { api } from '../api.js';
 import { h, mount, brl, dt, toast, fail, pills, icon, heroArt } from '../ui.js';
-import { riseMoney, still } from '../motion.js';
+import { riseMoney, still, rise } from '../motion.js';
 import { openSummary } from '../summary-card.js';
 import { openInsight } from '../insight.js';
 import { tiltCard } from '../tilt-card.js';
@@ -99,6 +99,11 @@ export default {
     }
     const area = h('div');
     const aiOn = (await api.get('/integrations/status').catch(() => null))?.ai.configured;
+    // Os valores do painel sobem do zero até o número final ao abrir e ao trocar o período (as moedas trocam por updateMoney).
+    function riseDash() {
+      const r = rate(); const f = (v) => fmtRaw(v);
+      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { const v = Number(el.dataset.base) * r; if (Number.isFinite(v) && v !== 0 && !el.closest('svg')) rise(el, v, f, 1.2); });
+    }
     async function load() {
       cancelAnimationFrame(currencyFrame); shownRate = rate();
       const first = !area.firstChild;
@@ -108,6 +113,7 @@ export default {
       const y = window.scrollY; const sc = document.querySelector('.main'); const st = sc?.scrollTop;
       draw(d);
       if (!first) { still(area); riseMoney(area); if (sc) sc.scrollTop = st; window.scrollTo(0, y); }
+      riseDash();
     }
     const genSummary = () => openInsight({ period, load: () => api.post('/dashboard/summary', { period }) });
     function draw(d) {
