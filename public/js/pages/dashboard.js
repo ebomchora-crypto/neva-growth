@@ -35,7 +35,7 @@ function lineChart(series, avail = 760, format = brl, axis = 'R$ ', rate = 1) {
   const months = h('div', { class: 'lmonths', style: `padding-right:${(R / W) * 100}%` }, series.filter((_, i) => i % every === 0 || series.length < 9).map((s, i, arr) => h('div', { class: 'lm' + (i === arr.length - 1 ? ' cur' : '') }, h('span', s.label), h('i'))));
   return h('div', { class: 'lwrap' }, svg, months);
 }
-function barChart(series, format = brl) {
+function barChart(series, format = brl, compact = false) {
   // Mais de 12 períodos: agrupa os vizinhos somando o lucro (antes pulava períodos e escondia vendas).
   const size = Math.ceil(series.length / 12);
   const pick = size > 1 ? Array.from({ length: Math.ceil(series.length / size) }, (_, i) => {
@@ -44,7 +44,7 @@ function barChart(series, format = brl) {
   }) : series;
   const max = Math.max(1, ...pick.map((s) => s.profit));
   return h('div', { class: 'bchart', role: 'img', 'aria-label': 'Lucro por período' }, pick.map((s) => h('div', { class: 'bcol', title: `${s.label}: ${format(s.profit)}`, 'data-label': s.label, 'data-profit': s.profit },
-    h('small', { class: 'dash-money', 'data-base': s.profit }, format(s.profit)), h('i', { style: `height:${Math.max(6, (Math.max(s.profit, 0) / max) * 100)}%` }), h('span', s.label))));
+    h('small', { class: 'dash-money', 'data-base': s.profit, ...(compact ? { 'data-compact': '1' } : {}) }, format(s.profit)), h('i', { style: `height:${Math.max(6, (Math.max(s.profit, 0) / max) * 100)}%` }), h('span', s.label))));
 }
 
 export default {
@@ -56,10 +56,12 @@ export default {
     const fmtRaw = (v) => formatter.format(Number(v) || 0);
     const rate = () => currency === 'BRL' ? 1 : rates?.[currency] || 1;
     const fmt = (v) => fmtRaw((Number(v) || 0) * rate());
+    const compact = matchMedia('(max-width:700px)').matches;
+    const fmtCompact = (v) => { const c = (Number(v) || 0) * rate(); return new Intl.NumberFormat('pt-BR', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(c); };
     const money = (tag, v, attrs = {}) => h(tag, { ...attrs, class: [attrs.class, 'dash-money'].filter(Boolean).join(' '), 'data-base': v }, fmt(v));
     const axis = () => ({ BRL: 'R$ ', USD: 'US$ ', EUR: '€ ' })[currency];
     function updateMoney(factor) {
-      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { el.textContent = fmtRaw(Number(el.dataset.base) * factor); });
+      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { const v = Number(el.dataset.base) * factor; el.textContent = el.dataset.compact ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(v) : fmtRaw(v); });
       area.querySelectorAll('.currency-axis').forEach((el) => { el.textContent = axis() + short(Number(el.dataset.base) * factor); });
       area.querySelectorAll('.currency-tooltip').forEach((el) => { el.textContent = `${el.dataset.label}: lucro ${fmtRaw(Number(el.dataset.profit) * factor)} · receita ${fmtRaw(Number(el.dataset.revenue) * factor)}`; });
       area.querySelectorAll('.bcol[data-profit]').forEach((el) => { el.title = `${el.dataset.label}: ${fmtRaw(Number(el.dataset.profit) * factor)}`; });
@@ -106,8 +108,8 @@ export default {
     const aiOn = (await api.get('/integrations/status').catch(() => null))?.ai.configured;
     // Os valores do painel sobem do zero até o número final ao abrir e ao trocar o período (as moedas trocam por updateMoney).
     function riseDash() {
-      const r = rate(); const f = (v) => fmtRaw(v);
-      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { const v = Number(el.dataset.base) * r; if (Number.isFinite(v) && v !== 0 && !el.closest('svg')) rise(el, v, f, 1.2); });
+      const r = rate(); const f = (v) => fmtRaw(v); const fc = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency, notation: 'compact', maximumFractionDigits: 1 }).format(v);
+      area.querySelectorAll('.dash-money[data-base]').forEach((el) => { const v = Number(el.dataset.base) * r; if (Number.isFinite(v) && v !== 0 && !el.closest('svg')) rise(el, v, el.dataset.compact ? fc : f, 1.2); });
     }
     async function load() {
       cancelAnimationFrame(currencyFrame); shownRate = rate();
@@ -149,7 +151,7 @@ export default {
                 canWrite && h('a', { class: 'bigwhite', href: '#/clientes' }, 'Registrar cliente')),
               h('section', { class: 'card pad stack lucroper' },
                 h('div', { class: 'row', style: 'justify-content:space-between;align-items:flex-start' }, h('div', h('h2', 'Lucro por período'), h('div', { class: 'row' }, money('b', m.profit, { class: 'mid' }), delta(m.profitVariation))), monthsSel),
-                barChart(m.series, fmt)))),
+                barChart(m.series, compact ? fmtCompact : fmt, compact)))),
           h('aside', { class: 'walletpanel' },
             h('div', { class: 'wh' }, h('h2', 'Minha carteira'), canWrite && h('a', { class: 'npill', href: '#/vendas' }, '+ Nova venda')),
             h('div', { class: 'cardstack' },
