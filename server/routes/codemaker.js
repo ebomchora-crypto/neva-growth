@@ -39,6 +39,14 @@ const PLAN_BRIDGE = `${BRIDGE}\nNesta etapa você é o diretor de arte (estados 
 // Modo livre (a IA escreve a seção em HTML + Tailwind): contexto de design da etapa + regras de código do Dyad (Apache 2.0) + formato.
 const FREE_BRIDGE = `COMO ESTE PROMPT SE APLICA: no modo livre, a "unidade de arquivo" é UMA seção HTML (no lugar dos <dyad-write> do Dyad, devolva um único bloco \`\`\`html com a seção completa). As regras abaixo, do projeto Dyad, valem para o código da seção: completo, funcional, sem placeholders, responsivo e sem exageros.`;
 const freeSystem = (brief) => `${DC.contextFor('part', brief).text}\n\n${BRIDGE}\n\n${FREE_BRIDGE}\n\n${E.FREE_PART_SYSTEM}\n\n=== REGRAS DE CÓDIGO DO DYAD (https://github.com/dyad-sh/dyad, Apache 2.0) ===\n${DYAD.ADDITIONAL_GUIDELINES}`;
+// Lembrete curto da base de direção visual (escolhida no plano) para cada seção: o clima e as regras dela valem em todas as partes.
+const artNote = (brief) => {
+  const at = String(brief?.designRefs || '').indexOf('### BASE DE DIREÇÃO VISUAL');
+  if (at < 0) return '';
+  const base = String(brief.designRefs).slice(at);
+  const keep = [base.split('\n')[0], ...(base.match(/^(Faça|Evite): .*$/gm) || [])].join('\n').slice(0, 1300);
+  return `\n\nDIREÇÃO VISUAL DESTE SITE (mantenha a mesma em todas as seções, sem citar nomes):\n${keep}`;
+};
 const systemFor = (stage, brief) => `${DC.contextFor(stage, brief).text}\n\n${stage === 'plan' ? PLAN_BRIDGE : BRIDGE}\n\n${stage === 'plan' ? E.PLAN_SYSTEM : stage === 'part' ? E.PART_SYSTEM : E.EDIT_SYSTEM}`;
 
 const r = express.Router();
@@ -923,7 +931,7 @@ r.post('/', async (req, res) => {
       onFailure: markError,
       messages: [
         { role: 'system', content: free ? freeSystem(site.brief) : systemFor('part', site.brief) },
-        { role: 'user', content: (free ? E.buildFreePartMessage(partId, planForAi, site.brief) : E.buildPartMessage(partId, planForAi, site.brief)) + partCheck }
+        { role: 'user', content: (free ? E.buildFreePartMessage(partId, planForAi, site.brief) : E.buildPartMessage(partId, planForAi, site.brief)) + artNote(site.brief) + partCheck }
       ],
       finish: async (full, signal, emit) => {
         // A IA escreve o conteúdo (JSON) e o código monta o bloco. Se ela

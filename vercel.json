@@ -10,7 +10,7 @@
   "functions": {
     "api/index.js": {
       "maxDuration": 300,
-      "includeFiles": "{node_modules/@sparticuz/chromium/**,server/lib/design-references/files/**}"
+      "includeFiles": "{node_modules/@sparticuz/chromium/**,server/lib/design-references/files/**,server/lib/design-references/index.json}"
     }
   },
   "rewrites": [

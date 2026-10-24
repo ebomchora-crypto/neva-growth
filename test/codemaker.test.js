@@ -129,6 +129,6 @@ test('acervo de 1.289 DESIGN.md: uma referência entra sozinha no bloco do plano
   process.env.CM_REF_INSPECT = '0';
   const out = await require('../server/lib/codemaker/references').buildReferences({ details: 'Clínica odontológica em Curitiba com implantes e clareamento', niche: 'odontologia' }, { siteId: 1 });
   assert.ok(out.trace.archive?.title, 'escolheu uma referência do acervo');
-  assert.match(out.block, /Referência do acervo de DESIGN\.md/);
+  assert.match(out.block, /BASE DE DIREÇÃO VISUAL \(obrigatória\)/); assert.match(out.block, /Cores: /);
   assert.doesNotMatch(out.block, /diga em uma frase quais referências usou/);
 });
