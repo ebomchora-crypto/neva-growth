@@ -2287,10 +2287,10 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 /* ===== Chat com IA ===== */
 .ch-main{position:relative}
 .ch-top{display:flex;align-items:center;gap:8px;min-height:52px;padding:8px 14px;border-bottom:1px solid var(--nc-line)}
-.ch.empty .ch-top{border-bottom-color:transparent}
+.ch.is-empty .ch-top{border-bottom-color:transparent}
 .ch-title{font-size:.92rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ch-thread{flex:1;min-height:0;overflow-y:auto;padding:24px 18px 12px}
-.ch.empty .ch-thread{display:flex}
+.ch.is-empty .ch-thread{display:flex}
 .ch-hello{margin:auto;width:min(760px,100%);display:grid;gap:18px;padding-bottom:6vh}
 .ch-hello h1{text-align:center;font-size:clamp(1.5rem,3vw,2rem);letter-spacing:-.03em;font-weight:650;text-wrap:balance}
 .ch-off{margin:0;text-align:center;color:#9a6a0c;font-size:.85rem}
@@ -2320,8 +2320,26 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 .ch-acts{display:flex;gap:2px}.ch-acts button{width:30px;height:30px;border:0;border-radius:9px;background:transparent;color:#7d93a9;display:grid;place-items:center;cursor:pointer}.ch-acts button:hover{background:#eef4fa;color:var(--ink)}.ch-acts .ico{width:15px;height:15px}
 .ch-err{margin:0;font-size:.82rem;color:var(--bad)}
 .ch-dock{padding:6px 16px 14px}.ch-dock .cp{max-width:760px;margin:0 auto}
-.ch.empty .ch-dock{display:none}
+.ch.is-empty .ch-dock{display:none}
 .ch .cp-box{border-radius:26px}
 .ch .nc-mark .ico{width:15px;height:15px;color:#fff}
 @media (max-width:900px){.ch-thread{padding:16px 12px 8px}.ch-dock{padding:6px 8px 10px}.ch-bubble{max-width:88%}}
 @media (prefers-reduced-motion:reduce){.ch-wait i,.ch-md.live>*:last-child::after{animation:none}}
+
+/* Chat em tela cheia (/chat): sem menu lateral nem barra do topo, como um app próprio */
+html.bare-page .shell{grid-template-columns:minmax(0,1fr)!important}
+html.bare-page .shell>.side,html.bare-page .shell>.scrim,html.bare-page .topbar2{display:none!important}
+html.bare-page .main{height:100dvh}
+html.bare-page .content.fill{padding:0!important;max-width:none;height:100dvh}
+html.bare-page body{background:#fff}
+html.bare-page .topo-bg,html.bare-page canvas.topo{display:none}
+.bare-page .ch{gap:0;grid-template-columns:272px minmax(0,1fr);height:100dvh;background:#fff}
+.bare-page .ch .nc-side{border:0;border-right:1px solid #e3ecf5;border-radius:0;background:#f5f9fd;padding:14px 12px}
+.bare-page .ch .nc-main{border:0;border-radius:0}
+.bare-page .ch .nc-new{background:transparent;color:var(--ink);justify-content:flex-start;padding:0 12px;border:1px solid #dbe7f3;background:#fff}
+.bare-page .ch .nc-new:hover{background:#eef5fc;transform:none}
+.bare-page .ch-top{border-bottom:0;padding:10px 18px;min-height:56px}
+.bare-page .ch-hello h1{font-size:clamp(1.6rem,3vw,2.1rem)}
+.ch-back{margin-top:auto}
+@media (max-width:900px){.bare-page .ch{grid-template-columns:minmax(0,1fr)}.bare-page .ch .nc-side{border-radius:0 18px 18px 0;left:0;top:0;bottom:0}}
+html.bare-page .shell::after{display:none}

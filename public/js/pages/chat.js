@@ -104,7 +104,7 @@ export default {
     function drawThread(live = -1) {
       drawHead();
       const has = chat?.messages?.length > 0;
-      root.classList.toggle('empty', !has);
+      root.classList.toggle('is-empty', !has);
       if (!has) {
         mount(thread, h('div', { class: 'ch-hello' }, h('h1', `O que vamos resolver hoje, ${name}?`),
           !aiOn && h('p', { class: 'ch-off' }, 'IA indisponível: configure RIVER_API_KEY em Configurações.'), cp.el,
@@ -161,7 +161,8 @@ export default {
     const side = h('aside', { class: 'nc-side' },
       h('div', { class: 'nc-brand' }, h('span', { class: 'nc-mark' }, icon('message')), h('b', 'Chat Neva'), h('button', { type: 'button', class: 'nc-x', 'aria-label': 'Fechar lista', onclick: () => root.classList.remove('side-open') }, icon('x'))),
       h('a', { class: 'nc-new', href: '#/chat', onclick: () => root.classList.remove('side-open') }, icon('pencil'), 'Nova conversa'),
-      search, listEl);
+      search, listEl,
+      h('a', { class: 'nc-refs ch-back', href: '#/dashboard' }, icon('home'), 'Voltar à Neva Growth'));
     root.append(side,
       h('section', { class: 'nc-main ch-main' },
         h('header', { class: 'ch-top' }, h('button', { type: 'button', class: 'nc-tb nc-sidebtn', 'aria-label': 'Abrir conversas', onclick: () => root.classList.add('side-open') }, icon('menu')), titleEl),

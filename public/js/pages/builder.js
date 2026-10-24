@@ -79,7 +79,7 @@ export default {
       h('div', { class: 'nc-brand' }, h('span', { class: 'nc-mark' }, markSvg()), h('b', 'Neva Code'), h('button', { type: 'button', class: 'nc-x', 'aria-label': 'Fechar lista', onclick: () => root.classList.remove('side-open') }, icon('x'))),
       h('a', { class: 'nc-new', href: '#/builder', onclick: () => root.classList.remove('side-open') }, icon('plus'), 'Novo site'),
       search, listEl,
-      h('a', { class: 'nc-refs', href: '#/design' }, icon('palette'), 'Referências de design'));
+      h('a', { class: 'nc-refs', href: '/chat', target: '_blank', rel: 'noopener' }, icon('message'), 'Abrir o Chat com IA'));
 
     // ---------------- caixa de pedido + medidor de contexto
     const meter = contextMeter();
