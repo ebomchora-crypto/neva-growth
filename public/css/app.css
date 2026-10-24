@@ -2343,3 +2343,17 @@ html.bare-page .topo-bg,html.bare-page canvas.topo{display:none}
 .ch-back{margin-top:auto}
 @media (max-width:900px){.bare-page .ch{grid-template-columns:minmax(0,1fr)}.bare-page .ch .nc-side{border-radius:0 18px 18px 0;left:0;top:0;bottom:0}}
 html.bare-page .shell::after{display:none}
+
+/* Builder (Neva Code) em tela cheia, como o chat: sem menu nem topo do painel */
+.bare-page .nc{gap:0;grid-template-columns:272px minmax(0,1fr);height:100dvh;background:#fff}
+.bare-page .nc .nc-side{border:0;border-right:1px solid #e3ecf5;border-radius:0;background:#f5f9fd;padding:14px 12px}
+.bare-page .nc .nc-main{border:0;border-radius:0}
+.bare-page .nc .nc-new{background:#fff;color:var(--ink);justify-content:flex-start;padding:0 12px;border:1px solid #dbe7f3}
+.bare-page .nc .nc-new:hover{background:#eef5fc;transform:none}
+.bare-page .nc .nc-list{flex:1}
+.bare-page .nc .nc-top.slim{padding:10px 14px}
+.bare-page .nc .nc-welcome{margin:auto;padding-bottom:6vh}
+.bare-page .nc .nc-hello{text-align:center;justify-items:center}
+.bare-page .nc .nc-hello p{max-width:56ch}
+.bare-page .nc .nc-refs:last-child{margin-top:0}
+@media (max-width:900px){.bare-page .nc{grid-template-columns:minmax(0,1fr)}.bare-page .nc .nc-side{border-radius:0 18px 18px 0;left:0;top:0;bottom:0}}
