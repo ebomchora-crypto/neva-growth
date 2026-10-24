@@ -25,7 +25,7 @@ const ROUTES = [
   { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/sales.js') },
   { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
-  { path: 'builder', wide: true, search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'builder', wide: true, link: '/chat', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
   { path: 'chat', wide: true, bare: true, newTab: true, search: 'Buscar conversa', label: 'Chat com IA', icon: 'message', page: lazy('./pages/chat.js') },
   { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { path: 'studio/:id', hidden: true, wide: true, page: lazy('./pages/studio.js') },
@@ -227,7 +227,7 @@ function shell() {
   const toggle = (open) => { side.classList.toggle('open', open); scrim.classList.toggle('hide', !open); };
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); resetPush(); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
-  const navLink = (r) => h('a', { href: r.newTab ? '/' + r.path : '#/' + r.path, target: r.newTab ? '_blank' : null, rel: r.newTab ? 'noopener' : null, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label));
+  const navLink = (r) => h('a', { href: r.link || (r.newTab ? '/' + r.path : '#/' + r.path), target: r.link || r.newTab ? '_blank' : null, rel: r.link || r.newTab ? 'noopener' : null, class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label));
   const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128, decoding: 'async' })), h('span', { class: 'lbl' }, 'Neva Growth')),
     h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),

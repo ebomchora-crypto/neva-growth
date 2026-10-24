@@ -162,7 +162,8 @@ export default {
       h('div', { class: 'nc-brand' }, h('span', { class: 'nc-mark' }, icon('message')), h('b', 'Chat Neva'), h('button', { type: 'button', class: 'nc-x', 'aria-label': 'Fechar lista', onclick: () => root.classList.remove('side-open') }, icon('x'))),
       h('a', { class: 'nc-new', href: '#/chat', onclick: () => root.classList.remove('side-open') }, icon('pencil'), 'Nova conversa'),
       search, listEl,
-      h('a', { class: 'nc-refs ch-back', href: '#/dashboard' }, icon('home'), 'Voltar à Neva Growth'));
+      h('a', { class: 'nc-refs ch-back', href: '#/builder' }, icon('gridplus'), 'Criar sites (Neva Code)'),
+      h('a', { class: 'nc-refs', href: '#/dashboard' }, icon('home'), 'Voltar à Neva Growth'));
     root.append(side,
       h('section', { class: 'nc-main ch-main' },
         h('header', { class: 'ch-top' }, h('button', { type: 'button', class: 'nc-tb nc-sidebtn', 'aria-label': 'Abrir conversas', onclick: () => root.classList.add('side-open') }, icon('menu')), titleEl),
