@@ -107,13 +107,18 @@ export default {
         return true;
       } catch (e) { fail(e); return false; } finally { cp.setResponding(false); }
     }
+    // Contador diário (sites e alterações) mostrado ao lado da caixa de pedido.
+    const usageEl = h('p', { class: 'nc-usage', 'aria-live': 'polite' });
+    const paintUsage = async () => {
+      try { const u = await api.get('/code-maker/usage'); usageEl.textContent = `Hoje: ${u.sites_today} de ${u.sites_limit} sites · ${u.edits_today} de ${u.edits_limit} alterações`; usageEl.classList.toggle('full', u.sites_today >= u.sites_limit || u.edits_today >= u.edits_limit); } catch { usageEl.textContent = ''; }
+    };
     function welcome() {
       const name = ctx.user.name.split(' ')[0];
       return h('div', { class: 'nc-welcome' },
         h('div', { class: 'nc-hello' }, h('span', { class: 'nc-kicker' + (builderOn ? '' : ' off') }, h('i'), builderOn ? 'Agente de sites pronto' : 'IA indisponível: configure CODEMAKER_API_KEY ou RIVER_API_KEY'),
           h('h1', `${name}, que site vamos construir?`),
           h('p', 'Converse como num chat: descreva o negócio e anexe fotos e logo. O agente escolhe a direção de arte, escreve, publica, e você ajusta pedindo.')),
-        cp.el,
+        cp.el, usageEl,
         h('div', { class: 'nc-ideas' }, IDEAS.map((i) => h('button', { type: 'button', class: 'nc-idea', onclick: () => { cp.setValue(i.d); cp.focus(); } }, h('b', i.t), h('span', i.d)))));
     }
 
@@ -410,7 +415,7 @@ export default {
       loadStages();
       if (site.status !== 'ready' && canWrite && builderOn) generate();
     }
-    loadSites(); refreshMeter();
+    loadSites(); refreshMeter(); paintUsage();
     return () => {
       disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort();
       clearTimeout(previewTimer); clearInterval(stageTimer); window.removeEventListener('message', onMsg); meter.destroy(); createSteps.destroy(); editRun?.steps.destroy();

@@ -50,13 +50,13 @@ export function contextMeter({ label = '' } = {}) {
       onpointerenter: () => { active = s.id; paintPanel(); } })));
     mount(panel,
       h('div', { class: 'cm-head' }, h('b', 'Contexto'), usedEl),
-      h('div', { class: 'cm-track', onpointerleave: () => { active = null; paintPanel(); } }, bar, h('i', { class: 'cm-tick', style: `left:${data.compactAt * 100}%`, 'aria-hidden': 'true' })),
-      h('p', { class: 'cm-note' }, `Resume a conversa a partir de ${Math.round(data.compactAt * 100)}%`),
+      h('div', { class: 'cm-track', onpointerleave: () => { active = null; paintPanel(); } }, bar, ),
+      h('p', { class: 'cm-note' }, `Janela do modelo: ${fmt(data.limit)} tokens`),
       h('ul', { class: 'cm-list' },
         segs.filter((s) => s.tokens > 0).map((s) => h('li', { class: active === s.id ? 'on' : '', onpointerenter: () => { active = s.id; paintPanel(); }, onpointerleave: () => { active = null; paintPanel(); } },
           h('i', { style: `background:${COLORS[s.id] || 'var(--nc-seg3)'}` }), h('span', s.label), h('em', fmt(s.tokens)), h('small', `${((s.tokens / data.limit) * 100).toFixed(1).replace('.', ',')}%`))),
         h('li', { class: 'free' }, h('i'), h('span', 'Livre'), h('em', fmt(free)), h('small', `${((free / data.limit) * 100).toFixed(1).replace('.', ',')}%`))),
-      h('p', { class: 'cm-foot' }, 'Estimativa do que vai para o modelo no próximo pedido (~4 caracteres por token).'));
+      h('p', { class: 'cm-foot' }, 'Estimativa do que o modelo recebe no próximo pedido (cerca de 4 caracteres por token).'));
     usedTw.to(used());
   }
   const away = (e) => { if (!root.contains(e.target)) setOpen(false); };

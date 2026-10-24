@@ -132,3 +132,17 @@ test('acervo de 1.289 DESIGN.md: uma referência entra sozinha no bloco do plano
   assert.match(out.block, /BASE DE DIREÇÃO VISUAL \(obrigatória\)/); assert.match(out.block, /Cores: /);
   assert.doesNotMatch(out.block, /diga em uma frase quais referências usou/);
 });
+
+test('limite diário: 15 sites por dia e contador visível', async () => {
+  const { all: allRows } = require('../server/lib/db');
+  const me = (await call('GET', '/api/auth/me')).body;
+  const uid = me.user?.id ?? me.id ?? 1;
+  // Simula 15 criações já feitas hoje: a 16ª é recusada.
+  for (let i = 0; i < 15; i++) await run("INSERT INTO ai_usage(user_id,kind) VALUES (?,?)", uid, 'cm_create');
+  const u = (await call('GET', '/api/code-maker/usage')).body;
+  assert.equal(u.sites_limit, 15); assert.equal(u.sites_today >= 15, true);
+  const r = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Mais um site' } });
+  assert.equal(r.status, 429); assert.match(r.body.error, /15 sites hoje/);
+  await run("DELETE FROM ai_usage WHERE user_id=? AND kind='cm_create'", uid);
+  assert.equal((await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Agora pode' } })).status, 200);
+});

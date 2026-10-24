@@ -60,7 +60,10 @@ const provider = () => {
   return { key, url: String(config.get('CODEMAKER_BASE_URL') || 'https://inference.dahl.global/v1').trim().replace(/\/$/, ''), model: String(config.get('CODEMAKER_MODEL') || 'deepseek-ai/DeepSeek-V4-Flash-0731').trim() };
 };
 const AI_URL = () => `${(provider()?.url || config.get('RIVER_BASE_URL') || 'https://api.river.ai/v1').replace(/\/$/, '')}/chat/completions`;
-const CALLS_PER_DAY = 600;
+// Limites diários por conta (dia em horário de Brasília). Sites: 15 por dia (dá para fazer 10 com folga); alterações: 150; chamadas de IA: 1.500 (proteção).
+const SITES_PER_DAY = 15;
+const EDITS_PER_DAY = 150;
+const CALLS_PER_DAY = 1500;
 // A função da Vercel tem tempo máximo por chamada; paramos antes e continuamos depois.
 const CALL_BUDGET_MS = Number(process.env.CODE_MAKER_BUDGET_MS) || 115_000;
 // Escolha dos arquivos que a alteração precisa ler inteiros (projeto grande).
@@ -552,6 +555,11 @@ r.get('/:id(\\d+)/progress', async (req, res) => {
   res.json(await T.progress(site, site.plan ? E.partOrder(site.plan) : []));
 });
 
+// Uso do dia (sites e alterações) e os limites da conta.
+r.get('/usage', async (req, res) => {
+  const [sites, edits] = await Promise.all([countToday(req.user.id, 'create'), countToday(req.user.id, 'edit')]);
+  res.json({ sites_today: sites, sites_limit: SITES_PER_DAY, edits_today: edits, edits_limit: EDITS_PER_DAY });
+});
 // Medidor de contexto do Builder: quanto da janela do modelo cada fonte ocupa (estimativa: ~4 caracteres por token).
 r.get('/context', async (req, res) => {
   const tk = (n) => Math.round(Number(n || 0) / 4);
@@ -568,7 +576,8 @@ r.get('/context', async (req, res) => {
   if (site?.plan) {
     const tree = E.projectTree(site.plan, site.parts, site.files);
     files = Object.values(tree).reduce((n, t) => n + String(t || '').length, 0);
-    const rows = await all('SELECT instruction, actions FROM site_versions WHERE project_id=? ORDER BY id DESC LIMIT 30', site.id);
+    // O mesmo que a alteração manda ao modelo: as 6 últimas instruções e o que foi feito em cada uma.
+    const rows = await all("SELECT instruction, actions FROM site_versions WHERE project_id=? AND kind='edit' AND instruction IS NOT NULL ORDER BY id DESC LIMIT 6", site.id);
     talk += rows.reduce((n, r) => n + String(r.instruction || '').length + String(r.actions || '').length, 0);
   }
   res.json({ limit: 200000, compactAt: 0.8, segments: [
@@ -673,7 +682,7 @@ r.post('/', async (req, res) => {
 
   if (action === 'usage') {
     const [sites, edits] = await Promise.all([countToday(user.id, 'create'), countToday(user.id, 'edit')]);
-    return res.json({ sites_today: sites, sites_limit: null, edits_today: edits, edits_limit: null });
+    return res.json({ sites_today: sites, sites_limit: SITES_PER_DAY, edits_today: edits, edits_limit: EDITS_PER_DAY });
   }
 
   if (action === 'read_site') {
@@ -704,6 +713,7 @@ r.post('/', async (req, res) => {
       body.brief = { ...(body.brief || {}), details: `${body.brief?.details || ''}\n\n=== IMAGENS ENVIADAS PELO CLIENTE (são do negócio dele: USE no site nos lugares certos, com estas URLs exatas) ===\n${list}${seen ? `\n\nO que há nas imagens (descrição automática):\n${seen}` : ''}` };
       if (!seen) notes.push(`Guardei ${own.length === 1 ? 'a imagem' : 'as imagens'} e o site vai usar ${own.length === 1 ? 'ela' : 'elas'}, mas não consegui "ver" o conteúdo (nenhum modelo com visão respondeu nesta conta), então a escolha de onde colocar fica pelo nome do arquivo.`);
     }
+    if ((await countToday(user.id, 'create')) >= SITES_PER_DAY) throw new HttpError(429, `Você já criou ${SITES_PER_DAY} sites hoje. O limite renova amanhã.`, 'daily_limit');
     const brief = cleanBrief(body.brief ?? {});
     if (!brief) throw bad('Escreva o que você quer no site.');
     brief.ai = ai.selection(body);
@@ -978,7 +988,10 @@ r.post('/', async (req, res) => {
   const files = site.files ?? {};
   const fresh = [];
   const brief = site.brief;
-  if (!partial) await recordCall(user.id, 'edit');
+  if (!partial) {
+    if ((await countToday(user.id, 'edit')) >= EDITS_PER_DAY) throw new HttpError(429, `Você já fez ${EDITS_PER_DAY} alterações hoje. O limite renova amanhã.`, 'daily_limit');
+    await recordCall(user.id, 'edit');
+  }
   const versionRows = await all("SELECT instruction, actions FROM site_versions WHERE project_id=? AND kind='edit' AND instruction IS NOT NULL ORDER BY id DESC LIMIT 6", site.id);
   const recent = versionRows.map((v) => ({ instruction: v.instruction, actions: J(v.actions, []) }));
   let editSpecification = null;
