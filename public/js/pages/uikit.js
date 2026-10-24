@@ -1,7 +1,7 @@
 // Componentes UI: galeria dos componentes do Kokonut UI (MIT, https://kokonutui.com) reescritos em JavaScript puro,
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
-import { h, mount, icon, modal } from '../ui.js';
+import { h, mount, icon, modal, hero } from '../ui.js';
 import { KIT } from '../ui-kit/manifest.js';
 
 const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões'];
@@ -42,26 +42,28 @@ export default {
       history.replaceState(null, '', `#/componentes/${item.slug}`);
     };
     const card = (item) => {
-      const stage = h('div', { class: 'kk-stage', 'data-slug': item.slug });
+      const stage = h('div', { class: 'kk-stage', 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
-      return h('article', { class: 'kk-card', id: 'kk-' + item.slug },
-        stage,
-        h('div', { class: 'kk-meta' }, h('div', h('b', item.name), h('span', { class: 'kk-tag' }, item.cat)), h('p', item.desc)),
+      return h('article', { class: 'kk-card' + (item.pro ? ' pro' : ''), id: 'kk-' + item.slug },
+        h('div', { class: 'kk-frame' }, stage, h('span', { class: 'kk-chip' }, item.cat)),
+        h('div', { class: 'kk-meta' }, h('b', item.name), h('p', item.desc)),
         h('div', { class: 'kk-acts' },
-          h('button', { type: 'button', class: 'btn sm ghost', disabled: item.pro, onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
-          h('a', { class: 'kk-src', href: item.url, target: '_blank', rel: 'noopener' }, 'Original ↗')));
+          h('button', { type: 'button', class: 'kk-open', disabled: item.pro, onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
+          h('a', { class: 'kk-src', href: item.url, target: '_blank', rel: 'noopener' }, 'Original', icon('external'))));
     };
     const draw = () => {
       release(); const list = items();
-      count.textContent = `${list.length} de ${KIT.length} componentes`;
+      count.textContent = `${list.length} de ${KIT.length}`;
       mount(grid, ...(list.length ? list.map(card) : [h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.')]));
       for (const stage of live.keys()) io.observe(stage);
     };
-    const search = h('input', { type: 'search', class: 'kk-q', placeholder: 'Buscar componente (ex.: botão, cartão, IA)', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });
+    const search = h('input', { type: 'search', class: 'kk-q', placeholder: 'Buscar componente: botão, cartão, IA…', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });
     const pills = h('div', { class: 'pills kk-pills', role: 'tablist' }, CATS.map((c) => h('button', { type: 'button', class: 'pill' + (c === cat ? ' on' : ''), role: 'tab', onclick: (e) => { cat = c; pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p === e.currentTarget)); draw(); } }, c)));
+    const bar = h('div', { class: 'kk-bar' }, h('div', { class: 'kk-sbox' }, icon('search'), search), pills, count);
     mount(box,
-      h('div', { class: 'kk-head' }, h('div', h('h1', 'Componentes UI'), h('p', 'Os componentes do Kokonut UI (licença MIT) reescritos em JavaScript puro, no azul da Neva. Interaja com cada um; "Ampliar" abre em tela grande.')), count),
-      h('div', { class: 'kk-bar' }, search, pills), grid);
+      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Os componentes do Kokonut UI (licença MIT) reescritos em JavaScript puro, no azul da Neva. Interaja com cada um e abra em tela grande.',
+        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), 'JavaScript puro'), h('span', { class: 'chipk' }, icon('check'), 'Licença MIT')) }),
+      bar, grid);
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);
     if (open && !open.pro) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
