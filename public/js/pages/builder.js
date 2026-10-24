@@ -391,14 +391,14 @@ export default {
     document.documentElement.classList.add('studio-lock');
 
     if (!id) {
-      root.replaceChildren(side, h('section', { class: 'nc-main' }, h('header', { class: 'nc-top slim' }, sideBtn), h('div', { class: 'nc-scroll' }, welcome())), h('div', { class: 'nc-scrim', onclick: () => root.classList.remove('side-open') }));
+      root.replaceChildren(side, h('section', { class: 'nc-main' }, h('header', { class: 'nc-top slim' }, sideBtn, h('span', { class: 'grow' }), h('a', { class: 'nc-tb nc-home', href: '#/dashboard' }, icon('home'), h('span', 'Painel'))), h('div', { class: 'nc-scroll' }, welcome())), h('div', { class: 'nc-scrim', onclick: () => root.classList.remove('side-open') }));
       mount(box, root);
       cp.focus();
     } else {
       try { await refresh(); } catch (e) { mount(box, h('div', { class: 'empty' }, h('b', 'Site não encontrado.'), h('a', { href: '#/builder' }, 'Voltar ao Builder'))); document.documentElement.classList.remove('studio-lock'); return () => {}; }
       root.replaceChildren(side,
         h('section', { class: 'nc-main' },
-          h('header', { class: 'nc-top' }, sideBtn, h('div', { class: 'nc-title' }, nameEl, statusEl), h('span', { class: 'grow' }), actsEl, viewBtn),
+          h('header', { class: 'nc-top' }, sideBtn, h('div', { class: 'nc-title' }, nameEl, statusEl), h('span', { class: 'grow' }), actsEl, viewBtn, h('a', { class: 'nc-tb nc-home', href: '#/dashboard', title: 'Voltar ao painel', 'aria-label': 'Voltar ao painel' }, icon('home'))),
           tabs,
           h('div', { class: 'nc-split' },
             h('div', { class: 'nc-chat' }, thread, h('div', { class: 'nc-dock' }, cp.el)),

@@ -2406,3 +2406,32 @@ html.bare-page .shell::after{display:none}
 .kk-prompt-btn:hover{background:var(--ice-50);border-color:var(--ice-500)}.kk-prompt-btn .ico{width:15px;height:15px}
 .kk-open{flex:1;justify-content:center}
 .kk-prompt{white-space:pre-wrap;max-height:52vh;overflow:auto;font-size:.76rem;line-height:1.5;margin:0}
+
+/* ===== Correções mobile (menos que 700px): nada fica escondido fora da tela ===== */
+.nc-home .ico{width:16px;height:16px}
+@media(max-width:900px){.nc-top .nc-home span{display:inline}.nc-top:not(.slim) .nc-home{display:inline-flex}}
+@media(max-width:700px){
+  /* Acervo: as 3 abas cabem lado a lado */
+  .atabs{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;overflow:visible!important}
+  .atabs button{padding:8px 6px;align-items:center;text-align:center;min-width:0}
+  .atabs button b{font-size:.82rem;white-space:nowrap}
+  .atabs button small{display:none}
+  /* Componentes UI: filtros quebram em linhas e o contador não cobre nada */
+  .kk-bar{flex-direction:column!important;align-items:stretch!important}
+  .kk-bar .kk-pills{flex-wrap:wrap!important;overflow:visible!important}
+  .kk-bar .kk-count{margin:0;align-self:flex-end}
+  /* Dashboard: períodos em duas linhas, sem cortar */
+  .dash3 .profit .periodbar,.profit .periodbar{max-width:100%}
+  .profit .periodbar .pills,.dash3 .profit .periodbar .pills{flex-wrap:wrap!important;overflow:visible!important;max-width:100%!important;gap:4px}
+  .profit .periodbar .pill{padding:6px 10px}
+  /* Pílulas de filtro em geral: quebram em vez de sair da tela */
+  .pills{flex-wrap:wrap}
+  .sitebar .pills,.orgbar .pills{flex-wrap:wrap!important}
+}
+@media(max-width:700px){
+  .kk-sbox{flex:1 1 100%!important;width:100%}
+  .dash3 .profit .top>div:last-child{flex-wrap:wrap!important;max-width:100%!important;width:100%}
+  .profit .periodbar{display:block!important;width:100%;overflow:visible!important}
+  .profit .periodbar .pills{display:flex!important;flex-wrap:wrap!important;overflow:visible!important}
+  .profit .periodbar .pill{flex:1 1 auto;justify-content:center}
+}
