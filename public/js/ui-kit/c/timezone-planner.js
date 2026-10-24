@@ -1,4 +1,4 @@
-// Timezone Planner — porte em JS puro do componente "Timezone Planner" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Timezone Planner — porte em JS puro do componente "Timezone Planner" .
 import { h, svg, ensureStyle, loop, spring, disposer, clamp, reduced } from '../kit.js';
 import { copyText } from '../../ui.js';
 

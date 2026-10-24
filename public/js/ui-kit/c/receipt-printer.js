@@ -1,4 +1,4 @@
-// Receipt Printer — porte em JS puro do componente "Receipt Printer" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Receipt Printer — porte em JS puro do componente "Receipt Printer" .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 const SLOT_Y = 64;            // onde o papel sai, a partir do topo do cartão

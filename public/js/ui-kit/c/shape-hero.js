@@ -1,4 +1,4 @@
-// Shape Hero — porte em JS puro do componente "Shape Hero" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Shape Hero — porte em JS puro do componente "Shape Hero" .
 import { h, ensureStyle, reduced, clamp, disposer, PALETTE } from '../kit.js';
 
 /* Mini motor de corpos rígidos para "pílulas" (cápsulas: um segmento com raio).

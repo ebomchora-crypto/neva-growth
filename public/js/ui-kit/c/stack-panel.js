@@ -1,4 +1,4 @@
-// Painel em pilha — porte em JS puro do componente "Stack Panel" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Painel em pilha — porte em JS puro do componente "Stack Panel" .
 import { h, svg, ensureStyle, spring, loop, clamp, reduced, onResize, disposer, PALETTE } from '../kit.js';
 
 const PARALLAX = 0.3;       // a página de baixo anda um terço do que a de cima

@@ -238,7 +238,7 @@ function shell() {
   const bell = h('button', { class: 'iconbtn', 'aria-label': 'Notificações', onclick: () => openNotifications(bell) }, icon('bell'), h('span', { class: 'dot hide', id: 'notif-badge' }, '0'));
   const view = h('div', { id: 'view' });
   const roleName = { admin: 'Administrador', member: 'Membro', viewer: 'Leitura' }[state.user.role];
-  // Menu da conta (estilo "Profile Dropdown" do Kokonut): o chip do usuário abre o menu; Esc ou clique fora fecha.
+  // Menu da conta: o chip do usuário abre o menu; Esc ou clique fora fecha.
   const userPill = () => {
     const who = state.me?.user?.username ? '@' + state.me.user.username : `${roleName} · ${state.me?.plan?.name || ''}`;
     const btn = h('button', { type: 'button', class: 'userpill', 'aria-haspopup': 'menu', 'aria-expanded': 'false', title: 'Minha conta' }, h('span', { class: 'avatar' }, state.user.name.slice(0, 1).toUpperCase()),

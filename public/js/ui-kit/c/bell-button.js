@@ -1,4 +1,4 @@
-// Bell Button — porte em JS puro do componente "Bell Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Bell Button — porte em JS puro do componente "Bell Button" .
 import { h, svg, ensureStyle, reduced } from '../kit.js';
 
 // O sino e o badalo são dois pêndulos no mesmo pivô; só colisões os acoplam. Ângulos em graus, tempo em segundos.

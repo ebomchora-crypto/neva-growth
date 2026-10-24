@@ -1,4 +1,4 @@
-// Background Paths — porte em JS puro do componente "Background Paths" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Background Paths — porte em JS puro do componente "Background Paths" .
 import { h, ensureStyle, reduced, clamp, disposer, PALETTE } from '../kit.js';
 
 const SAMPLES = 64;

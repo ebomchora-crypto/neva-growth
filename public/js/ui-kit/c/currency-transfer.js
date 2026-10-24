@@ -1,4 +1,4 @@
-// Currency Transfer — porte em JS puro do componente "Currency Transfer" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Currency Transfer — porte em JS puro do componente "Currency Transfer" .
 import { h, svg, ensureStyle } from '../kit.js';
 import { toast } from '../../ui.js';
 

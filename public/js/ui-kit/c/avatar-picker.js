@@ -1,4 +1,4 @@
-// Avatar Picker — porte em JS puro do componente "Avatar Picker" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Avatar Picker — porte em JS puro do componente "Avatar Picker" .
 import { h, svg, ensureStyle, loop, spring, disposer, clamp, lerp, reduced } from '../kit.js';
 import { icon, toast } from '../../ui.js';
 

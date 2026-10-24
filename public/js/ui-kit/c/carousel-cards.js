@@ -1,4 +1,4 @@
-// Momentum Rail — porte em JS puro do componente "Momentum Rail" (carousel-cards) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Momentum Rail — porte em JS puro do componente "Momentum Rail" (carousel-cards) .
 import { h, svg, ensureStyle, clamp, reduced, PALETTE } from '../kit.js';
 import { toast } from '../../ui.js';
 

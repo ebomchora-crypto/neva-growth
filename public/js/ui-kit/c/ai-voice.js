@@ -1,4 +1,4 @@
-// AI Voice — porte em JS puro do componente "AI Voice" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Voice — porte em JS puro do componente "AI Voice" .
 // Onda que rola enquanto grava e depois uma revisão com ouvir, descartar ou enviar. Por padrão a onda é SIMULADA e o demo avisa isso;
 // com "Usar microfone" (e só se o navegador/usuário permitir) a onda e o áudio são reais e ficam apenas no navegador.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';

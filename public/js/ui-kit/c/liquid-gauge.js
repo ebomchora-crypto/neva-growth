@@ -1,4 +1,4 @@
-// Liquid Gauge — porte em JS puro do componente "Liquid Gauge" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Liquid Gauge — porte em JS puro do componente "Liquid Gauge" .
 import { h, ensureStyle, clamp, reduced, disposer } from '../kit.js';
 
 // A superfície é uma fileira de colunas ligadas por molas: um empurrão viaja de lado a lado.

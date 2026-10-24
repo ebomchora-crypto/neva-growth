@@ -1,4 +1,4 @@
-// Apple Activity Card — porte em JS puro do componente "Apple Activity Card" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Apple Activity Card — porte em JS puro do componente "Apple Activity Card" .
 import { h, svg, ensureStyle, loop, clamp, reduced } from '../kit.js';
 
 const STROKE = 16;

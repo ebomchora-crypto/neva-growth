@@ -1,4 +1,4 @@
-// Etapas do agente (port em JS puro do "AI Loading State" do Kokonut UI, MIT): título com o passo atual e o tempo,
+// Etapas do agente: título com o passo atual e o tempo,
 // lista com trilho que se preenche, ícone por estado (fila, girando, check que se desenha, erro), texto em onda no passo
 // em andamento, as últimas linhas de log rolando e o tempo de cada passo. Recolhe sozinho quando tudo termina.
 import { h, mount } from '../ui.js';

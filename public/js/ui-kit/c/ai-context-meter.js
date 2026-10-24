@@ -1,4 +1,4 @@
-// AI Context Meter — porte em JS puro do componente "AI Context Meter" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Context Meter — porte em JS puro do componente "AI Context Meter" .
 // Anel no rodapé do prompt que mostra quanto da janela de contexto está cheia; abre um detalhamento por fonte e compacta ao encher.
 // A conversa de exemplo cresce sozinha (e por botão); tudo é simulado.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';

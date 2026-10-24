@@ -1,4 +1,4 @@
-// Command Button — porte em JS puro do componente "Command Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Command Button — porte em JS puro do componente "Command Button" .
 import { h, ensureStyle, disposer } from '../kit.js';
 import { toast } from '../../ui.js';
 

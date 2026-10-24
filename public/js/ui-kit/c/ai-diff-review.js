@@ -1,4 +1,4 @@
-// Revisão de diff por IA — porte em JS puro do componente "AI Diff Review" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Revisão de diff por IA — porte em JS puro do componente "AI Diff Review" .
 import { h, svg, icon, ensureStyle, reduced, PALETTE } from '../kit.js';
 
 // Ícones de traço próprios (o ícone 'check' do app é uma caixa marcada)

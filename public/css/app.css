@@ -1757,7 +1757,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 /* Fundo topográfico (topo-bg.js): fixo, atrás de tudo, sem capturar cliques */
 #topo-bg{position:fixed;inset:0;width:100%;height:100%;z-index:-1;pointer-events:none;color:rgb(47,123,189);opacity:0;transition:opacity .8s ease-out;-webkit-mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent);mask-image:linear-gradient(to bottom,transparent,#000 10%,#000 90%,transparent)}
 
-/* ===== Builder: AI Prompt (porte do KokonutUI ai-prompt) no azul da Neva ===== */
+/* ===== Builder: AI Prompt no azul da Neva ===== */
 .ap-stack{width:100%;max-width:640px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:14px;min-width:0}
 .ap-shell{width:100%;border-radius:22px;padding:4px;background:rgba(255,255,255,.26);backdrop-filter:blur(10px);box-shadow:0 18px 50px rgba(8,30,70,.32)}
 .ap-card{position:relative;display:flex;flex-direction:column;border-radius:18px;background:#fff;color:#0e2236;box-shadow:0 0 0 1px rgba(47,123,189,.2),0 1px 2px rgba(8,30,70,.06),0 8px 22px -12px rgba(8,30,70,.25);transition:box-shadow .15s}
@@ -1945,7 +1945,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
 @media(max-width:760px){.stu-stages{position:static!important;margin:8px 0 12px;box-shadow:none}.stu-stages>summary span{font-size:.78rem}}
 .stu-composer .ap-files{padding:0}.stu-composer .ap-attach{min-width:36px;justify-content:center}
 .stu-composer .ap-ghost{color:var(--mut)}.stu-att{display:block;font-size:11px;opacity:.75;margin-top:2px}
-/* ===== Componentes UI (galeria do Kokonut UI em JS puro) ===== */
+/* ===== Componentes UI ===== */
 .kk-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:14px}.kk-head h1{margin:0 0 4px}.kk-head p{margin:0;max-width:62ch;color:var(--mut)}.kk-count{font-size:.8rem;color:var(--mut);font-weight:600}
 .kk-bar{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}.kk-q{width:100%;max-width:460px;padding:11px 14px;border:1px solid var(--line);border-radius:14px;background:#fff;font-size:16px}
 .kk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,340px),1fr));gap:16px;align-items:start}

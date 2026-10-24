@@ -1,5 +1,5 @@
 // Dot Field: membrana de pontos em meio-tom com ruído lento, esteira ao passar o mouse e onda de choque no clique.
-// Port em JS puro do componente "Dot Field" do KokonutUI (MIT, https://kokonutui.com). Canvas 2D, sem dependências.
+// Port em JS puro do componente "Dot Field". Canvas 2D, sem dependências.
 const NOISE_SCALE = 240, NOISE_SPEED = 0.07, TONE_STEP = 3, IDLE_FRAME_MS = 33;
 const ANCHOR = 26, COUPLING = 340, DAMPING = 2.4, STEP = 1 / 120;
 const POINTER_RADIUS = 72, POINTER_GAIN = 14, POINTER_MAX_SPEED = 2600, POINTER_PART = 0.45;

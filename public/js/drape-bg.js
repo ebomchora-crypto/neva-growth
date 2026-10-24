@@ -1,5 +1,5 @@
 // Cortina em WebGL (simulação de tecido com Verlet) para o fundo das telas de acesso.
-// Porte para JS puro do "Drape Background" (KokonutUI, MIT, @dorianbaffier). Cores no tom gelo da Neva.
+// Porte para JS puro do "Drape Background". Cores no tom gelo da Neva.
 import { motionEnabled } from './motion.js';
 
 const STEP = 1 / 60, GRAVITY = 980, DAMPING = 0.986, ITERATIONS = 4, COLUMNS = 46, MIN_CELL = 16, GATHER = 0.8, PLEAT_PERIOD = 4;

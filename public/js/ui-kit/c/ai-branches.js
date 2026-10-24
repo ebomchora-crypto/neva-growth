@@ -1,4 +1,4 @@
-// Ramificações de conversa — porte em JS puro do componente "AI Conversation Branches" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Ramificações de conversa — porte em JS puro do componente "AI Conversation Branches" .
 import { h, svg, ensureStyle, reduced, onResize, PALETTE } from '../kit.js';
 
 const ROOT = 'root', ROW = 30, LANE = 18, PAD = 12, WORD_GAP = /(\s+)/;

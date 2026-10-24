@@ -1,4 +1,4 @@
-// Revisão de alterações propostas pela IA (port em JS puro do "AI Diff Review" do KokonutUI).
+// Revisão de alterações propostas pela IA.
 // Cada arquivo tem blocos de diff expansíveis e decisão própria (aceitar / rejeitar / desfazer).
 import { h, mount, icon, diffLines } from './ui.js';
 

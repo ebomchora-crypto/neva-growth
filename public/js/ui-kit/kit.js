@@ -1,4 +1,4 @@
-// Utilidades comuns dos componentes portados do Kokonut UI (JavaScript puro, sem React/Tailwind/Motion).
+// Utilidades comuns dos componentes (JavaScript puro, sem React/Tailwind/Motion).
 // Cada componente é um módulo em ./c/<slug>.js com `export default function mount(stage, ctx) { ...; return cleanup }`.
 import { h, icon } from '../ui.js';
 export { h, icon };

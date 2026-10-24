@@ -1,4 +1,4 @@
-// Undo Button — porte em JS puro do componente "Undo Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Undo Button — porte em JS puro do componente "Undo Button" .
 import { h, svg, ensureStyle, reduced } from '../kit.js';
 
 const STROKE = 1.5;

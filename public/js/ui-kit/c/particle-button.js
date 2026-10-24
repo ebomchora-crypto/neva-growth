@@ -1,4 +1,4 @@
-// Particle Button — porte em JS puro do componente "Particle Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Particle Button — porte em JS puro do componente "Particle Button" .
 import { h, svg, ensureStyle, reduced, clamp, disposer, PALETTE } from '../kit.js';
 
 const EASE = 'cubic-bezier(0.23,1,0.32,1)';

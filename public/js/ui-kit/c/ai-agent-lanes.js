@@ -1,4 +1,4 @@
-// Raias de agentes — porte em JS puro do componente "AI Agent Lanes" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Raias de agentes — porte em JS puro do componente "AI Agent Lanes" .
 import { h, svg, ensureStyle, loop, reduced, clamp, onResize, PALETTE } from '../kit.js';
 
 const NS = 'kk-ai-agent-lanes-', LANE_H = 36, TICK = 2;

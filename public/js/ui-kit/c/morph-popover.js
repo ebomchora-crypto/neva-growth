@@ -1,4 +1,4 @@
-// Morph Popover — porte em JS puro do componente "Morph Popover" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Morph Popover — porte em JS puro do componente "Morph Popover" .
 import { h, svg, ensureStyle, onResize, reduced } from '../kit.js';
 
 const BTN_H = 36, SENT_FOR = 1600;

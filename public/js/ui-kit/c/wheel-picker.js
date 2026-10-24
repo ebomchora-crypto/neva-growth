@@ -1,4 +1,4 @@
-// Wheel Picker — porte em JS puro do componente "Wheel Picker" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Wheel Picker — porte em JS puro do componente "Wheel Picker" .
 import { h, ensureStyle, spring, loop, disposer, clamp, reduced } from '../kit.js';
 
 const ITEM_H = 36, ITEM_ANGLE = 20;

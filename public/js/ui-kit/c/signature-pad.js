@@ -1,4 +1,4 @@
-// Signature Pad — porte em JS puro do componente "Signature Pad" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Signature Pad — porte em JS puro do componente "Signature Pad" .
 import { h, ensureStyle, loop, onResize, disposer, clamp, reduced } from '../kit.js';
 import { downloadFile, copyText } from '../../ui.js';
 

@@ -1,4 +1,4 @@
-// Metric Card — porte em JS puro do componente "Metric Card" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Metric Card — porte em JS puro do componente "Metric Card" .
 import { h, svg, ensureStyle, clamp, reduced, disposer, PALETTE } from '../kit.js';
 
 // A caixa de desenho do gráfico; ela estica até a largura do cartão.

@@ -1,4 +1,4 @@
-// Activity Terrain — porte em JS puro do componente "Activity Terrain" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Activity Terrain — porte em JS puro do componente "Activity Terrain" .
 import { h, ensureStyle, clamp, reduced, disposer } from '../kit.js';
 
 const DAYS = 7, GAP = 0.18, MAX_HEIGHT = 4.2, DEG = Math.PI / 180;

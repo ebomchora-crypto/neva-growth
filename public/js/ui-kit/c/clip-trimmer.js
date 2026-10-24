@@ -1,4 +1,4 @@
-// Clip Trimmer — porte em JS puro do componente "Clip Trimmer" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Clip Trimmer — porte em JS puro do componente "Clip Trimmer" .
 import { h, svg, ensureStyle, loop, clamp, reduced, disposer, PALETTE as P } from '../kit.js';
 
 const FRAMES = 10, SNAP_PX = 5, DURATION = 12, MIN_LEN = 1, LABEL_EVERY = 5;

@@ -1,4 +1,4 @@
-// Flow Field — porte em JS puro do componente "Flow Field" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Flow Field — porte em JS puro do componente "Flow Field" .
 import { h, ensureStyle, reduced, clamp, disposer, PALETTE } from '../kit.js';
 
 const BASE_COUNT = 700;                 // partículas com densidade 1 (telas estreitas usam menos)

@@ -1,4 +1,4 @@
-// Estado de carregamento da IA em etapas (port em JS puro do "AI Loading State" do KokonutUI).
+// Estado de carregamento da IA em etapas.
 // As etapas refletem estados REAIS (enviando, aguardando a IA, aplicando): quem usa chama update() quando algo muda.
 import { h, mount, icon } from './ui.js';
 

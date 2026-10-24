@@ -1,4 +1,4 @@
-// Halftone Background — porte em JS puro do componente "Halftone Background" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Halftone Background — porte em JS puro do componente "Halftone Background" .
 import { h, ensureStyle, reduced, clamp, disposer, PALETTE } from '../kit.js';
 
 const LOUPE = 110, LOUPE_DETAIL = 2.2; // raio da lupa (px) e quanto sua retícula é mais fina

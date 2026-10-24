@@ -1,4 +1,4 @@
-// Menu radial — porte em JS puro do componente "Marking Menu" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Menu radial — porte em JS puro do componente "Marking Menu" .
 import { h, svg, ensureStyle, spring, loop, reduced, disposer, PALETTE } from '../kit.js';
 
 // Segure ~180 ms sem mover e o menu aparece sob o dedo; mova mais que FLICK antes disso e só o traço decide.

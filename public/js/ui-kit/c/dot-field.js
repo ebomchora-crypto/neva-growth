@@ -1,4 +1,4 @@
-// Dot Field — porte em JS puro do componente "Dot Field" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Dot Field — porte em JS puro do componente "Dot Field" .
 // A física (ruído lento, esteira do ponteiro, onda de choque no clique) vem do módulo do app; aqui fica o demo no palco.
 import { h, ensureStyle, disposer, PALETTE } from '../kit.js';
 import { dotField } from '../../dot-field.js';

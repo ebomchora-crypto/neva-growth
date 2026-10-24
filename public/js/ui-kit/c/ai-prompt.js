@@ -1,4 +1,4 @@
-// AI Prompt — porte em JS puro do componente "AI Prompt" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Prompt — porte em JS puro do componente "AI Prompt" .
 // Modelo + esforço, comandos "/", chips de arquivo (soltar, colar ou anexar), ↑ recupera a última mensagem e Parar durante a resposta.
 // As respostas são simuladas localmente: o demo não chama nenhuma API.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';

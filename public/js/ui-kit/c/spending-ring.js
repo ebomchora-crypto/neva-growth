@@ -1,4 +1,4 @@
-// Spending Ring — porte em JS puro do componente "Spending Ring" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Spending Ring — porte em JS puro do componente "Spending Ring" .
 import { h, svg, ensureStyle, clamp, reduced, disposer, PALETTE } from '../kit.js';
 
 const SIZE = 240, C = SIZE / 2, R = 90, STROKE = 22;

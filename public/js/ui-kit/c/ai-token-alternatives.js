@@ -1,4 +1,4 @@
-// Alternativas por palavra — porte em JS puro do componente "AI Token Alternatives" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Alternativas por palavra — porte em JS puro do componente "AI Token Alternatives" .
 import { h, svg, icon, ensureStyle, reduced, PALETTE } from '../kit.js';
 
 // Ícones de traço próprios (o ícone 'check' do app é uma caixa marcada)

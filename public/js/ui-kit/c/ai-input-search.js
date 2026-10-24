@@ -1,4 +1,4 @@
-// AI Input Search — porte em JS puro do componente "AI Input Search" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Input Search — porte em JS puro do componente "AI Input Search" .
 // Campo de pergunta com menu de Ferramentas (pesquisar, investigar, rascunhar, calcular, raciocinar), cabeçalho da ferramenta com tecla "Trocar",
 // modelo, tecla Perguntar/Parar e um rastro ao vivo que empilha o avatar de cada fonte lida. A busca é simulada: nenhuma fonte é acessada de verdade.
 import { h, svg, ensureStyle, disposer, PALETTE } from '../kit.js';

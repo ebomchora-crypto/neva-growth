@@ -1,4 +1,4 @@
-// Abas deslizantes — porte em JS puro do componente "Swipe Tabs" (smooth-tab) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Abas deslizantes — porte em JS puro do componente "Swipe Tabs" (smooth-tab) .
 import { h, ensureStyle, loop, spring, clamp, lerp, reduced, disposer, PALETTE } from '../kit.js';
 
 const RUBBER_BAND = 0.35;      // além da primeira/última aba o painel anda esta fração do arrasto

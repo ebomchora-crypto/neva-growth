@@ -1,4 +1,4 @@
-// Detent Dial — porte em JS puro do componente "Detent Dial" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Detent Dial — porte em JS puro do componente "Detent Dial" .
 import { h, svg, ensureStyle, spring, loop, onResize, disposer, clamp, reduced } from '../kit.js';
 
 const SWEEP = 270, START = -135;       // o botão varre 270°, de 7h30 a 4h30

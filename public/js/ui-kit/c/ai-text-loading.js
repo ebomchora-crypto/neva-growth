@@ -1,4 +1,4 @@
-// AI Text Loading — porte em JS puro do componente "AI Text Loading" do Kokonut UI (MIT, @kokonutui, https://kokonutui.com).
+// AI Text Loading — porte em JS puro do componente "AI Text Loading" .
 import { h, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 
 const EASE_OUT = 'cubic-bezier(.23,1,.32,1)';

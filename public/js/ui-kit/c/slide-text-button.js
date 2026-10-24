@@ -1,4 +1,4 @@
-// Slide Text Button — porte em JS puro do componente "Slide Text Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Slide Text Button — porte em JS puro do componente "Slide Text Button" .
 import { h, ensureStyle, reduced } from '../kit.js';
 import { toast } from '../../ui.js';
 

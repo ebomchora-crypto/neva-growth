@@ -1,4 +1,4 @@
-// Barra dividida — porte em JS puro do componente "Split Nav" (morphic-navbar) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Barra dividida — porte em JS puro do componente "Split Nav" (morphic-navbar) .
 import { h, svg, ensureStyle, spring, loop, clamp, reduced, onResize, disposer, PALETTE } from '../kit.js';
 
 const SPLIT = 8, HOVER_SPLIT = 2, DRAG_SLOP = 4, PROJECTION = 0.16, VELOCITY_WINDOW = 90, COMPACT_AFTER = 80, CHEV = 36, CHEV_GAP = 4;

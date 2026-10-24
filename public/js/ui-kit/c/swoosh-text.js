@@ -1,4 +1,4 @@
-// Extruded Text — porte em JS puro do componente "Extruded Text" (swoosh-text) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Extruded Text — porte em JS puro do componente "Extruded Text" (swoosh-text) .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 // Mola da direção da luz: subamortecida de propósito, um movimento rápido passa do alvo antes de assentar.

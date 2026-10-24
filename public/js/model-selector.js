@@ -1,4 +1,4 @@
-// Seletor de modelo e esforço (port em JS puro do "AI Model Selector" do KokonutUI).
+// Seletor de modelo e esforço.
 // Lista de modelos com seleção, trilho de esforço arrastável (encaixa em cada nível) e dica do nível.
 import { h, mount, icon } from './ui.js';
 

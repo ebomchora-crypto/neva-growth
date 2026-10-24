@@ -1,4 +1,4 @@
-// Autocomplete de IA — porte em JS puro do componente "AI Autocomplete" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Autocomplete de IA — porte em JS puro do componente "AI Autocomplete" .
 import { h, ensureStyle, reduced, PALETTE } from '../kit.js';
 import { toast } from '../../ui.js';
 

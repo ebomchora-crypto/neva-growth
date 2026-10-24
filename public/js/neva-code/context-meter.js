@@ -1,4 +1,4 @@
-// Medidor de contexto (port em JS puro do "AI Context Meter" do Kokonut UI, MIT): anel + porcentagem; ao clicar,
+// Medidor de contexto: anel + porcentagem; ao clicar,
 // abre o detalhamento por fonte (regras e DESIGN.md, referências, arquivos do site, conversa) com a marca de compactação.
 import { h, mount } from '../ui.js';
 

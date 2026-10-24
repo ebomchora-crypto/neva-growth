@@ -1,4 +1,4 @@
-// Focal Point Picker — porte em JS puro do componente "Focal Point Picker" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Focal Point Picker — porte em JS puro do componente "Focal Point Picker" .
 import { h, ensureStyle, clamp, disposer } from '../kit.js';
 
 const IMAGE_RATIO = 3 / 2;

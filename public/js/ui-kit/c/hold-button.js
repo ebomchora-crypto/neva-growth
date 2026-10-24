@@ -1,4 +1,4 @@
-// Hold Button — porte em JS puro do componente "Hold Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Hold Button — porte em JS puro do componente "Hold Button" .
 import { h, svg, ensureStyle, reduced, disposer, lerp } from '../kit.js';
 import { toast } from '../../ui.js';
 

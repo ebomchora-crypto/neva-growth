@@ -1,4 +1,4 @@
-// Gradient Button — porte em JS puro do componente "Gradient Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Gradient Button — porte em JS puro do componente "Gradient Button" .
 import { h, svg, ensureStyle } from '../kit.js';
 import { toast } from '../../ui.js';
 

@@ -1,4 +1,4 @@
-// Paleta de comandos — porte em JS puro do componente "Command Palette" (action-search-bar) do Kokonut UI (MIT, @kokonutui, https://kokonutui.com).
+// Paleta de comandos — porte em JS puro do componente "Command Palette" (action-search-bar) .
 import { h, svg, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 import { copyText } from '../../ui.js';
 

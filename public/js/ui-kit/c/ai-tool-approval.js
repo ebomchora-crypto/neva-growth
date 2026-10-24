@@ -1,4 +1,4 @@
-// AI Tool Approval — porte em JS puro do componente "AI Tool Approval" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Tool Approval — porte em JS puro do componente "AI Tool Approval" .
 // Aprovar ou negar chamadas de ferramenta de um agente. Chamadas destrutivas exigem manter pressionado; as decididas viram uma linha
 // de histórico com a saída. Tudo é simulado: nenhuma ferramenta é executada de verdade.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';

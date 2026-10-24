@@ -1,4 +1,4 @@
-// File Upload — porte em JS puro do componente "File Upload" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// File Upload — porte em JS puro do componente "File Upload" .
 import { h, svg, ensureStyle, disposer, reduced } from '../kit.js';
 import { icon } from '../../ui.js';
 

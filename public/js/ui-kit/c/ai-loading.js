@@ -1,4 +1,4 @@
-// AI State Loading — porte em JS puro do componente "AI State Loading" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI State Loading — porte em JS puro do componente "AI State Loading" .
 // Progresso de um agente em etapas, com log ao vivo, tempo decorrido e resumo ao concluir. A execução é simulada e pausa fora da tela.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';
 

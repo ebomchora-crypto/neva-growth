@@ -90,7 +90,7 @@ Não copiados do original: seletor de modelo "Syre / Medium" e botão de microfo
 
 Fundo da plataforma: shader WebGL de ondas (port em JavaScript puro do componente "ShaderBackground" do 21st.dev, `public/js/shader-bg.js`), com a paleta clara azul-gelo. Anima a 30 fps só com animações ligadas; com "reduzir movimento" ou o interruptor desligado fica um quadro estático; sem WebGL fica a cor sólida. O projeto não usa React/Tailwind/TypeScript, por isso o componente foi portado em vez de copiado para `components/ui`.
 
-Componentes de IA (KokonutUI/21st.dev, portados para JavaScript puro porque o projeto não usa React/Tailwind/TypeScript):
+Componentes de IA:
 | Item | Estado |
 |---|---|
 | Builder: orbe "Neva Studio" no lugar do mascote; fundo Dot Field (meio-tom com esteira ao passar o mouse e onda de choque no clique) | Testado (e2e) |
@@ -121,7 +121,7 @@ Decisão registrada: layout, estrutura e fluxos seguem os prints; a identidade v
 `authIn()` / `shake()` em `public/js/motion.js`: entrada dos dois painéis, títulos palavra a palavra, campos em cascata, partículas flutuantes, brilho no botão, paralaxe das ondas com o mouse e troca suave entre login/cadastro/recuperação. Respeitam "reduzir movimento"; o mascote continua fixo.
 
 ### Fundo de cortina (login / cadastro / recuperação)
-`public/js/drape-bg.js`: porte em JS puro do "Drape Background" (KokonutUI, MIT) — tecido simulado (Verlet) renderizado em WebGL atrás dos painéis, com vento, empurrão do cursor e arrastar o tecido com o mouse. Cores no gelo da Neva. Fica estático com "reduzir movimento", toggle de movimento desligado ou navegador automatizado; sem WebGL o fundo CSS continua. Os painéis viraram vidro translúcido para a cortina aparecer.
+`public/js/drape-bg.js`: porte em JS puro do "Drape Background" — tecido simulado (Verlet) renderizado em WebGL atrás dos painéis, com vento, empurrão do cursor e arrastar o tecido com o mouse. Cores no gelo da Neva. Fica estático com "reduzir movimento", toggle de movimento desligado ou navegador automatizado; sem WebGL o fundo CSS continua. Os painéis viraram vidro translúcido para a cortina aparecer.
 
 ### Telas de acesso v3 (igual à referência)
 Painel grande + cartão interno com faixa de acento, rótulos com índice (01–04), Nome e Nome de usuário lado a lado, rodapé com texto à esquerda e link à direita, entalhe central com três pontos que navegam entre Entrar / Criar conta / Recuperar acesso. Sem mascote no painel de arte. Sem o widget Cloudflare da referência (não há verificação real por trás). Os títulos animados preservam o destaque em cor (`wordsOf` percorre os nós).

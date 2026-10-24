@@ -1,4 +1,4 @@
-// Índice de rolagem — porte em JS puro do componente "Scroll Index" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Índice de rolagem — porte em JS puro do componente "Scroll Index" .
 import { h, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 
 // A trilha tem no máximo esta altura (px); cada marca fica na posição de rolagem do seu título.

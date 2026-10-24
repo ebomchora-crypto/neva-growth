@@ -1,4 +1,4 @@
-// Photo Straighten — porte em JS puro do componente "Photo Straighten" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Photo Straighten — porte em JS puro do componente "Photo Straighten" .
 import { h, svg, ensureStyle, loop, spring, clamp, reduced, disposer } from '../kit.js';
 
 const MAX = 45, PX = 9;          // PX = pixels por grau na régua

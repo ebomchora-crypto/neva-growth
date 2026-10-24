@@ -1,4 +1,4 @@
-// Spoiler Text — porte em JS puro do componente "Spoiler Text" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Spoiler Text — porte em JS puro do componente "Spoiler Text" .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 // Grãos por px² de texto escondido (~1 a cada 6 px², como a raspadinha): até uma palavra curta vira mancha sólida.

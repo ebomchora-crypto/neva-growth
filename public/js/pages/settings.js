@@ -94,7 +94,7 @@ export default {
           h('section', { class: 'scard stack' }, head('sparkle', 'Animações e efeitos de fundo', 'Transições, entradas e fundos animados.'),
             h('label', { class: 'switch' }, h('span', h('b', 'Animações ligadas'), h('div', { class: 'sm mut' }, sys ? 'Seu sistema pede para reduzir movimento, então elas ficam desligadas.' : 'Vale só para este navegador. Desligue se o aparelho estiver lento.')), mcb)),
           h('details', { class: 'credits' }, h('summary', 'Créditos e licenças'),
-            h('ul', [['GSAP', 'animações (licença padrão GreenSock)'], ['Leaflet', 'mapa da Prospecção (BSD-2)'], ['OpenStreetMap', 'dados do mapa © colaboradores do OpenStreetMap (ODbL)'], ['Monaco Editor', 'editor da IDE (MIT)'], ['KokonutUI / 21st.dev', 'componentes de fundo, seletor de modelo, carregamento e revisão de alterações, adaptados para JS puro (MIT)']].map(([n, d]) => h('li', h('b', n), ' — ', d)))));
+            h('ul', [['GSAP', 'animações (licença padrão GreenSock)'], ['Leaflet', 'mapa da Prospecção (BSD-2)'], ['OpenStreetMap', 'dados do mapa © colaboradores do OpenStreetMap (ODbL)'], ['Monaco Editor', 'editor da IDE (MIT)'], ].map(([n, d]) => h('li', h('b', n), ' — ', d)))));
       },
       async crm() {
         const radius = h('input', { type: 'range', min: 1, max: 50, value: me.settings.prospect_radius_km, 'aria-label': 'Raio padrão' }); const rv = h('b', `${me.settings.prospect_radius_km} km`);

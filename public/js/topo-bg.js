@@ -1,4 +1,4 @@
-// Fundo de mapa topográfico vivo (porte em JS puro do TopoBackground do kokonutui, MIT, @dorianbaffier): curvas de nível
+// Fundo de mapa topográfico vivo: curvas de nível
 // por marching squares sobre um ruído de Perlin que deriva devagar; o cursor levanta uma colina e o clique manda uma onda.
 // Diferenças do original: fica FIXO atrás do app inteiro (os eventos vêm do documento, não do elemento), sem rótulos de
 // altitude (poluiriam as telas de dados) e com a cor vindo do CSS (`color` do canvas). Pausa com a aba escondida, e com

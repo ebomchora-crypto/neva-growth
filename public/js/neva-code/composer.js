@@ -1,4 +1,4 @@
-// Caixa de pedido do Builder (port em JS puro do "AI Prompt Input" do Kokonut UI, MIT), adaptada à Neva:
+// Caixa de pedido do Builder, adaptada à Neva:
 // anexos (botão, arrastar e colar), modelo, esforço com barras, referência de design (DESIGN.md), comandos com "/",
 // enviar que vira parar, ↑ recupera o último pedido, Esc para a resposta. O medidor de contexto entra no rodapé.
 import { h, mount, toast } from '../ui.js';

@@ -1,4 +1,4 @@
-// Topo Background — porte em JS puro do componente "Topo Background" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Topo Background — porte em JS puro do componente "Topo Background" .
 // Diferente do topo-bg.js do app (fixo atrás da tela inteira, sem rótulos), este vive só dentro do palco e imprime as altitudes.
 import { h, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 

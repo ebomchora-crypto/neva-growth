@@ -1,4 +1,4 @@
-// Drape Background — porte em JS puro do componente "Drape Background" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Drape Background — porte em JS puro do componente "Drape Background" .
 // A cortina (tecido simulado com Verlet, em WebGL) vem do módulo do app; aqui fica o demo no palco.
 import { h, ensureStyle, disposer, PALETTE } from '../kit.js';
 import { drapeBg } from '../../drape-bg.js';

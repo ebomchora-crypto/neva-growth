@@ -1,4 +1,4 @@
-// Glitch Text — porte em JS puro do componente "Glitch Text" (Signal Text) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Glitch Text — porte em JS puro do componente "Glitch Text" (Signal Text) .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 const TEXTS = ['Vendas em tempo real', 'Cliente novo no funil', 'Meta batida hoje'];

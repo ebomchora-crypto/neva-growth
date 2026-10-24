@@ -1,4 +1,4 @@
-// AI Prompt (porte em JS puro do "ai-prompt" do KokonutUI, MIT): cartão com o texto, menu de modelo, menu de esforço
+// AI Prompt: cartão com o texto, menu de modelo, menu de esforço
 // (barras de sinal) e o botão de enviar. Troquei só o que o pedido mandou: a cor (azul da Neva) e os modelos (Neva 1.0, 1.2
 // e 1.5, cada um com seus níveis de raciocínio). Sem anexos, comandos "/" nem faixa promocional: nada que não funcione aqui.
 // A seleção é guardada em localStorage na mesma chave do seletor do Studio, então os dois sempre concordam.

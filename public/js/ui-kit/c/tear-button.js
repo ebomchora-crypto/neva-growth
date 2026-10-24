@@ -1,4 +1,4 @@
-// Tear Button — porte em JS puro do componente "Tear Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Tear Button — porte em JS puro do componente "Tear Button" .
 import { h, svg, ensureStyle, clamp, reduced } from '../kit.js';
 
 const HEIGHT = 68, BODY_WIDTH = 236, STUB_WIDTH = 76, TOTAL = BODY_WIDTH + STUB_WIDTH;

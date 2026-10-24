@@ -1,4 +1,4 @@
-// Team Selector — porte em JS puro do componente "Team Selector" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Team Selector — porte em JS puro do componente "Team Selector" .
 import { h, ensureStyle, spring, loop, disposer, clamp, reduced } from '../kit.js';
 import { icon } from '../../ui.js';
 

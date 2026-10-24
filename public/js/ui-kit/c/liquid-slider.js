@@ -1,4 +1,4 @@
-// Liquid Slider — porte em JS puro do componente "Liquid Slider" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Liquid Slider — porte em JS puro do componente "Liquid Slider" .
 import { h, svg, ensureStyle, loop, disposer, clamp, reduced } from '../kit.js';
 
 const W = 280, H = 360;

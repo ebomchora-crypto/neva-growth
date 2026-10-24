@@ -1,4 +1,4 @@
-// Lightbox Grid — porte em JS puro do componente "Lightbox Grid" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Lightbox Grid — porte em JS puro do componente "Lightbox Grid" .
 import { h, svg, ensureStyle, clamp, reduced, disposer } from '../kit.js';
 
 /* ---------- Imagens do demo: paisagens em SVG, geradas aqui em tons de azul (nada externo) ---------- */

@@ -1,4 +1,4 @@
-// Synced Transcript — porte em JS puro do componente "Synced Transcript" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Synced Transcript — porte em JS puro do componente "Synced Transcript" .
 import { h, svg, ensureStyle, loop, clamp, reduced, disposer } from '../kit.js';
 
 const SPEEDS = [1, 1.5, 2];

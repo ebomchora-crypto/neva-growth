@@ -1,4 +1,4 @@
-// Pull Cord — porte em JS puro do componente "Pull Cord" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Pull Cord — porte em JS puro do componente "Pull Cord" .
 import { h, svg, ensureStyle, reduced } from '../kit.js';
 
 const WIDTH = 288, HEIGHT = 360;

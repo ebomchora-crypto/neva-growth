@@ -1,4 +1,4 @@
-// Loader — porte em JS puro do componente "Loader" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Loader — porte em JS puro do componente "Loader" .
 import { h, ensureStyle, reduced } from '../kit.js';
 
 const SIZES = { sm: { px: 80, label: 'Pequeno' }, md: { px: 128, label: 'Médio' }, lg: { px: 160, label: 'Grande' } };

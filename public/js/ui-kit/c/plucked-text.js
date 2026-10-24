@@ -1,4 +1,4 @@
-// Plucked Text — porte em JS puro do componente "Plucked Text" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Plucked Text — porte em JS puro do componente "Plucked Text" .
 import { h, svg, ensureStyle, reduced, disposer } from '../kit.js';
 
 const TEXT = 'Boa vibração';

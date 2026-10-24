@@ -1,4 +1,4 @@
-// Seletor de modelo — porte em JS puro do componente "AI Model Selector" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Seletor de modelo — porte em JS puro do componente "AI Model Selector" .
 import { h, svg, icon, ensureStyle, PALETTE } from '../kit.js';
 
 // Ícones de traço próprios (o ícone 'check' do app é uma caixa marcada)

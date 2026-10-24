@@ -1,4 +1,4 @@
-// Ilha de status — porte em JS puro do componente "Status Island" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Ilha de status — porte em JS puro do componente "Status Island" .
 import { h, svg, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 
 const MAX_PEEK = 2, DISMISS_AFTER = 4000;

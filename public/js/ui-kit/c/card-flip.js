@@ -1,4 +1,4 @@
-// Flick Card — porte em JS puro do componente "Flick Card" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Flick Card — porte em JS puro do componente "Flick Card" .
 import { h, svg, ensureStyle, reduced, PALETTE } from '../kit.js';
 
 const DEG_PER_PX = 0.6;      // graus de giro por px arrastado

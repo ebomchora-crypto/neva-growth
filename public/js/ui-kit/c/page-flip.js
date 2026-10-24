@@ -1,4 +1,4 @@
-// Page Flip — porte em JS puro do componente "Page Flip" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Page Flip — porte em JS puro do componente "Page Flip" .
 import { h, svg, ensureStyle, reduced, disposer } from '../kit.js';
 
 const SINGLE_BELOW = 520;   // abaixo desta largura (px) o livro mostra uma página por vez

@@ -1,4 +1,4 @@
-// Dock de ferramentas — porte em JS puro do componente "Tool Dock" (toolbar) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Dock de ferramentas — porte em JS puro do componente "Tool Dock" (toolbar) .
 import { h, svg, ensureStyle, spring, loop, clamp, reduced, onResize, disposer, PALETTE } from '../kit.js';
 
 const EDGE_GAP = 12, TIP_DELAY = 400, TIP_WARM = 300, TIP_OFFSET = 8, LONG_PRESS = 350, VELOCITY_WINDOW = 100;

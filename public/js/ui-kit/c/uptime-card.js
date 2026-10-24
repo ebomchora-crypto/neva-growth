@@ -1,4 +1,4 @@
-// Uptime Card — porte em JS puro do componente "Uptime Card" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Uptime Card — porte em JS puro do componente "Uptime Card" .
 import { h, svg, ensureStyle, clamp, reduced, disposer } from '../kit.js';
 
 // Quanto a barra sob o ponteiro alarga e até onde o inchaço se espalha, em barras.

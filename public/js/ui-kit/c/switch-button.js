@@ -1,4 +1,4 @@
-// Switch Button — porte em JS puro do componente "Switch Button" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Switch Button — porte em JS puro do componente "Switch Button" .
 import { h, svg, ensureStyle, reduced, disposer } from '../kit.js';
 
 const EASE_REVEAL = 'cubic-bezier(0.4,0,0.2,1)';

@@ -1,4 +1,4 @@
-// AI Inline Citations — porte em JS puro do componente "AI Inline Citations" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// AI Inline Citations — porte em JS puro do componente "AI Inline Citations" .
 // Resposta com chips de fonte ao lado de cada afirmação: uma única prévia desliza entre os chips e destaca a frase que ela sustenta.
 // As fontes são documentos de exemplo da própria empresa; clicar numa fonte da lista abre o trecho e permite copiar a referência.
 import { h, svg, ensureStyle, disposer, reduced, PALETTE } from '../kit.js';

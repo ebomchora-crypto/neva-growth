@@ -1,4 +1,4 @@
-// Notification Stack — porte em JS puro do componente "Notification Stack" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Notification Stack — porte em JS puro do componente "Notification Stack" .
 import { h, ensureStyle, reduced } from '../kit.js';
 import { icon } from '../../ui.js';
 

@@ -1,4 +1,4 @@
-// Cradle Text — porte em JS puro do componente "Cradle Text" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Cradle Text — porte em JS puro do componente "Cradle Text" .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 const TEXT = 'Impulso';

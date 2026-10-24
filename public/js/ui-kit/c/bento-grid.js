@@ -1,4 +1,4 @@
-// Widget Grid — porte em JS puro do componente "Widget Grid" (bento-grid) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Widget Grid — porte em JS puro do componente "Widget Grid" (bento-grid) .
 import { h, svg, ensureStyle, onResize, clamp } from '../kit.js';
 import { icon } from '../../ui.js';
 

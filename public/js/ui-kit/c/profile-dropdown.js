@@ -1,4 +1,4 @@
-// Menu da conta — porte em JS puro do componente "Account Menu" (profile-dropdown) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Menu da conta — porte em JS puro do componente "Account Menu" (profile-dropdown) .
 import { h, svg, ensureStyle, spring, loop, reduced, disposer, PALETTE } from '../kit.js';
 
 const PANEL_MAX = 288, RADIUS = 16, HOLD_MS = 1200;

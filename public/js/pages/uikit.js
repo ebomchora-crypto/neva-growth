@@ -1,4 +1,4 @@
-// Componentes UI: galeria dos componentes do Kokonut UI (MIT, https://kokonutui.com) reescritos em JavaScript puro,
+// Componentes UI: galeria de componentes em JavaScript puro,
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
 import { h, mount, icon, modal, hero } from '../ui.js';
@@ -14,7 +14,7 @@ async function load(slug) {
 /** Monta um componente num palco; devolve a limpeza. */
 async function run(stage, item, big) {
   const fn = await load(item.slug);
-  if (typeof fn !== 'function') { stage.replaceChildren(h('p', { class: 'kk-empty' }, fn === 'erro' ? 'Este componente falhou ao abrir.' : item.pro ? 'Exclusivo do Kokonut UI Pro (código não público).' : 'Em breve.')); return () => {}; }
+  if (typeof fn !== 'function') { stage.replaceChildren(h('p', { class: 'kk-empty' }, fn === 'erro' ? 'Este componente falhou ao abrir.' : 'Em breve.')); return () => {}; }
   stage.replaceChildren();
   try { const out = await fn(stage, { big, theme: 'light' }); return typeof out === 'function' ? out : () => {}; }
   catch (e) { console.error('[ui-kit]', item.slug, e); stage.replaceChildren(h('p', { class: 'kk-empty' }, 'Este componente falhou ao abrir.')); return () => {}; }
@@ -44,12 +44,11 @@ export default {
     const card = (item) => {
       const stage = h('div', { class: 'kk-stage', 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
-      return h('article', { class: 'kk-card' + (item.pro ? ' pro' : ''), id: 'kk-' + item.slug },
+      return h('article', { class: 'kk-card', id: 'kk-' + item.slug },
         h('div', { class: 'kk-frame' }, stage, h('span', { class: 'kk-chip' }, item.cat)),
         h('div', { class: 'kk-meta' }, h('b', item.name), h('p', item.desc)),
         h('div', { class: 'kk-acts' },
-          h('button', { type: 'button', class: 'kk-open', disabled: item.pro, onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
-          h('a', { class: 'kk-src', href: item.url, target: '_blank', rel: 'noopener' }, 'Original', icon('external'))));
+          h('button', { type: 'button', class: 'kk-open', onclick: () => expand(item) }, icon('expand'), 'Ampliar')));
     };
     const draw = () => {
       release(); const list = items();
@@ -61,12 +60,12 @@ export default {
     const pills = h('div', { class: 'pills kk-pills', role: 'tablist' }, CATS.map((c) => h('button', { type: 'button', class: 'pill' + (c === cat ? ' on' : ''), role: 'tab', onclick: (e) => { cat = c; pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p === e.currentTarget)); draw(); } }, c)));
     const bar = h('div', { class: 'kk-bar' }, h('div', { class: 'kk-sbox' }, icon('search'), search), pills, count);
     mount(box,
-      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Os componentes do Kokonut UI (licença MIT) reescritos em JavaScript puro, no azul da Neva. Interaja com cada um e abra em tela grande.',
-        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), 'JavaScript puro'), h('span', { class: 'chipk' }, icon('check'), 'Licença MIT')) }),
+      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface em JavaScript puro, no azul da Neva. Interaja com cada um e abra em tela grande.',
+        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), 'JavaScript puro')) }),
       bar, grid);
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);
-    if (open && !open.pro) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
+    if (open) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
     return () => { release(); io.disconnect(); };
   }
 };

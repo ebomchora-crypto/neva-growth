@@ -1,4 +1,4 @@
-// Dynamic Text — porte em JS puro do componente "Dynamic Text" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Dynamic Text — porte em JS puro do componente "Dynamic Text" .
 import { h, ensureStyle, reduced, disposer } from '../kit.js';
 
 const MODES = {

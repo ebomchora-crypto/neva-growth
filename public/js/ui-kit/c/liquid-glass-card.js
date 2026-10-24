@@ -1,4 +1,4 @@
-// Now Playing — porte em JS puro do componente "Now Playing" (liquid-glass-card) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Now Playing — porte em JS puro do componente "Now Playing" (liquid-glass-card) .
 import { h, svg, ensureStyle, loop, clamp, reduced, PALETTE } from '../kit.js';
 
 const TRACKS = [

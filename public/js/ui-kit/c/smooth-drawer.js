@@ -1,4 +1,4 @@
-// Gaveta suave — porte em JS puro do componente "Smooth Drawer" (smooth-drawer) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Gaveta suave — porte em JS puro do componente "Smooth Drawer" (smooth-drawer) .
 import { h, svg, ensureStyle, spring, loop, clamp, reduced, onResize, disposer, PALETTE } from '../kit.js';
 
 const PEEK = 200, TOP_GAP = 24, MAX_SHEET = 680;

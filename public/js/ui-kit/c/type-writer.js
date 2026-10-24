@@ -1,4 +1,4 @@
-// Typing Text — porte em JS puro do componente "Typing Text" (type-writer) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Typing Text — porte em JS puro do componente "Typing Text" (type-writer) .
 import { h, svg, ensureStyle, reduced, disposer } from '../kit.js';
 
 const SEQUENCES = [

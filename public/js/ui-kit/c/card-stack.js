@@ -1,4 +1,4 @@
-// Throw Deck — porte em JS puro do componente "Throw Deck" do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Throw Deck — porte em JS puro do componente "Throw Deck" .
 import { h, svg, ensureStyle, reduced, clamp, PALETTE } from '../kit.js';
 import { toast } from '../../ui.js';
 

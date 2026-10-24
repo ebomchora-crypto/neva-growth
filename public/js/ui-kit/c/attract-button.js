@@ -1,4 +1,4 @@
-// Magnet Button — porte em JS puro do componente "Magnet Button" (attract-button) do Kokonut UI (MIT, @dorianbaffier, https://kokonutui.com).
+// Magnet Button — porte em JS puro do componente "Magnet Button" (attract-button) .
 import { h, svg, ensureStyle, reduced, disposer, PALETTE } from '../kit.js';
 import { toast } from '../../ui.js';
 
