@@ -2435,3 +2435,6 @@ html.bare-page .shell::after{display:none}
   .profit .periodbar .pills{display:flex!important;flex-wrap:wrap!important;overflow:visible!important}
   .profit .periodbar .pill{flex:1 1 auto;justify-content:center}
 }
+@media(max-width:700px){.bcol small{white-space:normal;text-align:center;line-height:1.1;font-size:.6rem;max-width:100%;overflow-wrap:anywhere}.bchart{gap:6px}}
+@media(max-width:700px){.bcol small{white-space:nowrap;font-size:.54rem;letter-spacing:-.03em;overflow-wrap:normal;line-height:1}}
+@media(max-width:700px){.bchart .bcol small{font-size:.5rem!important;letter-spacing:-.04em;white-space:nowrap}.bchart .bcol span{font-size:.6rem!important}}

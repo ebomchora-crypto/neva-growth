@@ -36,8 +36,13 @@ function lineChart(series, avail = 760, format = brl, axis = 'R$ ', rate = 1) {
   return h('div', { class: 'lwrap' }, svg, months);
 }
 function barChart(series, format = brl) {
-  const max = Math.max(1, ...series.map((s) => s.profit));
-  const pick = series.length > 12 ? series.filter((_, i) => i % Math.ceil(series.length / 12) === 0) : series;
+  // Mais de 12 períodos: agrupa os vizinhos somando o lucro (antes pulava períodos e escondia vendas).
+  const size = Math.ceil(series.length / 12);
+  const pick = size > 1 ? Array.from({ length: Math.ceil(series.length / size) }, (_, i) => {
+    const part = series.slice(i * size, i * size + size);
+    return { label: part.length > 1 ? `${part[0].label}–${part.at(-1).label}` : part[0].label, profit: part.reduce((a, x) => a + x.profit, 0), revenue: part.reduce((a, x) => a + x.revenue, 0) };
+  }) : series;
+  const max = Math.max(1, ...pick.map((s) => s.profit));
   return h('div', { class: 'bchart', role: 'img', 'aria-label': 'Lucro por período' }, pick.map((s) => h('div', { class: 'bcol', title: `${s.label}: ${format(s.profit)}`, 'data-label': s.label, 'data-profit': s.profit },
     h('small', { class: 'dash-money', 'data-base': s.profit }, format(s.profit)), h('i', { style: `height:${Math.max(6, (Math.max(s.profit, 0) / max) * 100)}%` }), h('span', s.label))));
 }
