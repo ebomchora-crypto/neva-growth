@@ -2374,7 +2374,7 @@ html.bare-page .shell::after{display:none}
 .dc-bar{margin-top:auto}
 
 /* ===== Componentes UI: página reorganizada ===== */
-.kk-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0;padding:10px 12px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.88);box-shadow:var(--shadow);position:sticky;top:76px;z-index:6;backdrop-filter:blur(10px)}
+.kk-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:18px 0;padding:10px 12px;border:1px solid var(--line);border-radius:20px;background:rgba(255,255,255,.88);box-shadow:var(--shadow);}
 .kk-sbox{display:flex;align-items:center;gap:8px;flex:0 1 300px;min-width:200px;border:1px solid var(--line);border-radius:14px;background:var(--ice-50);padding:0 12px}.kk-sbox .ico{width:16px;height:16px;color:var(--mut);flex:none}
 .kk-sbox .kk-q{border:0;background:transparent;padding:10px 0;max-width:none;outline:none;font-size:.9rem;width:100%}
 .kk-bar .kk-pills{flex:1;min-width:0;margin:0;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}.kk-bar .kk-pills::-webkit-scrollbar{display:none}.kk-bar .pill{flex:none}
