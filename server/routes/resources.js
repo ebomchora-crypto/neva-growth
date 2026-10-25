@@ -5,6 +5,7 @@ const { HttpError, bad } = require('../lib/http');
 const wrap = (fn) => fn;
 const A = require('../lib/auth');
 const { notify } = require('../lib/services');
+const { todayBRT } = require('../lib/brt');
 
 const { stagesOf, stageKeysOf, stageKindOf, firstOpenOf, wonStageOf } = require('../lib/services');
 const stageKeys = (req) => stageKeysOf(req.user.ws);
@@ -259,7 +260,7 @@ r.use('/sales', crud({
   },
   async beforeCreate(d, req) {
     d.status = d.status || 'pendente'; d.cost = d.cost ?? 0; d.delivery_status = d.delivery_status || 'pendente';
-    d.sold_at = d.sold_at || new Date().toISOString().slice(0, 10); d.created_by = req.user.id;
+    d.sold_at = d.sold_at || todayBRT(); d.created_by = req.user.id;
     if (d.cost > d.amount) throw bad('O custo não pode ser maior que o valor da venda.');
     if (d.status === 'pago') d.paid_at = d.sold_at;
   },
@@ -268,7 +269,7 @@ r.use('/sales', crud({
   },
   async afterSave(row, req, op) {
     // mantém paid_at coerente com o status
-    if (row.status === 'pago' && !row.paid_at) await run("UPDATE sales SET paid_at=date('now') WHERE id=?", row.id);
+    if (row.status === 'pago' && !row.paid_at) await run('UPDATE sales SET paid_at=? WHERE id=?', todayBRT(), row.id);
     if (row.status !== 'pago' && row.paid_at) await run('UPDATE sales SET paid_at=NULL WHERE id=?', row.id);
     if (row.status === 'pago' && (op === 'create' || req.prev?.status !== 'pago'))
       await notify({ type: 'sale', pref: 'notify_sales', text: `Venda paga: ${row.description} — R$ ${Number(row.amount).toFixed(2).replace('.', ',')}`, link: '#/vendas', exceptUserId: req.user.id, ws: req.user.ws });

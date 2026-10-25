@@ -139,3 +139,16 @@ test('integrações sem credenciais respondem 503 explicando o motivo', async ()
   assert.equal((await call('POST', '/api/projects/generate-ai', { name: 'Xy', brief: 'uma landing page completa' })).status, 503);
   assert.equal((await call('POST', '/api/integrations/prospect/search', { query: 'dentista' })).body.code, 'places_not_configured');
 });
+
+test('venda sem data cai no dia de Brasília, não no UTC (depois das 21h a data UTC já é amanhã)', async () => {
+  const { todayBRT } = require('../server/lib/brt.js');
+  assert.equal(todayBRT(new Date('2026-10-26T01:30:00Z')), '2026-10-25');
+  assert.equal(todayBRT(new Date('2026-10-26T12:00:00Z')), '2026-10-26');
+  const before = (await call('GET', '/api/dashboard?period=hoje')).body.metrics.sales;
+  const s = (await call('POST', '/api/sales', { description: 'Venda de hoje', amount: 500, cost: 100, status: 'pago' })).body;
+  assert.equal(s.sold_at, todayBRT());
+  assert.equal(s.paid_at, todayBRT());
+  const d = (await call('GET', '/api/dashboard?period=hoje')).body;
+  assert.equal(d.metrics.sales, before + 1);
+  assert.equal(d.metrics.range.end, todayBRT());
+});

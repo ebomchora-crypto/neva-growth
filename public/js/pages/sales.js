@@ -4,7 +4,8 @@ import { formSheet, money as brlf } from '../form-sheet.js';
 
 const SVIEWS = [['todas', 'Todas'], ['margem', 'Melhor margem'], ['proxima', 'Entrega próxima'], ['atrasadas', 'Atrasadas'], ['entregues', 'Entregues'], ['sem_cliente', 'Sem cliente']];
 const TYPES = [['Site institucional', 'Site institucional', 'Presença digital completa'], ['Landing page', 'Landing page', 'Página focada em conversão'], ['E-commerce', 'E-commerce', 'Loja virtual completa'], ['Sistema web', 'Sistema web', 'Aplicação sob medida'], ['Aplicativo', 'Aplicativo', 'App para celular'], ['Outro', 'Outro', 'Serviço personalizado']];
-const today = () => new Date().toISOString().slice(0, 10);
+const DAY_BRT = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' });
+const today = () => DAY_BRT.format(new Date());
 const day = (d) => (d ? new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { day: 'numeric', month: 'short', year: 'numeric' }) : '');
 const late = (s) => s.delivery_status === 'pendente' && s.status !== 'cancelado' && s.delivery_date && s.delivery_date < today();
 

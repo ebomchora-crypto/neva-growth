@@ -2,6 +2,7 @@ const express = require('express');
 const { all, get } = require('../lib/db');
 const S = require('../lib/services');
 const ai = require('../lib/ai');
+const { todayBRT } = require('../lib/brt');
 const r = express.Router();
 
 const PERIODS = { hoje: { days: 1, bucket: 'day' }, '7d': { days: 7, bucket: 'day' }, '1m': { days: 30, bucket: 'day' }, '3m': { days: 91, bucket: 'month' }, '6m': { days: 183, bucket: 'month' }, '1a': { days: 365, bucket: 'month' } };
@@ -11,7 +12,7 @@ const PAID_DATE = 'COALESCE(paid_at, sold_at)';
 
 function range(period) {
   const cfg = PERIODS[period] || PERIODS['6m'];
-  const end = new Date(iso(new Date()) + 'T00:00:00Z');
+  const end = new Date(todayBRT() + 'T00:00:00Z');
   const start = addDays(end, -(cfg.days - 1));
   const prevEnd = addDays(start, -1); const prevStart = addDays(prevEnd, -(cfg.days - 1));
   return { cfg, start: iso(start), end: iso(end), prevStart: iso(prevStart), prevEnd: iso(prevEnd), startD: start, endD: end };
