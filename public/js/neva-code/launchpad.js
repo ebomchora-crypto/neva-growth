@@ -9,7 +9,7 @@ const KEY = 'neva-ai-selection';
 const sv = (html, cls = '') => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = html; return s; };
 const I = {
   back: () => sv('<path d="M19 12H5M11 18l-6-6 6-6"/>'), arrow: () => sv('<path d="M5 12h14M13 6l6 6-6 6"/>'),
-  plus: () => sv('<path d="M12 5v14M5 12h14"/>'), chev: () => sv('<path d="m6 9 6 6 6-6"/>'), left: () => sv('<path d="m15 18-6-6 6-6"/>'), right: () => sv('<path d="m9 18 6-6-6-6"/>'),
+  plus: () => sv('<path d="M12 5v14M5 12h14"/>'), chev: () => sv('<path d="m6 9 6 6 6-6"/>'), refresh: () => sv('<path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/>'), left: () => sv('<path d="m15 18-6-6 6-6"/>'), right: () => sv('<path d="m9 18 6-6-6-6"/>'),
   palette: () => sv('<path d="M12 3a9 9 0 1 0 0 18c1 0 1.6-.8 1.6-1.7 0-.5-.2-.9-.5-1.2-.3-.3-.5-.7-.5-1.2 0-.9.8-1.7 1.7-1.7H16a5 5 0 0 0 5-5c0-4-4-7.2-9-7.2z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="7.5" r="1"/>'),
   mic: () => sv('<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>'), x: () => sv('<path d="M18 6 6 18M6 6l12 12"/>'), check: () => sv('<path d="M20 6 9 17l-5-5"/>'),
 };
@@ -51,11 +51,50 @@ export function launchpad(opts) {
   // ---- seletor "Modelo / Esforço"
   const modelBtn = h('button', { type: 'button', class: 'lp-model', disabled, 'aria-haspopup': 'menu', 'aria-expanded': 'false' });
   const paintModel = () => { const m = find(sel.model); const e = m.efforts.find((x) => x.id === sel.effort) || m.efforts[0]; mount(modelBtn, h('i', { class: 'lp-slash', 'aria-hidden': 'true' }), h('b', m.name || m.label || m.id), h('span', '/'), h('em', e.label), I.chev()); modelBtn.setAttribute('aria-label', `Modelo ${m.name || m.id}, esforço ${e.label}. Trocar`); };
-  const menu = popover(modelBtn, () => {
-    const m = find(sel.model);
-    return [h('p', { class: 'lp-mlabel' }, 'Modelo'), models.map((x) => item(x.name || x.id, x.description, x.id === sel.model, () => { sel = { model: x.id, effort: x.efforts.some((e) => e.id === sel.effort) ? sel.effort : (x.defaultEffort || x.efforts[0].id) }; save(); paintModel(); menu.refresh(); })),
-      m.efforts.length > 1 && [h('p', { class: 'lp-mlabel' }, 'Esforço'), m.efforts.map((e) => item(e.label, e.hint, e.id === sel.effort, () => { sel.effort = e.id; save(); paintModel(); menu.refresh(); }))]];
-  });
+  const menu = popover(modelBtn, () => [effortCard()], 'lp-epop');
+  // Cartão do seletor: nível de esforço em destaque, modelo logo abaixo (clique para trocar) e régua para escolher o esforço.
+  function effortCard() {
+    const m = () => find(sel.model); const n = () => m().efforts.length;
+    const idxOf = () => Math.max(0, m().efforts.findIndex((e) => e.id === sel.effort));
+    const label = h('b', { class: 'lp-elab' });
+    const nameBtn = h('button', { type: 'button', class: 'lp-ename', 'aria-haspopup': 'menu', 'aria-expanded': 'false' });
+    const reset = h('button', { type: 'button', class: 'lp-ereset', title: 'Restaurar o padrão', 'aria-label': 'Restaurar o modelo e o esforço padrão' }, I.refresh());
+    const dots = h('span', { class: 'lp-dots', 'aria-hidden': 'true' }); const fill = h('i', { class: 'lp-fill' }); const thumb = h('b', { class: 'lp-thumb' });
+    const track = h('div', { class: 'lp-track', role: 'slider', tabindex: '0' }, fill, dots, thumb);
+    const card = h('div', { class: 'lp-ecard' }, reset, label, nameBtn, track);
+    let emenu = null;
+    const closeMenu = () => { emenu?.remove(); emenu = null; nameBtn.setAttribute('aria-expanded', 'false'); };
+    function paintText() {
+      const i = idxOf(); const e = m().efforts[i];
+      label.textContent = e.label; mount(nameBtn, h('span', m().name || m().id), I.right());
+      track.setAttribute('aria-valuemin', '0'); track.setAttribute('aria-valuemax', String(Math.max(0, n() - 1))); track.setAttribute('aria-valuenow', String(i)); track.setAttribute('aria-valuetext', e.label); track.setAttribute('aria-label', 'Esforço do modelo');
+      track.classList.toggle('single', n() < 2);
+      mount(dots, m().efforts.map((_, k) => h('i', { class: k <= i ? 'on' : '', style: `left:calc(18px + (100% - 36px) * ${n() > 1 ? k / (n() - 1) : 0})` })));
+    }
+    function sync() { track.style.setProperty('--lp-p', String(n() > 1 ? idxOf() / (n() - 1) : 0)); paintText(); paintModel(); }
+    const setIdx = (i) => { const e = m().efforts[Math.min(n() - 1, Math.max(0, i))]; if (e && e.id !== sel.effort) { sel.effort = e.id; save(); } sync(); };
+    // arrastar acompanha o dedo; ao soltar, encaixa no nível mais próximo
+    const ratio = (ev) => { const r = track.getBoundingClientRect(); return Math.min(1, Math.max(0, (ev.clientX - r.left - 18) / (r.width - 36))); };
+    const drag = (ev) => { if (n() < 2) return; const p = ratio(ev); track.style.setProperty('--lp-p', String(p)); const i = Math.round(p * (n() - 1)); if (m().efforts[i].id !== sel.effort) { sel.effort = m().efforts[i].id; save(); paintText(); paintModel(); } };
+    track.addEventListener('pointerdown', (ev) => { if (n() < 2) return; track.setPointerCapture(ev.pointerId); track.classList.add('drag'); drag(ev); track.focus({ preventScroll: true }); });
+    track.addEventListener('pointermove', (ev) => { if (track.classList.contains('drag')) drag(ev); });
+    const drop = () => { if (!track.classList.contains('drag')) return; track.classList.remove('drag'); sync(); };
+    track.addEventListener('pointerup', drop); track.addEventListener('pointercancel', drop);
+    track.addEventListener('keydown', (ev) => {
+      const k = { ArrowRight: 1, ArrowUp: 1, ArrowLeft: -1, ArrowDown: -1 }[ev.key];
+      if (k) { ev.preventDefault(); setIdx(idxOf() + k); } else if (ev.key === 'Home') { ev.preventDefault(); setIdx(0); } else if (ev.key === 'End') { ev.preventDefault(); setIdx(n() - 1); }
+    });
+    nameBtn.addEventListener('click', () => {
+      if (emenu) { closeMenu(); return; }
+      emenu = h('div', { class: 'lp-emenu', role: 'menu' }, models.map((x) => item(x.name || x.id, x.description, x.id === sel.model, () => {
+        sel = { model: x.id, effort: x.efforts.some((e) => e.id === sel.effort) ? sel.effort : (x.defaultEffort || x.efforts[0].id) }; save(); closeMenu(); sync();
+      })));
+      card.append(emenu); nameBtn.setAttribute('aria-expanded', 'true');
+    });
+    reset.addEventListener('click', () => { const d = find(opts.defaultModel) || models[0]; sel = { model: d.id, effort: d.defaultEffort || d.efforts[0].id }; save(); closeMenu(); sync(); });
+    sync();
+    return card;
+  }
 
   // ---- cores da marca
   const c1 = h('input', { type: 'color', value: '#2f7bbd', 'aria-label': 'Cor principal' });
