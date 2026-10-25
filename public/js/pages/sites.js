@@ -38,12 +38,12 @@ export default {
             link && h('a', { class: 'sf-ext', href: link, target: '_blank', rel: 'noopener', title: 'Abrir o site', 'aria-label': 'Abrir o site' }, icon('external')))),
         h('div', { class: 'sf-side' }, h('small', { class: 'k' }, 'PROJETO EM DESTAQUE'),
           h('div', { class: 'sf-title' }, h('i', { class: 'sf-num' }, num), h('h2', p.name)), h('p', desc),
-          h('div', { class: 'sf-more' }, p.studio ? h('a', { href: '#/studio/' + p.id }, 'Studio') : null, p.files_count > 0 ? h('a', { href: '#/ide/' + p.id }, p.can_edit ? 'Código' : 'Ver código') : null,
+          h('div', { class: 'sf-more' }, p.studio ? h('a', { href: '#/builder/' + p.id }, 'Builder') : null, p.files_count > 0 ? h('a', { href: '#/ide/' + p.id }, p.can_edit ? 'Código' : 'Ver código') : null,
             canWrite && p.files_count > 0 ? h('button', { type: 'button', onclick: async () => { try { await api.post(`/projects/${p.id}/duplicate`); toast('Projeto duplicado.', 'ok'); load(); } catch (e) { fail(e); } } }, 'Duplicar') : null),
           h('div', { class: 'sf-foot' }, p.client_name ? h('span', { class: 'sf-client', title: 'Cliente' }, p.client_name) : h('span'),
             canWrite && p.can_edit && h('button', { type: 'button', class: 'sf-btn', onclick: () => siteForm(p) }, icon('pencil'), 'Editar'),
             canWrite && p.can_edit && h('button', { type: 'button', class: 'sf-btn', onclick: async () => { if (!(await confirmBox(`Excluir o projeto "${p.name}"${p.files_count ? ' e todos os arquivos' : ''}?`))) return; try { await api.del('/projects/' + p.id); toast('Projeto excluído.', 'ok'); load(); } catch (e) { fail(e); } } }, icon('trash'), 'Excluir'),
-            link ? h('a', { class: 'sf-btn open', href: link, target: '_blank', rel: 'noopener' }, 'Abrir', icon('external')) : (p.files_count > 0 && h('a', { class: 'sf-btn open', href: (p.studio ? '#/studio/' : '#/ide/') + p.id }, 'Abrir', icon('external'))))));
+            link ? h('a', { class: 'sf-btn open', href: link, target: '_blank', rel: 'noopener' }, 'Abrir', icon('external')) : (p.files_count > 0 && h('a', { class: 'sf-btn open', href: (p.studio ? '#/builder/' : '#/ide/') + p.id }, 'Abrir', icon('external'))))));
     }
     async function load() {
       const { items, stats } = await api.get('/projects', { q: st.q, status: st.status === 'todos' ? '' : st.status });

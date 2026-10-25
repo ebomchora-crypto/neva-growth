@@ -231,7 +231,9 @@ function cleanBrief(input) {
     // A Neva ainda não guarda imagens enviadas: o site usa as fotos de banco do Code Maker.
     assets: [],
     // Referências de design escolhidas pelo usuário no Builder (DESIGN.md da página Referências de design): até 3.
-    designIds: (Array.isArray(input.designIds) ? input.designIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 3)
+    designIds: (Array.isArray(input.designIds) ? input.designIds : []).map(Number).filter((n) => Number.isInteger(n) && n > 0).slice(0, 3),
+    // Modelo escolhido na tela inicial do Builder: vira a base visual obrigatória (id do acervo de DESIGN.md).
+    baseRef: /^[a-f0-9]{16}$/.test(String(input.baseRef || '')) ? String(input.baseRef) : null
   };
 }
 
@@ -683,6 +685,24 @@ r.post('/', async (req, res) => {
   if (action === 'usage') {
     const [sites, edits] = await Promise.all([countToday(user.id, 'create'), countToday(user.id, 'edit')]);
     return res.json({ sites_today: sites, sites_limit: SITES_PER_DAY, edits_today: edits, edits_limit: EDITS_PER_DAY });
+  }
+
+  // "Otimizar prompt": reescreve a ideia do usuário como um pedido completo de site (sem inventar dados do negócio).
+  if (action === 'optimize') {
+    const text = E.cleanUserText(body.text);
+    if (!text) throw bad('Escreva primeiro a ideia do site.');
+    if (!ai.configured()) throw new HttpError(503, ai.NOT_CONFIGURED, 'ai_not_configured');
+    if ((await countToday(user.id)) >= CALLS_PER_DAY) throw new HttpError(429, 'Limite de uso da IA de hoje atingido. Amanhã libera de novo.');
+    const sel = ai.selection(body);
+    const out = await ai.complete({ model: sel.model, effort: 'low', noThink: true, maxTokens: 900, kind: 'cm_optimize', userId: user.id,
+      system: 'Você reescreve pedidos de criação de site para um construtor de sites com IA. Devolva SOMENTE o pedido reescrito, em português do Brasil, sem títulos, sem markdown e sem comentários. ' +
+        'Mantenha tudo o que o usuário disse (nome, cidade, cores, ramo, contatos). Organize em frases curtas: o que é o negócio e para quem; as seções do site em ordem (ex.: topo com chamada principal, serviços, sobre, depoimentos, perguntas frequentes, contato); o tom e o clima visual; a ação principal (ex.: WhatsApp, agendar, comprar). ' +
+        'NÃO invente dados que o usuário não deu (telefone, endereço, preços, prêmios, números); quando faltar, escreva o que a seção deve conter sem inventar o valor. Máximo de 120 palavras.',
+      messages: [{ role: 'user', content: text.slice(0, 4000) }] });
+    const clean = String(out || '').replace(/^```[a-z]*\n?|```$/g, '').replace(/^\s*(pedido reescrito|prompt otimizado)\s*:\s*/i, '').trim();
+    if (!clean) throw new HttpError(502, 'A IA não devolveu o texto. Tente de novo.');
+    await recordCall(user.id, 'optimize');
+    return res.json({ text: clean.slice(0, 2000) });
   }
 
   if (action === 'read_site') {

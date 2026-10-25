@@ -64,6 +64,8 @@ const PT_EN = [
 /** Escolhe a melhor referência do acervo para o pedido (sempre devolve uma). `seed` desempata entre as quase iguais. */
 function pickArchive(brief = {}, seed = '') {
   const idx = load();
+  // Modelo escolhido pelo usuário na tela inicial: é a base, sem busca.
+  if (brief.baseRef) { const it = idx.find((d) => d.id === brief.baseRef); if (it) return { it, score: null, alternatives: [], chosen: true }; }
   const ask = norm(`${brief.niche || ''} ${brief.businessName || ''} ${brief.style || ''} ${(brief.details || '').slice(0, 1500)}`);
   const q = new Map(); const bump = (w, v) => q.set(w, (q.get(w) || 0) + v);
   for (const w of SECTOR_WORDS[sectorOf(brief).id] || SECTOR_WORDS.geral) bump(w, 1);

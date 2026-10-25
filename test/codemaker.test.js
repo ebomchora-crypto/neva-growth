@@ -146,3 +146,18 @@ test('limite diário: 15 sites por dia e contador visível', async () => {
   await run("DELETE FROM ai_usage WHERE user_id=? AND kind='cm_create'", uid);
   assert.equal((await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Agora pode' } })).status, 200);
 });
+
+test('modelo escolhido na tela inicial vira a base visual; id inválido é descartado', async () => {
+  const ok = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site para clínica em Curitiba', baseRef: '2e4e393eca6f87e2' } });
+  assert.equal(ok.status, 200);
+  const s = (await call('GET', '/api/code-maker/' + ok.body.site.id)).body.site;
+  assert.equal(s.brief.baseRef, '2e4e393eca6f87e2');
+  const { archiveBlock } = require('../server/lib/codemaker/archive-refs');
+  assert.equal(archiveBlock(s.brief, 'x').trace.id, '2e4e393eca6f87e2');
+  const bad = await call('POST', '/api/code-maker', { action: 'create', brief: { details: 'Site qualquer', baseRef: '../../etc' } });
+  assert.equal((await call('GET', '/api/code-maker/' + bad.body.site.id)).body.site.brief.baseRef, null);
+});
+
+test('otimizar prompt exige texto', async () => {
+  assert.equal((await call('POST', '/api/code-maker', { action: 'optimize', text: '   ' })).status, 400);
+});

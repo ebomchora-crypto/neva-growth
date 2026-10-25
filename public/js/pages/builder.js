@@ -1,10 +1,11 @@
-// Builder com IA (Neva Code): conversa estilo chat para criar e alterar sites. À esquerda, os seus sites como conversas;
-// no meio, a conversa com o agente (etapas ao vivo, plano, revisão de alterações por arquivo); à direita, a prévia.
+// Builder com IA (Neva Code). Sem site aberto: a tela inicial (neva-code/launchpad.js) com a caixa de pedido e os modelos.
+// Com site aberto: à esquerda os seus sites; no meio as etapas, o plano e a revisão de alterações por arquivo; à direita, a prévia.
 // A criação usa o mesmo motor do Studio (plano → seções em paralelo → montagem → publicação) e o DESIGN.md da Neva;
 // a direção de arte vem do DESIGN.md da Neva e de referências escolhidas automaticamente pelo agente.
 import { api } from '../api.js';
 import { h, mount, toast, fail, icon, modal, confirmBox, dtt, debounce } from '../ui.js';
 import { composer } from '../neva-code/composer.js';
+import { launchpad } from '../neva-code/launchpad.js';
 import { contextMeter } from '../neva-code/context-meter.js';
 import { agentSteps } from '../neva-code/agent-steps.js';
 import { diffReview, hunksOf } from '../diff-review.js';
@@ -19,12 +20,6 @@ const SAY = {
   editStart: ['Vou fazer essa alteração.', 'Certo, vou mexer nisso agora.', 'Entendi. Vou ajustar o site.'],
   editDone: ['Feito. Revise abaixo o que mudou em cada arquivo; dá para desfazer arquivo por arquivo.', 'Alteração aplicada. Confira cada arquivo abaixo e desfaça o que não quiser.'],
 };
-const IDEAS = [
-  { t: 'Clínica odontológica', d: 'Site para clínica odontológica em Curitiba, com tratamentos, equipe, depoimentos e agendamento pelo WhatsApp.' },
-  { t: 'Advocacia', d: 'Site institucional sóbrio para escritório de advocacia trabalhista em São Paulo, com áreas de atuação, sócios e contato.' },
-  { t: 'Hamburgueria', d: 'Landing page para hamburgueria artesanal com cardápio, combos, horário, localização e pedido pelo WhatsApp.' },
-  { t: 'SaaS', d: 'Landing page para um software de agendamento online, com recursos, planos e preços, perguntas frequentes e teste grátis.' },
-];
 const STAT = { ready: ['Pronto', 'ok'], building: ['Criando', 'run'], planning: ['Criando', 'run'], error: ['Parou', 'bad'] };
 const day = (s) => { const d = new Date(String(s || '').replace(' ', 'T') + (String(s).includes('Z') ? '' : 'Z')); return isNaN(d) ? 0 : d.getTime(); };
 const markSvg = () => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = '<path d="M12 2.5 14.6 9.4 21.5 12l-6.9 2.6L12 21.5l-2.6-6.9L2.5 12l6.9-2.6z" fill="currentColor"/>'; return s; };
@@ -112,16 +107,6 @@ export default {
     const paintUsage = async () => {
       try { const u = await api.get('/code-maker/usage'); usageEl.textContent = `Hoje: ${u.sites_today} de ${u.sites_limit} sites · ${u.edits_today} de ${u.edits_limit} alterações`; usageEl.classList.toggle('full', u.sites_today >= u.sites_limit || u.edits_today >= u.edits_limit); } catch { usageEl.textContent = ''; }
     };
-    function welcome() {
-      const name = ctx.user.name.split(' ')[0];
-      return h('div', { class: 'nc-welcome' },
-        h('div', { class: 'nc-hello' }, h('span', { class: 'nc-kicker' + (builderOn ? '' : ' off') }, h('i'), builderOn ? 'Agente de sites pronto' : 'IA indisponível: configure CODEMAKER_API_KEY ou RIVER_API_KEY'),
-          h('h1', `${name}, que site vamos construir?`),
-          h('p', 'Converse como num chat: descreva o negócio e anexe fotos e logo. O agente escolhe a direção de arte, escreve, publica, e você ajusta pedindo.')),
-        cp.el, usageEl,
-        h('div', { class: 'nc-ideas' }, IDEAS.map((i) => h('button', { type: 'button', class: 'nc-idea', onclick: () => { cp.setValue(i.d); cp.focus(); } }, h('b', i.t), h('span', i.d)))));
-    }
-
     // ---------------- conversa (site aberto)
     let site = null; let versions = []; let stages = null; let stageTimer = null;
     let phase = 'idle'; let controller = null; let busy = false; let error = null;
@@ -395,10 +380,23 @@ export default {
     box.classList.add('fill');
     document.documentElement.classList.add('studio-lock');
 
+    let pad = null;
     if (!id) {
-      root.replaceChildren(side, h('section', { class: 'nc-main' }, h('header', { class: 'nc-top slim' }, sideBtn, h('span', { class: 'grow' }), h('a', { class: 'nc-tb nc-home', href: '#/dashboard' }, icon('home'), h('span', 'Painel'))), h('div', { class: 'nc-scroll' }, welcome())), h('div', { class: 'nc-scrim', onclick: () => root.classList.remove('side-open') }));
-      mount(box, root);
-      cp.focus();
+      // Tela inicial: palco com a caixa de pedido e os modelos (sem conversa).
+      pad = launchpad({
+        name: ctx.user.name.split(' ')[0], models: st.ai?.models, defaultModel: st.ai?.defaultModel, disabled: !builderOn || !canWrite,
+        offMessage: !canWrite ? 'Seu perfil só pode visualizar.' : 'IA indisponível: configure CODEMAKER_API_KEY ou RIVER_API_KEY.',
+        onCreate: async ({ details, assets, model, effort, baseRef }) => {
+          try {
+            const r = await api.post('/code-maker', { action: 'create', brief: { details, style: 'auto', baseRef }, assets, model, effort });
+            if (r?.attachments?.length) toast(r.attachments.join(' '), 'ok');
+            location.hash = '#/builder/' + r.site.id;
+          } catch (e) { fail(e); }
+        },
+      });
+      box.classList.add('lp-box');
+      mount(box, pad.el);
+      pad.focus();
     } else {
       try { await refresh(); } catch (e) { mount(box, h('div', { class: 'empty' }, h('b', 'Site não encontrado.'), h('a', { href: '#/builder' }, 'Voltar ao Builder'))); document.documentElement.classList.remove('studio-lock'); return () => {}; }
       root.replaceChildren(side,
@@ -415,9 +413,9 @@ export default {
       loadStages();
       if (site.status !== 'ready' && canWrite && builderOn) generate();
     }
-    loadSites(); refreshMeter(); paintUsage();
+    if (id) { loadSites(); refreshMeter(); paintUsage(); }
     return () => {
-      disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort();
+      disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); pad?.destroy(); box.classList.remove('lp-box');
       clearTimeout(previewTimer); clearInterval(stageTimer); window.removeEventListener('message', onMsg); meter.destroy(); createSteps.destroy(); editRun?.steps.destroy();
     };
   }

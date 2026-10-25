@@ -25,7 +25,7 @@ const ROUTES = [
   { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/sales.js') },
   { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
-  { path: 'builder', wide: true, bare: true, search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'builder', wide: true, bare: (p) => (p[0] ? 'full' : 'rail'), search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
   { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { path: 'studio/:id', hidden: true, wide: true, page: lazy('./pages/studio.js') },
   { path: 'ao-vivo', hidden: true, wide: true, page: lazy('./pages/live.js') },
@@ -279,7 +279,9 @@ function shell() {
 
 async function route() {
   // Telas "bare" (Chat) ocupam a janela inteira, sem o menu lateral nem a barra do topo.
-  { const m = match(); document.documentElement.classList.toggle('bare-page', Boolean(m.route?.bare)); }
+  // "rail": mantém o menu lateral e esconde só a barra do topo (tela inicial do Builder).
+  { const m = match(); const b = typeof m.route?.bare === 'function' ? m.route.bare(m.params) : (m.route?.bare ? 'full' : '');
+    document.documentElement.classList.toggle('bare-page', b === 'full'); document.documentElement.classList.toggle('rail-page', b === 'rail'); }
   const view = document.getElementById('view'); if (!view) return;
   const { route: r, params } = match();
   if (!r) { location.hash = '#/dashboard'; return; }
