@@ -166,3 +166,14 @@ test('capa do site aceita imagem enviada (/u/) e continua recusando links que nÃ
   const cleared = await call('PUT', `/api/projects/${p.id}`, { cover_url: '' });
   assert.equal(cleared.body.cover_url, null);
 });
+
+test('referÃªncias de design: cada captura registrada tem arquivo e chega no hero pela API', async () => {
+  const heroes = require('../server/lib/design-references/heroes.json');
+  const ids = Object.keys(heroes);
+  assert.ok(ids.length > 100);
+  for (const id of ids) assert.ok(fs.existsSync(path.join(__dirname, '..', 'public', heroes[id].shot)), `falta a imagem de ${id}`);
+  const items = (await call('GET', '/api/design-references')).body.items;
+  const it = items.find((x) => x.id === ids[0]);
+  assert.equal(it.hero.screenshot, heroes[ids[0]].shot);
+  assert.match(it.url, /^https?:\/\//);
+});
