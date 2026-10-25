@@ -19,6 +19,7 @@ const read = (f, d) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } 
 const heroes = read(heroesFile, {}); const tried = read(triedFile, {});
 const args = process.argv.slice(2);
 const opt = (k, d) => { const i = args.indexOf('--' + k); return i >= 0 ? Number(args[i + 1]) : d; };
+const LIST = args.includes('--list'); const LENIENT = args.includes('--lenient'); // só dá mais tempo de espera; não disfarça o navegador (sites que bloqueiam robô ficam sem captura)
 const LIMIT = opt('limit', Infinity); const WORKERS = opt('workers', 6); const RETRY = args.includes('--retry');
 fs.mkdirSync(out, { recursive: true });
 
@@ -77,15 +78,16 @@ function verify(page, brand) {
   const tokens = brand.split(/\s+/).map(norm).filter((t) => t.length >= 3);
   return tokens.length > 1 && tokens.every((t) => hay.includes(t));
 }
-async function shoot(browser, url, file, fonts, trusted) {
+async function shoot(browser, url, file, fonts, trusted, lenient = false) {
+  const wall = lenient ? /just a moment|attention required|access denied|verify you are human|are you a robot|captcha|request blocked|pardon our interruption/i : WALL;
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 800 / 1440, locale: 'en-US', userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36' });
   const page = await ctx.newPage();
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 25000 });
-    await page.waitForLoadState('load', { timeout: 7000 }).catch(() => {});
-    await page.waitForTimeout(1800);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: lenient ? 45000 : 25000 });
+    await page.waitForLoadState('load', { timeout: lenient ? 15000 : 7000 }).catch(() => {});
+    await page.waitForTimeout(lenient ? 5000 : 1800);
     const t = await page.title().catch(() => '');
-    if (WALL.test(t)) return false;
+    if (wall.test(t)) return '';
     await page.evaluate(() => {
       const ok = /^(accept( all)?( cookies)?|allow all|agree|i agree|got it|ok|okay|aceitar( todos)?|concordo|entendi)\b/i;
       for (const b of document.querySelectorAll('button,a[role=button]')) if (ok.test((b.textContent || '').trim())) { try { b.click(); } catch { /* ignora */ } }
@@ -100,18 +102,51 @@ async function shoot(browser, url, file, fonts, trusted) {
       }).catch(() => []);
       const have = fam.map(norm);
       const hit = fonts.some((d) => { const n = norm(d); return n.length >= 3 && have.some((h) => h.includes(n) || (h.length >= 5 && n.includes(h))); });
-      if (!hit) return false;
+      if (!hit) return '';
     }
     await page.evaluate(() => window.scrollTo(0, 0)).catch(() => {});
     const png = await page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: 1440, height: 900 } });
     const r = spawnSync('convert', ['png:-', '-quality', '72', '-define', 'webp:method=4', 'webp:-'], { input: png, maxBuffer: 20 * 1024 * 1024 });
-    if (r.status !== 0 || r.stdout.length < 6000) return false; // quase vazio = página em branco ou bloqueada
+    if (r.status !== 0 || r.stdout.length < (lenient ? 3500 : 6000)) return ''; // quase vazio = página em branco ou bloqueada
     fs.writeFileSync(file, r.stdout);
-    return true;
-  } catch { return false; } finally { await ctx.close().catch(() => {}); }
+    return page.url() || url;
+  } catch { return ''; } finally { await ctx.close().catch(() => {}); }
+}
+
+async function runList(browser) {
+  const { loadMap, domainOf } = require('./design-domains.js');
+  const map = loadMap(); const groups = new Map(); // domínio -> itens (Apple tem 9 referências: uma captura só)
+  for (const it of catalog) {
+    if (it.hero?.screenshot) continue;
+    const d = domainOf(map, it); if (!d) continue;
+    const cur = heroes[it.id]; if (LENIENT && cur) continue; const host = cur ? new URL(cur.url).hostname.replace(/^www\./, '') : null;
+    if (cur && host === d.replace(/^www\./, '') && !RETRY) continue; // já confere com a lista
+    (groups.get(d) || groups.set(d, []).get(d)).push(it);
+  }
+  const todo = [...groups.entries()].slice(0, LIMIT);
+  console.log(`lista: ${todo.length} domínios a abrir (${[...groups.values()].reduce((n, a) => n + a.length, 0)} referências)`);
+  let next = 0; let done = 0; let okCount = 0; const failed = [];
+  const worker = async () => {
+    while (next < todo.length) {
+      const [domain, items] = todo[next++]; const file = path.join(out, `${items[0].id}.webp`); let final = '';
+      for (const u of [`https://${domain}/`, `https://www.${domain}/`, `http://${domain}/`]) { final = await shoot(browser, u, file, [], true, LENIENT); if (final) break; }
+      if (final) {
+        const origin = new URL(final).origin;
+        for (const it of items) { if (it !== items[0]) fs.copyFileSync(file, path.join(out, `${it.id}.webp`)); heroes[it.id] = { url: origin, shot: `/img/refs/${it.id}.webp` }; tried[it.id] = 'ok'; }
+        okCount++;
+      } else { failed.push(`${items[0].title} (${domain})`); for (const it of items) tried[it.id] = tried[it.id] || 'none'; }
+      if (++done % 10 === 0) { save(); console.log(`${done}/${todo.length} (ok ${okCount})`); }
+    }
+  };
+  const save = () => { fs.writeFileSync(heroesFile, JSON.stringify(heroes, null, 1)); fs.writeFileSync(triedFile, JSON.stringify(tried)); };
+  await Promise.all(Array.from({ length: WORKERS }, worker));
+  save();
+  fs.writeFileSync(path.join(dir, 'heroes-failed.txt'), failed.join('\n'));
+  console.log(`fim da lista: ${okCount} de ${todo.length} domínios abertos; ${failed.length} falharam (heroes-failed.txt); total com captura ${Object.keys(heroes).length}`);
 }
 
 (async () => {
+  if (LIST) { const browser = await chromium.launch(); await runList(browser); await browser.close(); return; }
   const todo = catalog.filter((it) => !it.hero?.screenshot && !heroes[it.id] && (RETRY || !tried[it.id])).slice(0, LIMIT);
   console.log(`catálogo ${catalog.length}, a processar ${todo.length}, já com captura ${Object.keys(heroes).length}`);
   const browser = await chromium.launch();

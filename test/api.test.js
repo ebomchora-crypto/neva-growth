@@ -177,3 +177,14 @@ test('referências de design: cada captura registrada tem arquivo e chega no her
   assert.equal(it.hero.screenshot, heroes[ids[0]].shot);
   assert.match(it.url, /^https?:\/\//);
 });
+
+test('lista de domínios das referências liga cada item ao site certo, inclusive os de mesmo nome', () => {
+  const { loadMap, domainOf } = require('../scripts/design-domains.js');
+  const map = loadMap(); const catalog = require('../server/lib/design-references/catalog.json');
+  const of = (title, start) => domainOf(map, catalog.find((x) => x.title === title && String(x.summary).startsWith(start)));
+  assert.equal(of('Aboard', 'Editorial field'), 'aboard.com');
+  assert.equal(of('Aboard (arquivo 2)', 'pastel paper'), 'aboardhr.com');
+  assert.equal(of('Apple (España) (arquivo 4)', 'Cathedral'), 'apple.com');
+  const mapped = catalog.filter((x) => domainOf(map, x)).length;
+  assert.ok(mapped > 1200, `só ${mapped} itens com domínio`);
+});
