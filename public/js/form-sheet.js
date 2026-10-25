@@ -1,4 +1,5 @@
 import { h, icon, toast, fail } from './ui.js';
+import { api } from './api.js';
 
 // Formulário em folha (como o "Registrar cliente" da referência): faixa de título, seções numeradas em moldura e botão grande.
 // field: { k, l, ic, type: text|select|money|date|textarea|url, ph, req, opt, opts: [[valor, rótulo, subtítulo]], def, span }
@@ -13,6 +14,18 @@ export function fitToViewport(card) {
 }
 
 const money = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(v) || 0);
+
+// Reduz a foto no navegador (até 1600 px, JPEG) para caber no limite do servidor; PNG com transparência ganha fundo branco.
+async function shrinkImage(file, max = 1600) {
+  const src = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((res, rej) => { const x = new Image(); x.onload = () => res(x); x.onerror = () => rej(new Error('Não consegui abrir essa imagem.')); x.src = src; });
+    const k = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas'); c.width = Math.round(img.naturalWidth * k); c.height = Math.round(img.naturalHeight * k);
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+    return c.toDataURL('image/jpeg', 0.86);
+  } finally { URL.revokeObjectURL(src); }
+}
 
 export function control(f, value) {
   const v = value ?? f.def ?? '';
@@ -71,6 +84,24 @@ export function control(f, value) {
   if (f.type === 'date') {
     const i = h('input', { name: f.k, type: 'date', value: v, required: !!f.req, 'aria-label': f.l });
     return { el: h('div', { class: 'fs-in date' }, i, icon('calendar')), input: i };
+  }
+  if (f.type === 'image') {
+    // Aceita link público ou foto do computador (vira /u/<id> no servidor e o campo recebe essa URL).
+    const i = h('input', { name: f.k, type: 'text', value: v, placeholder: f.ph || '', autocomplete: 'off' });
+    const file = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: true });
+    const pick = h('button', { type: 'button', class: 'fs-upload' }, icon('image'), h('span', 'Do computador'));
+    pick.addEventListener('click', () => file.click());
+    file.addEventListener('change', async () => {
+      const f0 = file.files?.[0]; file.value = ''; if (!f0) return;
+      pick.disabled = true;
+      try {
+        const dataUrl = await shrinkImage(f0);
+        const up = await api.post('/code-maker/images', { dataUrl, name: f0.name });
+        i.value = up.url; i.dispatchEvent(new Event('input', { bubbles: true }));
+        toast('Imagem enviada.', 'ok');
+      } catch (e) { fail(e); } finally { pick.disabled = false; }
+    });
+    return { el: h('div', { class: 'fs-in image' }, i, pick, file), input: i };
   }
   const i = h('input', { name: f.k, type: f.type === 'url' ? 'text' : (f.type || 'text'), value: v, placeholder: f.ph || '', required: !!f.req, autocomplete: 'off', maxlength: f.max || null });
   return { el: h('div', { class: 'fs-in' }, i), input: i };

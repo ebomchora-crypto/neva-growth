@@ -155,3 +155,14 @@ test('venda sem data cai no dia de Brasília, não no UTC (depois das 21h a data
   assert.ok(d.metrics.series.length >= 1 && d.metrics.series.every((p) => /^\d\dh$/.test(p.label)));
   assert.equal(d.metrics.series.reduce((a, p) => a + p.revenue, 0), d.metrics.revenue);
 });
+
+test('capa do site aceita imagem enviada (/u/) e continua recusando links que não são web', async () => {
+  const p = (await call('POST', '/api/projects', { name: 'Site com capa', kind: 'site', link: true })).body;
+  const ok = await call('PUT', `/api/projects/${p.id}`, { cover_url: '/u/0123456789abcdef01234567.png' });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.cover_url, '/u/0123456789abcdef01234567.png');
+  assert.equal((await call('PUT', `/api/projects/${p.id}`, { cover_url: 'javascript:alert(1)' })).status, 400);
+  assert.equal((await call('PUT', `/api/projects/${p.id}`, { cover_url: '/u/../../etc.png' })).status, 400);
+  const cleared = await call('PUT', `/api/projects/${p.id}`, { cover_url: '' });
+  assert.equal(cleared.body.cover_url, null);
+});

@@ -60,9 +60,11 @@ const cleanUrl = (v, label) => {
   const u = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
   try { const x = new URL(u); if (!/^https?:$/.test(x.protocol) || !x.hostname.includes('.')) throw 0; return x.href.slice(0, 500); } catch { throw bad(`${label} inválido (ex.: https://seusite.com.br).`); }
 };
+// Capa: link https ou imagem enviada pelo computador (/u/<id>.ext, servida pela própria Neva).
+const coverUrl = (v) => (/^\/u\/[a-f0-9]{24}\.(?:jpg|png|webp)$/.test(String(v ?? '').trim()) ? String(v).trim() : cleanUrl(v, 'Imagem de capa'));
 async function portfolioMeta(id, b, old = {}) {
   const site_url = b.site_url !== undefined ? cleanUrl(b.site_url, 'Link do site') : old.site_url ?? null;
-  const cover_url = b.cover_url !== undefined ? cleanUrl(b.cover_url, 'Imagem de capa') : old.cover_url ?? null;
+  const cover_url = b.cover_url !== undefined ? (String(b.cover_url ?? '').trim() ? coverUrl(b.cover_url) : null) : old.cover_url ?? null;
   await run('UPDATE projects SET site_url=?, cover_url=? WHERE id=?', site_url, cover_url, id);
   if (b.status !== undefined) {
     if (!['publicado', 'desenvolvimento', 'arquivado'].includes(b.status)) throw bad('Status inválido.');

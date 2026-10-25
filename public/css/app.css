@@ -2439,3 +2439,11 @@ html.bare-page .shell::after{display:none}
 @media(max-width:700px){.bcol small{white-space:nowrap;font-size:.54rem;letter-spacing:-.03em;overflow-wrap:normal;line-height:1}}
 @media(max-width:700px){.bchart .bcol small{font-size:.5rem!important;letter-spacing:-.04em;white-space:nowrap}.bchart .bcol span{font-size:.6rem!important}}
 .nc-usage{margin:6px 4px 0;font-size:.74rem;color:var(--nc-mut);text-align:center}.nc-usage.full{color:var(--bad);font-weight:700}
+
+/* Campo de imagem do formulário: link ou envio do computador */
+.fs-in.image{gap:8px;padding-right:6px}
+.fs-in.image input{flex:1;min-width:0}
+.fs-upload{display:inline-flex;align-items:center;gap:6px;flex:none;white-space:nowrap;border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:10px;padding:7px 10px;font:inherit;font-size:.8rem;font-weight:600;cursor:pointer;transition:border-color .2s,color .2s}
+.fs-upload:hover{border-color:var(--ice-500);color:#2f7bbd}
+.fs-upload:disabled{opacity:.6;cursor:wait}
+.fs-upload svg{width:15px;height:15px}

@@ -65,7 +65,7 @@ export default {
           { k: 'status', l: 'Status', ic: 'rocket', type: 'select', opts: [['publicado', 'Publicado'], ['desenvolvimento', 'Em desenvolvimento'], ['arquivado', 'Arquivado']] },
           { k: 'site_url', l: 'Link do site', ic: 'globe', ph: 'https://seusite.com.br', span: 2 },
           { k: 'client_id', l: 'Cliente relacionado', ic: 'link', type: 'select', opts: [['', 'Projeto independente'], ...clients.items.map((c) => [c.id, c.name])] },
-          { k: 'cover_url', l: 'Imagem de capa (opcional)', ic: 'image', ph: 'Link público da captura' },
+          { k: 'cover_url', l: 'Imagem de capa (opcional)', ic: 'image', type: 'image', ph: 'Link público da captura', span: 2 },
           { k: 'description', l: 'Descrição curta', ic: 'check', type: 'textarea', ph: 'O que foi criado e qual resultado esse site entrega?', span: 2 }] }],
         onSubmit: async (d, close) => {
           if (d.status === 'publicado' && !d.site_url && !(p && p.files_count)) throw new Error('Para marcar como publicado, informe o link do site.');
