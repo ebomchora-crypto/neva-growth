@@ -1819,9 +1819,9 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
   .sv-chip{min-height:30px}
   /* Sites: ações do cartão em destaque em uma grade limpa; links pequenos com área de toque */
   .sf-foot{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:center}
-  .sf-foot>.sf-client{grid-column:1/-1;max-width:none}
-  .sf-foot .sf-btn{width:100%;justify-content:center;min-height:44px}
-  .sf-foot .sf-btn.open{grid-column:1/-1}
+  .sf-foot>.sf-client{grid-column:1/-1;max-width:none;order:9}
+  .sf-foot .sf-btn{width:100%;justify-content:center;min-height:44px;height:auto}
+  .sf-foot .sf-btn.open{grid-column:1/-1;margin-left:0}
   .sf-more{gap:6px;flex-wrap:wrap}.sf-more a,.sf-more button{display:inline-flex;align-items:center;min-height:36px;padding:0 10px!important;font-size:.84rem}
   .sf-ext{width:40px;height:40px}
   /* Prospecção: raio com rótulo e valor em linhas próprias */
@@ -2447,3 +2447,11 @@ html.bare-page .shell::after{display:none}
 .fs-upload:hover{border-color:var(--ice-500);color:#2f7bbd}
 .fs-upload:disabled{opacity:.6;cursor:wait}
 .fs-upload svg{width:15px;height:15px}
+
+/* Rodapé do card de site: botões na mesma linha e mesma altura; nome do cliente por último, embaixo */
+.sf-foot{flex-wrap:wrap;row-gap:10px}
+.sf-foot>span:first-child{margin-right:0}
+.sf-foot>.sf-client{order:9;flex-basis:100%;max-width:none;margin-top:2px}
+.sf-foot .sf-btn{height:40px;box-sizing:border-box;justify-content:center;padding-block:0}
+.sf-foot .sf-btn.open{margin-left:auto}
+.sf-foot>.sf-btn:not(.open){flex:0 0 auto}
