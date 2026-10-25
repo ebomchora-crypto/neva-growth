@@ -151,4 +151,7 @@ test('venda sem data cai no dia de Brasília, não no UTC (depois das 21h a data
   const d = (await call('GET', '/api/dashboard?period=hoje')).body;
   assert.equal(d.metrics.sales, before + 1);
   assert.equal(d.metrics.range.end, todayBRT());
+  // "Hoje" vira série por hora (até a hora atual), para o gráfico não ficar com um ponto só
+  assert.ok(d.metrics.series.length >= 1 && d.metrics.series.every((p) => /^\d\dh$/.test(p.label)));
+  assert.equal(d.metrics.series.reduce((a, p) => a + p.revenue, 0), d.metrics.revenue);
 });

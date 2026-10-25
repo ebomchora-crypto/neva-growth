@@ -32,6 +32,15 @@ async function series(rg, ws) {
   return buckets.map((b) => ({ ...b, revenue: rows.find((x) => x.k === b.key)?.revenue || 0, profit: rows.find((x) => x.k === b.key)?.profit || 0 }));
 }
 
+// "Hoje" tem um único dia: em vez de um ponto só, a série vai hora a hora até a hora atual (horário de Brasília).
+async function hourlySeries(ws) {
+  const today = todayBRT(); const last = brt(Date.now()).getUTCHours();
+  const rows = await all(`SELECT amount, cost, created_at FROM sales WHERE status='pago' AND ws=? AND ${PAID_DATE}=?`, ws, today);
+  const per = Array.from({ length: 24 }, () => ({ revenue: 0, profit: 0 }));
+  for (const x of rows) { const h = hourOf(x.created_at); per[h].revenue += Number(x.amount) || 0; per[h].profit += (Number(x.amount) || 0) - (Number(x.cost) || 0); }
+  return per.slice(0, last + 1).map((v, h) => ({ key: String(h), label: `${String(h).padStart(2, '0')}h`, ...v }));
+}
+
 async function metrics(period, ws) {
   const rg = range(period);
   const cur = await totals(rg.start, rg.end, ws); const prev = await totals(rg.prevStart, rg.prevEnd, ws);
@@ -40,7 +49,7 @@ async function metrics(period, ws) {
     profitVariation: variation(cur.profit, prev.profit), revenueVariation: variation(cur.revenue, prev.revenue), previous: { revenue: prev.revenue, profit: prev.profit },
     // Maior venda paga do período (vira o "projeto destaque" do resumo compartilhável).
     top: await get(`SELECT description, amount FROM sales WHERE status='pago' AND ws=? AND ${PAID_DATE} BETWEEN ? AND ? ORDER BY amount DESC, id DESC LIMIT 1`, ws, rg.start, rg.end) || null,
-    series: await series(rg, ws) };
+    series: period === 'hoje' ? await hourlySeries(ws) : await series(rg, ws) };
 }
 
 r.get('/', async (req, res) => {
