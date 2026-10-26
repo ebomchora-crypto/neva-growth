@@ -190,7 +190,7 @@ export function launchpad(opts) {
   const emblemEl = h('div', { class: 'lp-emblem', 'aria-hidden': 'true' });
   const orb = shaderCanvas(PHOSPHOR_NEVA, { pixelRatio: 1.5, className: 'lp-orb', onFirstFrame: () => emblemEl.classList.add('on') });
   if (orb) { emblemEl.classList.add('gl'); emblemEl.append(orb.el); } else emblemEl.append(emblem());
-  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
+  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, timeOffset: 18, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
 
   const el = h('section', { class: 'lp' },
     h('div', { class: 'lp-stage' },

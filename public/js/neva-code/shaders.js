@@ -22,13 +22,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
   vec2  r  = iResolution.xy;
   float t  = iTime;
-  vec3  FC = vec3(fragCoord, t);
   vec4  o  = vec4(0.0);
+  // câmera fixa: no original a 3ª coordenada era o tempo, e a bola crescia/encolhia sem parar
+  vec3  dir = normalize(vec3(fragCoord * 2.0 - r, -r.y * 0.62));
 
   float s = 0.0;
   for (float i = 0.0, z = 0.0, d = 0.0; i++ < 8e1; o += (cos(s + vec4(0.0, 1.0, 8.0, 0.0)) + 1.0) / d)
   {
-    vec3 p = z * normalize(FC.rgb * 2.0 - r.xyy);
+    vec3 p = z * dir;
     vec3 a = normalize(cos(vec3(5.0, 0.0, 1.0) + t - d * 4.0));
     p.z += 5.0;
     a = a * dot(a, p) - cross(a, p);
@@ -57,14 +58,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 {
   vec2  r  = iResolution.xy;
   float t  = iTime * 0.6;
-  vec3  FC = vec3(fragCoord, t);
   vec4  o  = vec4(0.0);
+  vec3  dir = normalize(vec3(fragCoord * 2.0 - r, -r.y));   // câmera fixa (sem zoom com o tempo)
 
   vec3 p = vec3(0.0), v = vec3(0.0);
   float z = 0.0, d = 1.0;
   for (float i = 0.0; i < 80.0; i++)
   {
-    p = z * normalize(FC.rgb * 2.0 - r.xyy);
+    p = z * dir;
     v = normalize(cos(t * 0.25 - z * 0.1 + vec3(0.0, 2.0, 4.0)));
     p = dot(v, p) * v + cross(v, p);
     float zPulse = cos(p.z + t * 10.0) * 0.1;
@@ -78,13 +79,14 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
 
   float l = clamp(max(o.r, max(o.g, o.b)), 0.0, 1.0);
   float hue = clamp(0.5 + 0.5 * (o.b - o.r), 0.0, 1.0);
-  vec3 col = mix(vec3(0.006, 0.020, 0.048), NAVY * 0.7, smoothstep(0.05, 0.55, l));
-  col = mix(col, mix(BLUE, SKY, hue) * 0.85, smoothstep(0.55, 0.95, l));
-  col = mix(col, ICE, smoothstep(0.96, 1.0, l) * 0.25);
+  vec3 LIGHT = vec3(0.600, 0.808, 0.980);
+  vec3 col = mix(vec3(0.005, 0.015, 0.034), NAVY * 0.30, smoothstep(0.30, 0.80, l));   // quase tudo escuro (sem névoa cinza)
+  float hi = smoothstep(0.62, 1.0, l);
+  col = mix(col, mix(SKY, LIGHT, hue) * 0.75, hi * hi);                                 // realces em azul claro
   vec2 uv = fragCoord / r;
-  col *= mix(0.35, 1.0, smoothstep(0.05, 0.85, uv.y));   // embaixo mais escuro: o painel continua legível
-  col *= 0.62 + 0.38 * smoothstep(0.0, 0.5, abs(uv.x - 0.5));  // centro mais escuro (título e emblema em destaque)
-  col = max(col, vec3(0.012, 0.040, 0.085));   // fundo do túnel fica marinho, nunca preto
+  col *= mix(0.40, 1.0, smoothstep(0.05, 0.85, uv.y));
+  col *= 0.55 + 0.45 * smoothstep(0.0, 0.5, abs(uv.x - 0.5));
+  col = max(col, vec3(0.008, 0.026, 0.058));
   fragColor = vec4(col, 1.0);
 }
 void main(){ mainImage(fragColor, gl_FragCoord.xy); }

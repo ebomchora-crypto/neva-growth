@@ -2640,3 +2640,6 @@ button:disabled.lp-round,button:disabled.lp-pill,.lp-model:disabled{opacity:.5;c
 @keyframes lp-halo{50%{opacity:.65;transform:translate(-50%,-50%) scale(1.06)}}
 .lp-emblem.gl .lp-orb{position:relative;z-index:1;mix-blend-mode:screen;filter:drop-shadow(0 0 16px rgba(160,210,255,.7)) drop-shadow(0 0 38px rgba(90,163,220,.45))}
 @media (prefers-reduced-motion:reduce){.lp-emblem.gl::after{animation:none}}
+/* emblema com tamanho fixo: sem pulsação de escala no halo */
+.lp-emblem.gl::after{animation:none}
+.lp-emblem.gl{height:clamp(170px,27vh,230px)}

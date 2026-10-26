@@ -21,7 +21,7 @@ function compile(gl, type, src) {
 }
 
 /**
- * opts: { pixelRatio (teto do DPR; abaixo de 1 renderiza em resolução menor, bom para fundos), speed, className, onFirstFrame }
+ * opts: { pixelRatio (teto do DPR; abaixo de 1 renderiza em resolução menor, bom para fundos), speed, timeOffset (segundos), className, onFirstFrame }
  * Devolve { el, destroy } ou null sem WebGL2 / se o shader não compilar.
  */
 export function shaderCanvas(fragSource, opts = {}) {
@@ -64,7 +64,7 @@ export function shaderCanvas(fragSource, opts = {}) {
     if (resizeQueued) applySize();
     gl.useProgram(program);
     if (u.res) gl.uniform3f(u.res, canvas.width, canvas.height, dpr());
-    if (u.time) gl.uniform1f(u.time, reduce ? 12 : ((now - start) / 1000) * speed);
+    if (u.time) gl.uniform1f(u.time, (opts.timeOffset || 0) + (reduce ? 12 : ((now - start) / 1000) * speed));
     if (u.frame) gl.uniform1i(u.frame, frame++);
     if (u.mouse) gl.uniform4f(u.mouse, 0, 0, 0, 0);
     gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES, 0, 3);
@@ -79,7 +79,8 @@ export function shaderCanvas(fragSource, opts = {}) {
 
   const ro = new ResizeObserver(queueSize); ro.observe(canvas);
   // fora da tela não gasta GPU
-  const io = new IntersectionObserver(([e]) => { visible = e.isIntersecting; if (visible) play(); else if (raf) { cancelAnimationFrame(raf); raf = 0; } });
+  // vale a notificação mais recente (a 1ª costuma ser "fora", de antes de o canvas entrar na página)
+  const io = new IntersectionObserver((entries) => { visible = entries[entries.length - 1].isIntersecting; if (visible) play(); else if (raf) { cancelAnimationFrame(raf); raf = 0; } });
   io.observe(canvas);
   const onLost = (e) => { e.preventDefault(); if (raf) cancelAnimationFrame(raf); raf = 0; };
   const onRestored = () => { queueSize(); play(); };
