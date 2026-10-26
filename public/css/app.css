@@ -1854,7 +1854,7 @@ html{scrollbar-width:thin;scrollbar-color:#7fb4e0 transparent}
   .leaflet-control-attribution a{display:inline-block;padding:4px 2px}
   .mk-back,.lv-back,.mk-pill a,.hero a.ln{min-height:40px}
   .mk-pill a{display:inline-flex;align-items:center}
-  svg text{font-size:max(11px,1em)}
+  svg text:not(.fpb text){font-size:max(11px,1em)}
   .chart text,.profit svg text,.spark text{font-size:11px}
 }
 /* Piso de leitura no celular: nada abaixo de 11 px (levantado na auditoria de textos minúsculos) */
@@ -2767,3 +2767,79 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 .lp-stage.gl-on .lp-title,.lp-stage.gl-on .lp-top{text-shadow:0 1px 18px rgba(3,28,38,.65)}
 .lp-wstage .lp-veil{background:linear-gradient(180deg,rgba(3,28,38,.35),rgba(3,28,38,.15))}
 @media (max-width:900px){.lp-veil{background:radial-gradient(ellipse 62% 24% at 50% 36%,rgba(3,28,38,.9) 0%,rgba(3,28,38,.55) 55%,rgba(3,28,38,0) 100%),linear-gradient(180deg,rgba(3,28,38,.55) 0,rgba(3,28,38,0) 110px)}}
+
+/* ===== Dashboard em blocos (porte do Finance Bento, de vasnev.art) nos azuis da Neva ===== */
+.fpb{--fb-acc:#5AD2F4;--fb-t2:rgba(255,255,255,.58);--fb-t3:rgba(255,255,255,.4);--fb-ease:cubic-bezier(.32,.72,0,1);
+  font-family:Geist,Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased;color:#fff;width:100%;max-width:1440px;margin:0 auto}
+.fpb *{box-sizing:border-box}
+.fpb .fb-c{position:relative;padding:20px 22px 22px;border-radius:30px;color:#fff;
+  background:radial-gradient(90% 60% at 50% -10%,rgba(47,123,189,.28),transparent 60%),linear-gradient(180deg,#071426,#040a14);box-shadow:0 0 0 1px rgba(120,175,235,.16),0 30px 70px -40px rgba(4,20,40,.7)}
+.fpb .fb-top{display:flex;align-items:center;gap:14px;min-height:44px;margin-bottom:16px}
+.fpb .fb-top h1{margin:0;font-size:28px;font-weight:700;letter-spacing:-.03em;flex:1;min-width:0;color:#fff}
+.fpb .fb-asof{font-weight:500;color:var(--fb-t3);font-size:14px;letter-spacing:-.01em;margin-left:12px}
+.fpb .fb-ctrls,.fpb .fb-acts{display:flex;gap:10px;align-items:center}
+.fpb .fb-seg{display:flex;padding:3px;gap:2px;border-radius:14px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+.fpb .fb-seg button{border:0;height:28px;min-width:40px;padding:0 10px;border-radius:11px;background:transparent;color:var(--fb-t2);font:600 12.5px Geist,Inter,sans-serif;cursor:pointer;transition:background .25s,color .25s}
+.fpb .fb-seg button:hover{color:#fff}
+.fpb .fb-seg button[aria-pressed=true]{background:#fff;color:#06121f}
+.fpb .fb-seg button:focus-visible,.fpb .fb-btn:focus-visible,.fpb a:focus-visible{outline:2px solid var(--fb-acc);outline-offset:2px}
+.fpb .fb-btn{display:inline-flex;align-items:center;height:36px;padding:0 14px;border-radius:12px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#fff;font:600 12.5px Geist,Inter,sans-serif;text-decoration:none;cursor:pointer;white-space:nowrap;transition:background .2s,border-color .2s}
+.fpb .fb-btn:hover{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.26)}
+.fpb .fb-btn.solid{background:#fff;color:#06121f;border-color:#fff}.fpb .fb-btn.solid:hover{background:#dff4ff}
+.fpb .fb-ava{width:40px;height:40px;border-radius:50%;flex:none;display:grid;place-items:center;font:700 14px Geist,Inter,sans-serif;background:linear-gradient(140deg,#5aa3dc,#174a7c);box-shadow:0 0 0 2px rgba(255,255,255,.18)}
+.fpb .fb-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:14px}
+.fpb .fb-h1{height:376px}.fpb .fb-h2{height:168px}.fpb .fb-h3{height:330px}
+.fpb [data-id=nw]{grid-column:span 8}.fpb [data-id=alloc]{grid-column:span 4}.fpb .fb-kpi{grid-column:span 3}
+.fpb [data-id=flow]{grid-column:span 5}.fpb [data-id=crypto]{grid-column:span 4}.fpb [data-id=stocks]{grid-column:span 3}
+.fpb .fb-card{position:relative;border-radius:28px;overflow:hidden;opacity:0;transform:translateY(14px) scale(.985);transition:opacity .7s ease,transform .9s var(--fb-ease)}
+.fpb .fb-grid.in .fb-card{opacity:1;transform:none}
+.fpb .fb-rim{position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),inset 0 0 0 1px rgba(255,255,255,.06);pointer-events:none;z-index:9}
+.fpb .fb-g{position:absolute;inset:0}
+.fpb .fb-core{position:absolute;left:10%;right:10%;top:16%;bottom:-6%;border-radius:90px;filter:blur(60px)}
+.fpb .fb-glass{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.fpb .fb-in{position:absolute;inset:0;padding:22px 24px;z-index:2}
+.fpb .fb-ttl{font-size:18px;font-weight:600;letter-spacing:-.02em}
+.fpb .fb-cap{font-size:11.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--fb-t2)}
+.fpb [data-id=ret] .fb-cap{color:rgba(255,255,255,.82)}
+.fpb .fb-big{font-size:40px;font-weight:200;letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
+.fpb .fb-delta{font:600 12.5px "Geist Mono",ui-monospace,monospace;color:var(--fb-acc);letter-spacing:-.02em}
+.fpb [data-id=nw] .fb-delta{color:#fff;background:rgba(3,10,20,.55);padding:3px 8px;border-radius:9px}
+.fpb .fb-delta.down{color:#ffb4b4}
+.fpb .fb-muted{font-size:12.5px;color:var(--fb-t3);font-weight:500;letter-spacing:-.01em}
+.fpb [data-id=nw] .fb-muted,.fpb [data-id=crypto] .fb-muted,.fpb [data-id=stocks] .fb-muted,.fpb [data-id=flow] .fb-muted{color:rgba(255,255,255,.66)}
+.fpb .fb-chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:11px;background:rgba(3,10,20,.75);color:#fff;font:600 11px "Geist Mono",ui-monospace,monospace;letter-spacing:-.02em;text-decoration:none;white-space:nowrap}
+.fpb a.fb-chip:hover{background:rgba(3,10,20,.95)}
+.fpb .fb-legend{display:flex;gap:16px;font-size:12px;font-weight:500;color:rgba(255,255,255,.75)}
+.fpb .fb-legend span{display:inline-flex;align-items:center;gap:6px}.fpb .fb-legend i{width:8px;height:8px;border-radius:50%}
+.fpb .fb-row{display:flex;align-items:center;gap:12px}
+.fpb .fb-mono{font-family:"Geist Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+.fpb .fb-ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpb .fb-ini{width:24px;height:24px;flex:none;border-radius:8px;background:rgba(255,255,255,.1);display:grid;place-items:center;font:600 11px Geist,Inter,sans-serif;font-style:normal}
+.fpb .fb-link{color:inherit;text-decoration:none}.fpb .fb-link:hover{color:#fff;text-decoration:underline}
+.fpb .fb-dots circle{transition:opacity .26s,transform .26s;transform-box:fill-box;transform-origin:center}
+.fpb svg text{user-select:none}
+@keyframes fbtk{to{opacity:1}}
+.fpb .fb-tip{position:fixed;z-index:200;pointer-events:none;background:rgba(6,14,26,.94);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:14px;padding:9px 11px;font-size:12px;
+  -webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);box-shadow:0 12px 30px -10px rgba(0,0,0,.6);opacity:0;transform:translateY(4px);transition:opacity .15s,transform .15s;white-space:nowrap;min-width:150px}
+.fpb .fb-tip.on{opacity:1;transform:none}
+.fpb .fb-tip .t{color:var(--fb-t2);margin-bottom:5px;font-weight:500}
+.fpb .fb-tip .r{display:flex;justify-content:space-between;gap:14px;align-items:center;line-height:19px}
+.fpb .fb-tip .r span{display:inline-flex;align-items:center;gap:6px;color:var(--fb-t2)}
+.fpb .fb-tip i{width:7px;height:7px;border-radius:50%}.fpb .fb-tip b{font:500 12px "Geist Mono",ui-monospace,monospace}
+@media (max-width:1199px){.fpb [data-id=nw]{grid-column:span 12}.fpb [data-id=alloc]{grid-column:span 6;grid-row:span 2;height:auto}.fpb .fb-kpi{grid-column:span 6}
+  .fpb [data-id=flow]{grid-column:span 12}.fpb [data-id=crypto],.fpb [data-id=stocks]{grid-column:span 6}
+  .fpb .fb-top{flex-wrap:wrap}.fpb .fb-top h1{flex:1 0 100%;order:0}.fpb .fb-ctrls{order:1}.fpb .fb-acts{order:2;margin-left:auto}.fpb .fb-ava{display:none}}
+@media (max-width:767px){.fpb .fb-c{padding:16px 12px;border-radius:24px}
+  .fpb .fb-top{gap:10px}.fpb .fb-top h1{font-size:24px}.fpb .fb-asof{display:block;margin:4px 0 0;font-size:12.5px}
+  .fpb .fb-ctrls{flex:1 0 100%;flex-wrap:wrap;justify-content:space-between}.fpb .fb-acts{flex:1 0 100%;margin:0;flex-wrap:wrap}.fpb .fb-acts .fb-btn{flex:1;justify-content:center}
+  .fpb .fb-seg button{min-width:0;padding:0 9px}
+  .fpb [data-id=nw]{height:420px}.fpb [data-id=nw] .fb-legend{flex:1 0 100%;order:3;margin-top:8px}.fpb [data-id=nw] .fb-hrow,.fpb [data-id=nw] .fb-nrow{flex-wrap:wrap}.fpb [data-id=nw] .fb-nrow{gap:6px 16px}
+  .fpb [data-id=alloc]{grid-column:span 12;grid-row:auto;height:376px}.fpb .fb-kpi{grid-column:span 6}.fpb [data-id=crypto],.fpb [data-id=stocks]{grid-column:span 12}.fpb .fb-grid{gap:12px}}
+@media (max-width:620px){.fpb .fb-kpi{grid-column:span 12}}
+@media (max-width:400px){.fpb .fb-seg button{padding:0 7px;font-size:12px}}
+@media (prefers-reduced-motion:reduce){.fpb .fb-card{transition:none}}
+.fpb .fb-top h1{display:flex;flex-direction:column;gap:2px}
+.fpb .fb-asof{margin-left:0;font-size:12.5px;white-space:nowrap}
+.fpb [data-id=nw] .fb-delta{display:inline-block}
+/* modo "esconder valores" (olho no topo) também no dashboard em blocos */
+.hide-values .fpb :is(.fb-big,.fb-dots,.fb-mono,.fb-delta,.fb-chip,.nwc,.fln,.fb-tip b){filter:blur(7px);user-select:none}

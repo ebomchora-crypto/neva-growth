@@ -52,6 +52,20 @@ async function metrics(period, ws) {
     series: period === 'hoje' ? await hourlySeries(ws) : await series(rg, ws) };
 }
 
+// Dados extras do painel em blocos: dia da semana, melhores clientes (com a curva de cada um) e custo por período.
+async function bento(m, ws) {
+  const rows = await all(`SELECT s.amount, s.cost, s.created_at, s.description, ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} d, c.name client_name FROM sales s LEFT JOIN clients c ON c.id=s.client_id
+    WHERE s.status='pago' AND s.ws=? AND ${PAID_DATE.replace(/(paid_at|sold_at)/g, 's.$1')} BETWEEN ? AND ? ORDER BY d, s.id`, ws, m.range.start, m.range.end);
+  const weekdays = Array(7).fill(0); const weekCount = Array(7).fill(0);
+  for (const x of rows) { const w = new Date(String(x.d).slice(0, 10) + 'T12:00:00Z').getUTCDay(); weekdays[w] += Number(x.amount) || 0; weekCount[w] += 1; }
+  const keyOf = (x) => (m.period === 'hoje' ? String(hourOf(x.created_at)) : String(x.d).slice(0, m.series[0]?.key?.length || 10));
+  const groups = new Map();
+  for (const x of rows) { const name = x.client_name || 'Sem cliente'; const g = groups.get(name) || { name, total: 0, n: 0, by: new Map() }; g.total += Number(x.amount) || 0; g.n += 1; g.by.set(keyOf(x), (g.by.get(keyOf(x)) || 0) + (Number(x.amount) || 0)); groups.set(name, g); }
+  const revenue = rows.reduce((a, x) => a + (Number(x.amount) || 0), 0);
+  const clients = [...groups.values()].sort((a, b) => b.total - a.total).slice(0, 3).map((g) => ({ name: g.name, total: g.total, sales: g.n, share: revenue ? g.total / revenue : 0, spark: m.series.map((b) => g.by.get(b.key) || 0) }));
+  return { weekdays, weekCount, clients, cost: m.series.map((b) => b.revenue - b.profit) };
+}
+
 r.get('/', async (req, res) => {
   const ws = req.user.ws;
   const m = await metrics(req.query.period, ws);
@@ -60,7 +74,7 @@ r.get('/', async (req, res) => {
   const won = stages.filter((s) => s.kind === 'won').reduce((a, s) => a + s.n, 0), lost = stages.filter((s) => s.kind === 'lost').reduce((a, s) => a + s.n, 0);
   const open = stages.filter((s) => s.kind === 'open');
   res.json({
-    metrics: m,
+    metrics: m, bento: await bento(m, ws),
     wallet: { profitTotal: (await get("SELECT COALESCE(SUM(amount-cost),0) n FROM sales WHERE status='pago' AND ws=?", ws)).n, revenueTotal: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pago' AND ws=?", ws)).n,
       pending: (await get("SELECT COALESCE(SUM(amount),0) n FROM sales WHERE status='pendente' AND ws=?", ws)).n },
     kpis: {
