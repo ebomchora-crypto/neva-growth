@@ -4,481 +4,481 @@ export const KIT = [
   "slug": "dot-field",
   "name": "Dot Field",
   "cat": "Fundos",
-  "desc": "A halftone dot membrane that ripples behind a swipe and rings out from a click, built with React and Canvas."
+  "desc": "Membrana de pontos em meio-tom que ondula atrás do cursor e solta uma onda no clique."
  },
  {
   "slug": "background-paths",
   "name": "Background Paths",
   "cat": "Fundos",
-  "desc": "A ribbon of lines in one color that keeps flowing at any size and parts around the cursor."
+  "desc": "Uma fita de linhas que flui sem parar em qualquer tamanho e se abre ao redor do cursor."
  },
  {
   "slug": "shape-hero",
   "name": "Shape Hero",
   "cat": "Fundos",
-  "desc": "A landing hero where shapes drop in, pile up under the headline and can be grabbed and thrown."
+  "desc": "Topo de página em que formas caem, se empilham sob o título e podem ser agarradas e arremessadas."
  },
  {
   "slug": "flow-field",
   "name": "Wind",
   "cat": "Fundos",
-  "desc": "Streamlines that part around the cursor, swirl in its wake and scatter on click, built with React and Canvas."
+  "desc": "Correntes de vento que contornam o cursor, giram no rastro dele e se espalham no clique."
  },
  {
   "slug": "topo-background",
   "name": "Topo Background",
   "cat": "Fundos",
-  "desc": "A living contour map that drifts, rises under the cursor and ripples on click, built with React and Canvas."
+  "desc": "Mapa de curvas de nível vivo: se move, sobe sob o cursor e ondula no clique."
  },
  {
   "slug": "drape-background",
   "name": "Drape Background",
   "cat": "Fundos",
-  "desc": "A pleated curtain in a breeze that you can push and pull, built with React, WebGL and a cloth simulation."
+  "desc": "Uma cortina pregueada ao vento que você empurra e puxa, com simulação de tecido em WebGL."
  },
  {
   "slug": "halftone-background",
   "name": "Halftone Background",
   "cat": "Fundos",
-  "desc": "Any image, or a lit sphere, printed as a halftone dot screen, with a loupe that looks closer under the cursor, built with React and canvas."
+  "desc": "Imagem ou esfera impressa em pontos de meio-tom, com uma lupa que aproxima sob o cursor."
  },
  {
   "slug": "card-flip",
   "name": "Flick Card",
   "cat": "Cartões",
-  "desc": "A two-sided card you spin with a drag or a flick, with thickness, light and a floor shadow that follow the angle."
+  "desc": "Cartão de dois lados que gira com arrasto ou piparote, com espessura, luz e sombra que seguem o ângulo."
  },
  {
   "slug": "card-stack",
   "name": "Throw Deck",
   "cat": "Cartões",
-  "desc": "A pile of image cards you drag, flick off the top and send under the deck, with arrow keys and a details view."
+  "desc": "Pilha de cartões que você arrasta, arremessa do topo e manda para baixo, com setas do teclado e detalhes."
  },
  {
   "slug": "liquid-glass-card",
   "name": "Now Playing",
   "cat": "Cartões",
-  "desc": "Music card with a spinning disc you can grab and turn to scrub, built with React and Tailwind CSS."
+  "desc": "Cartão de música com um disco que gira e que você agarra para avançar ou voltar a faixa."
  },
  {
   "slug": "apple-activity-card",
   "name": "Apple Activity Card",
   "cat": "Cartões",
-  "desc": "Activity rings that draw with a count-up, lap past 100% with a shadowed end cap and dim to focus, built with React and Motion."
+  "desc": "Anéis de atividade que se desenham com contagem, passam de 100% com sombra na ponta e focam um por vez."
  },
  {
   "slug": "bento-grid",
   "name": "Widget Grid",
   "cat": "Cartões",
-  "desc": "Dashboard widgets you lift, drag and resize on a 6-column grid, with spring physics and full keyboard support."
+  "desc": "Widgets de painel que você levanta, arrasta e redimensiona numa grade de 6 colunas, também pelo teclado."
  },
  {
   "slug": "currency-transfer",
   "name": "Currency Transfer",
   "cat": "Cartões",
-  "desc": "Transfer tracker that converts the amount in place, walks through each step on a filling rail, and ends with a copyable reference. Built with React and Tailwind CSS."
+  "desc": "Acompanhamento de transferência que converte o valor no lugar, avança etapa por etapa e termina com o comprovante."
  },
  {
   "slug": "carousel-cards",
   "name": "Momentum Rail",
   "cat": "Cartões",
-  "desc": "A card rail you flick with momentum, snapping on a spring, with scroll-driven cover-flow depth and parallax."
+  "desc": "Trilho de cartões com impulso e encaixe por mola, profundidade em perspectiva e paralaxe ao rolar."
  },
  {
   "slug": "notification-stack",
   "name": "Notification Stack",
   "cat": "Cartões",
-  "desc": "Stacked notifications that fan out on hover and swipe away, built with React and Tailwind CSS."
+  "desc": "Notificações empilhadas que se abrem em leque no hover e somem com um deslize."
  },
  {
   "slug": "liquid-gauge",
   "name": "Liquid Gauge",
   "cat": "Cartões",
-  "desc": "A usage meter filled with liquid that sloshes, ripples and bubbles, built with React and a wave simulation."
+  "desc": "Medidor de uso cheio de líquido que balança, ondula e solta bolhas."
  },
  {
   "slug": "activity-terrain",
   "name": "Activity Terrain",
   "cat": "Cartões",
-  "desc": "A contribution heatmap that tilts up into a 3D terrain you can turn, built with React and canvas."
+  "desc": "Mapa de calor de atividade que se ergue num relevo 3D que você gira com o mouse."
  },
  {
   "slug": "page-flip",
   "name": "Page Flip",
   "cat": "Cartões",
-  "desc": "A book you turn by the corner. Drag a page over the spine or tap to turn it."
+  "desc": "Um livro que você vira pelo canto: arraste a página sobre a lombada ou toque para virar."
  },
  {
   "slug": "receipt-printer",
   "name": "Receipt Printer",
   "cat": "Cartões",
-  "desc": "A receipt that prints line by line, then tears off and falls when you pull it, built with React."
+  "desc": "Um recibo que sai linha a linha da impressora e se rasga e cai quando você puxa."
  },
  {
   "slug": "metric-card",
   "name": "Metric Card",
   "cat": "Cartões",
-  "desc": "A revenue KPI card. Scrub a day, drag a range, or pick a segment; the number rolls, the line morphs and the breakdown follows."
+  "desc": "Cartão de faturamento: passe por um dia, arraste um intervalo ou escolha um segmento; número e gráfico acompanham."
  },
  {
   "slug": "uptime-card",
   "name": "Uptime Card",
   "cat": "Cartões",
-  "desc": "A status page card with 90 days per service that swell under the cursor, and a day you click opens its incident log."
+  "desc": "Status de serviços com 90 dias cada, que crescem sob o cursor; um dia clicado abre o registro do incidente."
  },
  {
   "slug": "spending-ring",
   "name": "Spending Ring",
   "cat": "Cartões",
-  "desc": "A spending breakdown you spin like a dial; flick the ring and it settles with a category under the marker."
+  "desc": "Gastos por categoria num anel que gira como um dial e para com a categoria sob o marcador."
  },
  {
   "slug": "lightbox-grid",
   "name": "Lightbox Grid",
   "cat": "Cartões",
-  "desc": "A photo grid whose thumbnails grow into a full view and fly back to their slot when you drag them down."
+  "desc": "Grade de fotos cujas miniaturas crescem até a tela cheia e voltam ao lugar quando você arrasta para baixo."
  },
  {
   "slug": "morphic-navbar",
   "name": "Split Nav",
   "cat": "Navegação",
-  "desc": "Navigation bar that splits around the active link, with drag-to-scrub, flick projection and an optional compact fold."
+  "desc": "Barra de navegação que se divide em volta do link ativo, com arrasto, impulso e versão compacta."
  },
  {
   "slug": "toolbar",
   "name": "Tool Dock",
   "cat": "Navegação",
-  "desc": "An editor tool dock with a sliding selection plate, shortcut tooltips and flyouts that you can throw to any edge."
+  "desc": "Dock de ferramentas de editor com placa de seleção deslizante, atalhos e painéis; dá para jogá-lo em qualquer borda."
  },
  {
   "slug": "smooth-tab",
   "name": "Swipe Tabs",
   "cat": "Navegação",
-  "desc": "Tabs with a swipeable panel, a drag-tracked indicator and spring physics."
+  "desc": "Abas com painel que desliza com o dedo, indicador que acompanha o arrasto e física de mola."
  },
  {
   "slug": "profile-dropdown",
   "name": "Account Menu",
   "cat": "Navegação",
-  "desc": "An account card that morphs into its own menu, with account switching, status, theme and hold-to-sign-out."
+  "desc": "Cartão de conta que se transforma no próprio menu: troca de conta, status, tema e segurar para sair."
  },
  {
   "slug": "action-search-bar",
   "name": "Command Palette",
   "cat": "Navegação",
-  "desc": "⌘K command palette with nested pages, fuzzy matching and in-row progress for running actions."
+  "desc": "Paleta de comandos (⌘K) com páginas aninhadas, busca aproximada e progresso das ações em andamento."
  },
  {
   "slug": "smooth-drawer",
   "name": "Smooth Drawer",
   "cat": "Navegação",
-  "desc": "Checkout bottom sheet on Vaul snap points, peeking at the total and dragging up for details."
+  "desc": "Gaveta de checkout que mostra o total e sobe com o dedo para revelar os detalhes."
  },
  {
   "slug": "marking-menu",
   "name": "Marking Menu",
   "cat": "Navegação",
-  "desc": "A radial menu you hold to open or flick to pick blind, built with React and Motion."
+  "desc": "Menu radial: segure para abrir ou faça um gesto rápido para escolher sem olhar."
  },
  {
   "slug": "scroll-index",
   "name": "Scroll Index",
   "cat": "Navegação",
-  "desc": "A section rail for long pages, with a tick per heading that you can hover, click or drag to scrub, built with React."
+  "desc": "Trilho de seções para páginas longas, com um traço por título para passar o mouse, clicar ou arrastar."
  },
  {
   "slug": "status-island",
   "name": "Status Island",
   "cat": "Navegação",
-  "desc": "A pill that reports background work, reshaping as tasks change and opening into a list of everything in flight."
+  "desc": "Pílula que mostra tarefas em segundo plano, muda de forma conforme elas avançam e abre a lista completa."
  },
  {
   "slug": "stack-panel",
   "name": "Stack Panel",
   "cat": "Navegação",
-  "desc": "A panel that drills into pages like settings on a phone. The tapped row's label flies up into the title, and a swipe right takes you back."
+  "desc": "Painel que entra em subpáginas como os ajustes do celular; o rótulo tocado vira o título e um deslize volta."
  },
  {
   "slug": "file-upload",
   "name": "File Upload",
   "cat": "Campos",
-  "desc": "A multi-file upload queue with per-file progress, retry and cancel."
+  "desc": "Fila de envio de vários arquivos com progresso de cada um, tentar de novo e cancelar."
  },
  {
   "slug": "avatar-picker",
   "name": "Avatar Picker",
   "cat": "Campos",
-  "desc": "Generated avatars from a name, morphing as you type, on a 3D coin you can flick, tap or shuffle."
+  "desc": "Avatares gerados a partir do nome, que mudam enquanto você digita, numa moeda 3D para girar ou sortear."
  },
  {
   "slug": "team-selector",
   "name": "Team Selector",
   "cat": "Campos",
-  "desc": "Seat picker with a scrubbable number, generated avatars and an optional rolling price line."
+  "desc": "Seletor de assentos com número arrastável, avatares gerados e linha de preço que rola junto."
  },
  {
   "slug": "loader",
   "name": "Loader",
   "cat": "Campos",
-  "desc": "Animated loading indicator with rotating gradient rings, size variants and customizable title text. Built with React and Tailwind CSS."
+  "desc": "Indicador de carregamento com anéis em degradê, tamanhos diferentes e texto personalizável."
  },
  {
   "slug": "detent-dial",
   "name": "Detent Dial",
   "cat": "Campos",
-  "desc": "Rotary knob that clicks from notch to notch and coasts when flicked, built with React and Motion."
+  "desc": "Botão giratório que trava de entalhe em entalhe e desliza sozinho quando você gira rápido."
  },
  {
   "slug": "wheel-picker",
   "name": "Wheel Picker",
   "cat": "Campos",
-  "desc": "iOS-style 3D drum picker with flick momentum, built with React and Motion."
+  "desc": "Seletor em tambor 3D, como no iPhone, com impulso ao rolar."
  },
  {
   "slug": "liquid-slider",
   "name": "Liquid Slider",
   "cat": "Campos",
-  "desc": "A vertical slider you fill like a glass, with a sloshing surface and rising bubbles."
+  "desc": "Controle vertical que você enche como um copo, com superfície que balança e bolhas subindo."
  },
  {
   "slug": "signature-pad",
   "name": "Signature Pad",
   "cat": "Campos",
-  "desc": "A signature field with a sprung pen tip, speed-weighted ink and SVG output."
+  "desc": "Campo de assinatura com ponta de caneta elástica, traço que varia com a velocidade e saída em SVG."
  },
  {
   "slug": "timezone-planner",
   "name": "Time Zone Planner",
   "cat": "Campos",
-  "desc": "Find a meeting time across time zones. Turn the meeting round a 24-hour dial where each ring is someone's day."
+  "desc": "Encontre um horário entre fusos: gire a reunião num relógio de 24 h onde cada anel é o dia de alguém."
  },
  {
   "slug": "ai-prompt",
   "name": "AI Input Selector",
   "cat": "IA",
-  "desc": "AI chat input with a model menu, a separate Effort control, file chips you can drop or paste, a / command menu, and Stop while replying."
+  "desc": "Campo de chat com IA: menu de modelos, controle de esforço, anexos, comandos com / e botão de parar."
  },
  {
   "slug": "ai-input-search",
   "name": "AI Input Search",
   "cat": "IA",
-  "desc": "AI composer with a Tools menu of modes (browse, investigate, draft a visual, run code, reason), a tool header with a Change key, a model picker, an Ask key and a live trace that stacks each source's avatar as it is read. Built with React, Tailwind CSS and Motion."
+  "desc": "Caixa de pesquisa com IA: modos de ferramenta, troca de modelo e as fontes aparecendo conforme são lidas."
  },
  {
   "slug": "ai-loading",
   "name": "AI State Loading",
   "cat": "IA",
-  "desc": "Agent progress as a list of steps with a live log, elapsed time and a summary when done."
+  "desc": "Progresso de um agente em etapas, com registro ao vivo, tempo decorrido e resumo no fim."
  },
  {
   "slug": "ai-text-loading",
   "name": "AI Text Loading",
   "cat": "IA",
-  "desc": "AI thinking text with a soft wave through the letters and words that swap letter by letter."
+  "desc": "Texto de \"pensando\" com uma onda suave pelas letras e palavras que se trocam letra por letra."
  },
  {
   "slug": "ai-voice",
   "name": "AI Voice",
   "cat": "IA",
-  "desc": "Voice input with a scrolling waveform, then a take you can play back, discard or send."
+  "desc": "Entrada por voz com onda sonora rolando, depois uma gravação para ouvir, descartar ou enviar."
  },
  {
   "slug": "ai-tool-approval",
   "name": "AI Tool Approval",
   "cat": "IA",
-  "desc": "Approve or deny an agent's tool calls. Destructive calls need a press and hold, and decided calls fold into a trace with their output."
+  "desc": "Aprove ou negue as ferramentas que o agente quer usar; as perigosas pedem para segurar o botão."
  },
  {
   "slug": "ai-context-meter",
   "name": "AI Context Meter",
   "cat": "IA",
-  "desc": "How full the context window is, as a ring in the prompt footer that opens a breakdown by source and compacts when it fills."
+  "desc": "Quanto da janela de contexto já foi usado, num anel que abre o detalhamento por origem."
  },
  {
   "slug": "ai-citations",
   "name": "AI Inline Citations",
   "cat": "IA",
-  "desc": "An answer with source chips beside each claim. One preview glides between chips and lights up the sentence it backs."
+  "desc": "Resposta com fontes ao lado de cada afirmação; a prévia desliza entre elas e destaca a frase que cada uma apoia."
  },
  {
   "slug": "ai-diff-review",
   "name": "AI Diff Review",
   "cat": "IA",
-  "desc": "A coding agent's edits streaming in file by file, then reviewed per file with accept, reject and undo."
+  "desc": "Alterações de um agente de código chegando arquivo por arquivo, para aceitar, rejeitar ou desfazer."
  },
  {
   "slug": "ai-model-selector",
   "name": "AI Model Selector",
   "cat": "IA",
-  "desc": "Pick a model and how hard it thinks. Effort is a detent track that reshapes for each model and keeps your level when you switch."
+  "desc": "Escolha o modelo e o quanto ele pensa, num trilho de esforço que se adapta a cada modelo."
  },
  {
   "slug": "ai-token-alternatives",
   "name": "AI Token Alternatives",
   "cat": "IA",
-  "desc": "An answer where every unsure word shows what else the model weighed. Pick another word and the reply writes itself again from there."
+  "desc": "Resposta em que cada palavra incerta mostra as alternativas; escolha outra e o texto se reescreve dali."
  },
  {
   "slug": "ai-branches",
   "name": "AI Conversation Branches",
   "cat": "IA",
-  "desc": "A chat where editing a message starts a new branch. A small tree beside it shows every version, and you can jump between them."
+  "desc": "Chat em que editar uma mensagem cria um novo ramo; uma árvore ao lado mostra e alterna as versões."
  },
  {
   "slug": "ai-agent-lanes",
   "name": "AI Agent Lanes",
   "cat": "IA",
-  "desc": "A lead agent hands work to sub-agents that run side by side. Each gets a lane of tool calls, and you can scrub through the whole run."
+  "desc": "Um agente principal divide o trabalho entre subagentes em raias paralelas que você percorre na linha do tempo."
  },
  {
   "slug": "ai-autocomplete",
   "name": "AI Autocomplete",
   "cat": "IA",
-  "desc": "A text box that suggests how your sentence ends in grey after the caret. Tab takes it all, the right arrow takes one word, and typing the same letters keeps it."
+  "desc": "Campo que sugere em cinza o fim da sua frase: Tab aceita tudo, a seta aceita uma palavra."
  },
  {
   "slug": "clip-trimmer",
   "name": "Clip Trimmer",
   "cat": "Mídia",
-  "desc": "A video trim timeline with a filmstrip, handles that snap to whole seconds and a playhead that loops the kept range."
+  "desc": "Linha do tempo para cortar vídeo, com quadros, alças que encaixam em segundos e reprodução em loop."
  },
  {
   "slug": "synced-transcript",
   "name": "Synced Transcript",
   "cat": "Mídia",
-  "desc": "A transcript that follows the spoken word, lets you click any word to jump there, and waits when you scroll away."
+  "desc": "Transcrição que acompanha a fala; clique numa palavra para pular até ela."
  },
  {
   "slug": "focal-point-picker",
   "name": "Focal Point Picker",
   "cat": "Mídia",
-  "desc": "Set where a photo's subject is and see every crop follow it live. Hover a crop to see what it cuts."
+  "desc": "Marque o ponto de interesse da foto e veja todos os recortes se ajustarem na hora."
  },
  {
   "slug": "photo-straighten",
   "name": "Photo Straighten",
   "cat": "Mídia",
-  "desc": "Level a crooked photo on a ruler you drag or flick. The crop grows to hide the corners, and a grid shows while you adjust."
+  "desc": "Endireite uma foto torta numa régua de arrastar; o recorte cresce para esconder os cantos."
  },
  {
   "slug": "type-writer",
   "name": "Typing Text",
   "cat": "Textos",
-  "desc": "Typewriter text that makes the odd typo and corrects it, erases by selecting, and blinks its caret only when idle, built with React and Motion."
+  "desc": "Texto de máquina de escrever que erra de vez em quando e corrige, apaga selecionando e pisca o cursor."
  },
  {
   "slug": "dynamic-text",
   "name": "Dynamic Text",
   "cat": "Textos",
-  "desc": "Morphing text where shared letters travel, old ones fall and new ones land, with decode and cycle modes."
+  "desc": "Texto que se transforma: letras em comum viajam, as velhas caem e as novas pousam; com modos decodificar e ciclo."
  },
  {
   "slug": "glitch-text",
   "name": "Glitch Text",
   "cat": "Textos",
-  "desc": "Flat text that cuts into hard-shifted bands with a thin red/cyan split, on idle, hover or text change."
+  "desc": "Texto que se corta em faixas deslocadas com separação vermelho/ciano, parado, no hover ou ao trocar."
  },
  {
   "slug": "swoosh-text",
   "name": "Extruded Text",
   "cat": "Textos",
-  "desc": "Zinc 3D extruded text lit by your pointer, with letters that press in like keycaps."
+  "desc": "Texto 3D em relevo iluminado pelo cursor, com letras que afundam como teclas."
  },
  {
   "slug": "plucked-text",
   "name": "Plucked Text",
   "cat": "Textos",
-  "desc": "A headline sitting on a string you can pluck, strum and let ring, built with React and real string physics."
+  "desc": "Título sobre uma corda que você belisca e dedilha, com física de corda de verdade."
  },
  {
   "slug": "cradle-text",
   "name": "Cradle Text",
   "cat": "Textos",
-  "desc": "A headline hung like a Newton's cradle, so a knock on one letter clacks through the word, built with React and pendulum physics."
+  "desc": "Título pendurado como um pêndulo de Newton: bata numa letra e o choque atravessa a palavra."
  },
  {
   "slug": "spoiler-text",
   "name": "Spoiler Text",
   "cat": "Textos",
-  "desc": "Inline text hidden under drifting specks, like a chat spoiler. A click blows the specks away from the point you touched."
+  "desc": "Texto escondido sob pontinhos, como spoiler de chat; um clique sopra os pontos a partir do toque."
  },
  {
   "slug": "particle-button",
   "name": "Particle Button",
   "cat": "Botões",
-  "desc": "A status button for async actions, with a spinner, a drawn check and a particle burst on success."
+  "desc": "Botão para ações demoradas, com carregamento, check desenhado e explosão de partículas no sucesso."
  },
  {
   "slug": "v0-button",
   "name": "V0 Button",
   "cat": "Botões",
-  "desc": "Open in v0 button that sends a component registry JSON to v0.dev for instant editing, built with React, the shadcn Button, and Tailwind CSS."
+  "desc": "Botão “Abrir no v0”, que leva o componente para o v0.dev para editar com IA."
  },
  {
   "slug": "gradient-button",
   "name": "Gradient Button",
   "cat": "Botões",
-  "desc": "Layered gradient button with emerald, purple, and orange variants, a gradient border in light and dark mode, soft inner glow, press feedback, and an optional icon, styled entirely with Tailwind CSS in React."
+  "desc": "Botão em camadas de degradê, com borda degradê, brilho interno e resposta ao clique."
  },
  {
   "slug": "attract-button",
   "name": "Magnet Button",
   "cat": "Botões",
-  "desc": "A call-to-action button wrapped in a field of iron filings that align to its magnetic field and lean toward your cursor."
+  "desc": "Botão cercado de limalha de ferro que se alinha ao campo magnético e se inclina para o cursor."
  },
  {
   "slug": "hold-button",
   "name": "Hold Button",
   "cat": "Botões",
-  "desc": "Press and hold to confirm, with a fill that drains back on early release and a drawn check on completion."
+  "desc": "Segure para confirmar: o preenchimento volta se você soltar antes e um check aparece no fim."
  },
  {
   "slug": "command-button",
   "name": "Command Button",
   "cat": "Botões",
-  "desc": "A button with its shortcut drawn as keycaps that sink as you press the real keys."
+  "desc": "Botão com o atalho desenhado em teclas que afundam quando você aperta as teclas de verdade."
  },
  {
   "slug": "switch-button",
   "name": "Switch Button",
   "cat": "Botões",
-  "desc": "Light and dark theme toggle whose sun folds into a moon while the new theme spreads from the button as a circle."
+  "desc": "Troca de tema claro/escuro em que o sol vira lua e o novo tema se espalha em círculo a partir do botão."
  },
  {
   "slug": "slide-text-button",
   "name": "Slide Text Button",
   "cat": "Botões",
-  "desc": "Animated link button with a vertical text slide on hover and default and ghost variants, built with React, Next.js Link, and Tailwind CSS."
+  "desc": "Botão de link com o texto deslizando na vertical no hover, nas versões padrão e contorno."
  },
  {
   "slug": "pull-cord",
   "name": "Pull Cord",
   "cat": "Botões",
-  "desc": "A lamp switch you pull on a swinging cord, built with React and a rope simulation."
+  "desc": "Interruptor de luminária que você liga puxando uma cordinha que balança."
  },
  {
   "slug": "tear-button",
   "name": "Tear Button",
   "cat": "Botões",
-  "desc": "A confirm button you tear off like a ticket stub, hole by hole."
+  "desc": "Botão de confirmação que você destaca como canhoto de ingresso, furo por furo."
  },
  {
   "slug": "bell-button",
   "name": "Bell Button",
   "cat": "Botões",
-  "desc": "A subscribe button whose bell swings and rings, with a clapper that really strikes."
+  "desc": "Botão de inscrição cujo sino balança e toca, com badalo que bate de verdade."
  },
  {
   "slug": "morph-popover",
   "name": "Morph Popover",
   "cat": "Botões",
-  "desc": "A button that grows into the form it opens, with its label sliding up to become the title, then shrinks into a confirmation."
+  "desc": "Botão que cresce até virar o formulário que abre, com o rótulo subindo para virar título."
  },
  {
   "slug": "undo-button",
   "name": "Undo Button",
   "cat": "Botões",
-  "desc": "An action button that gives you a few seconds to take it back, with the time left drawn around its own edge."
+  "desc": "Botão de ação que dá alguns segundos para desfazer, com o tempo restante desenhado na borda."
  },
  {
   "slug": "mp-accordion",

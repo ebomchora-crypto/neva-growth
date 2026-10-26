@@ -9,6 +9,8 @@ function Demo({ big }: DemoProps) {
   const [once, setOnce] = React.useState(true);
   const [k, replay] = useReplay();
   const box = React.useRef<HTMLDivElement>(null);
+  // no cartão (sem controles) a área rola sozinha até a grade, para o efeito aparecer sem precisar interagir
+  React.useEffect(() => { if (big) return; const t = setTimeout(() => box.current?.scrollTo({ top: box.current.scrollHeight, behavior: 'smooth' }), 900); return () => clearTimeout(t); }, [big, k]);
   return (
     <Frame className='p-0' onReplay={() => { box.current?.scrollTo({ top: 0 }); replay(); }} controls={big && <Toggle label='Animar só uma vez' checked={once} onChange={(v) => { setOnce(v); replay(); }} />}>
       <div ref={box} key={`${once}-${k}`} className='h-full w-full overflow-auto'>

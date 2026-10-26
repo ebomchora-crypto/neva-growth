@@ -2894,3 +2894,33 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 .nb-promo .nb-sheen{animation-delay:3.2s}
 .nb-promo .hero-mascot,.nb-promo h2,.nb-promo p,.nb-promo .plus,.nb-promo .bigwhite{z-index:2}
 @media (prefers-reduced-motion:reduce){.nb-card .nb-sheen{animation:none;display:none}}
+/* ===== Galeria de componentes: seções por categoria, cartões maiores e ações enxutas ===== */
+.kk-list{display:flex;flex-direction:column;gap:34px}
+.kk-sechead{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;margin:0 4px 14px}
+.kk-sechead h2{margin:0;font-size:1.35rem;letter-spacing:-.02em;color:var(--ink);display:flex;align-items:center;gap:10px}
+.kk-sechead h2 span{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 7px;border-radius:11px;background:rgba(47,123,189,.12);color:var(--ice-700);font-size:.72rem;font-weight:800}
+.kk-sechead p{margin:0;color:var(--mut);font-size:.88rem}
+.kk-list .kk-grid,.kk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:stretch}
+.kk-card{padding:10px;gap:10px;border-radius:24px}
+.kk-card.wide{grid-column:1/-1}
+.kk-frame .kk-stage{aspect-ratio:16/10}
+.kk-card.wide .kk-frame .kk-stage{aspect-ratio:auto;height:clamp(300px,34vw,420px)}
+.kk-frame .kk-chip{display:none}
+.kk-foot{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:4px 8px 6px}
+.kk-foot .kk-meta{padding:0;min-width:0;flex:1}
+.kk-name{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.kk-name b{font-size:1.05rem;letter-spacing:-.01em}
+.kk-cat{font-size:.62rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--ice-700);background:rgba(47,123,189,.08);border:1px solid var(--ice-200);border-radius:99px;padding:3px 8px}
+.kk-name .kk-badge{margin-left:0;vertical-align:0}
+.kk-foot .kk-meta p{margin:5px 0 0;font-size:.85rem;line-height:1.45;-webkit-line-clamp:2}
+.kk-foot .kk-acts{flex:none;padding:0;gap:6px;align-items:center}
+.kk-foot .kk-open{flex:none;min-height:38px;padding:0 16px}
+.kk-ic{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:12px;border:1px solid var(--ice-300);background:#fff;color:var(--ice-700);cursor:pointer;transition:background .15s,border-color .15s}
+.kk-ic:hover{background:var(--ice-50);border-color:var(--ice-500)}.kk-ic .ico{width:16px;height:16px}
+@media(max-width:980px){.kk-list .kk-grid,.kk-grid{grid-template-columns:minmax(0,1fr)}.kk-card.wide .kk-frame .kk-stage{height:auto;aspect-ratio:16/10}}
+@media(max-width:560px){.kk-foot{flex-direction:column;gap:10px}.kk-foot .kk-acts{width:100%}.kk-foot .kk-open{flex:1;justify-content:center}.kk-frame .kk-stage{aspect-ratio:4/5}}
+.kk-frame .kk-stage{aspect-ratio:auto;height:360px}
+.kk-card.wide .kk-frame .kk-stage{height:clamp(340px,32vw,440px)}
+@media(max-width:980px){.kk-card.wide .kk-frame .kk-stage{height:380px;aspect-ratio:auto}}
+@media(max-width:560px){.kk-frame .kk-stage{height:380px;aspect-ratio:auto}}
+.kk-card.tall .kk-frame .kk-stage{height:480px}
+@media(max-width:560px){.kk-card.tall .kk-frame .kk-stage{height:500px}}

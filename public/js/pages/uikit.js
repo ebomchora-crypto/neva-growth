@@ -5,6 +5,15 @@ import { h, mount, icon, modal, hero, copyText, downloadFile, toast } from '../u
 import { KIT } from '../ui-kit/manifest.js';
 
 const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões', 'Efeitos'];
+const CAT_INFO = { Fundos: 'Fundos animados para o topo da página e para seções.', 'Cartões': 'Cartões interativos para mostrar dados, mídia e conteúdo.', 'Navegação': 'Menus, abas, barras, gavetas e painéis.',
+  Campos: 'Entradas, seletores e controles de formulário.', IA: 'Peças de interface para produtos com IA.', 'Mídia': 'Foto, vídeo, galerias e carrosséis.', Textos: 'Títulos e textos animados.',
+  'Botões': 'Botões com resposta e microinterações.', Efeitos: 'Efeitos de interação para aplicar em qualquer elemento.' };
+// Cartões largos (ocupam a linha toda): fundos e componentes que precisam de espaço horizontal para aparecer de verdade
+const WIDE = new Set(['dot-field', 'background-paths', 'shape-hero', 'flow-field', 'topo-background', 'drape-background', 'halftone-background',
+  'bento-grid', 'ai-agent-lanes', 'ai-diff-review', 'ai-citations', 'mp-infinite-slider', 'mp-image-comparison', 'mp-dock']);
+// Cartões altos: componentes que abrem menus/painéis ou têm controles embaixo e ficariam cortados na altura padrão
+const TALL = new Set(['card-flip', 'ai-model-selector', 'ai-context-meter', 'ai-loading', 'ai-prompt', 'ai-input-search', 'scroll-index', 'timezone-planner',
+  'currency-transfer', 'receipt-printer', 'page-flip', 'avatar-picker', 'ai-autocomplete', 'synced-transcript', 'clip-trimmer']);
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
 async function load(item) {
@@ -52,7 +61,7 @@ export default {
   async render(box, ctx) {
     let cat = 'Todos'; let q = ''; const live = new Map(); // stage -> { item, stop, on }
     const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : ''}`).includes(norm(q))));
-    const grid = h('div', { class: 'kk-grid' });
+    const grid = h('div', { class: 'kk-list' });
     const count = h('span', { class: 'kk-count' });
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -80,18 +89,26 @@ export default {
     const card = (item) => {
       const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
-      return h('article', { class: 'kk-card', id: 'kk-' + item.slug },
-        h('div', { class: 'kk-frame' }, stage, h('span', { class: 'kk-chip' }, item.cat)),
-        h('div', { class: 'kk-meta' }, h('b', item.name, item.src === 'mp' && h('span', { class: 'kk-badge', title: 'Motion Primitives · licença MIT' }, 'Motion Primitives')), h('p', item.desc)),
-        h('div', { class: 'kk-acts' },
-          h('button', { type: 'button', class: 'kk-open', onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
-          item.src === 'mp' && h('button', { type: 'button', class: 'kk-prompt-btn', title: 'Copiar o código-fonte do componente', onclick: () => copyCode(item) }, icon('code'), 'Código'),
-          h('button', { type: 'button', class: 'kk-prompt-btn', title: 'Copiar o prompt de integração', onclick: () => openPrompt(item) }, icon('copy'), item.src === 'mp' ? 'Prompt' : 'Copiar prompt')));
+      return h('article', { class: 'kk-card' + (WIDE.has(item.slug) ? ' wide' : '') + (TALL.has(item.slug) ? ' tall' : ''), id: 'kk-' + item.slug },
+        h('div', { class: 'kk-frame' }, stage),
+        h('div', { class: 'kk-foot' },
+          h('div', { class: 'kk-meta' },
+            h('div', { class: 'kk-name' }, h('b', item.name), h('span', { class: 'kk-cat' }, item.cat), item.src === 'mp' && h('span', { class: 'kk-badge', title: 'Motion Primitives · licença MIT' }, 'Motion Primitives')),
+            h('p', item.desc)),
+          h('div', { class: 'kk-acts' },
+            item.src === 'mp' && h('button', { type: 'button', class: 'kk-ic', title: 'Copiar o código-fonte', 'aria-label': `Copiar o código de ${item.name}`, onclick: () => copyCode(item) }, icon('code')),
+            h('button', { type: 'button', class: 'kk-ic', title: 'Copiar o prompt de integração', 'aria-label': `Copiar o prompt de ${item.name}`, onclick: () => openPrompt(item) }, icon('copy')),
+            h('button', { type: 'button', class: 'kk-open', onclick: () => expand(item) }, icon('expand'), 'Abrir'))));
     };
     const draw = () => {
       release(); const list = items();
       count.textContent = `${list.length} de ${KIT.length}`;
-      mount(grid, ...(list.length ? list.map(card) : [h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.')]));
+      if (!list.length) mount(grid, h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.'));
+      else if (cat === 'Todos' && !q) {
+        // visão geral: uma seção por categoria, com título e contagem (fica mais fácil de achar e menos repetitivo)
+        mount(grid, CATS.slice(1).map((c) => { const part = list.filter((i) => i.cat === c); return part.length && h('section', { class: 'kk-sec' },
+          h('header', { class: 'kk-sechead' }, h('h2', c, h('span', part.length)), h('p', CAT_INFO[c] || '')), h('div', { class: 'kk-grid' }, part.map(card))); }));
+      } else mount(grid, h('div', { class: 'kk-grid' }, list.map(card)));
       for (const stage of live.keys()) io.observe(stage);
     };
     const search = h('input', { type: 'search', class: 'kk-q', placeholder: 'Buscar componente: botão, cartão, IA…', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });

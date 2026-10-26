@@ -15,9 +15,10 @@ export default function mount(stage) {
 .kk-v0-button-cap{font-size:12px;color:var(--mut,#4a6f93);text-align:center;margin:0;max-width:30ch}
 @media(prefers-reduced-motion:reduce){.kk-v0-button-btn{transition:background-color .15s}.kk-v0-button-btn:active{transform:none}}
 `);
-  // Original abre o registro no v0.dev; aqui abre a página real do componente no .
-  const a = h('a', { class: 'kk-v0-button-btn', href: 'https://.com/docs/buttons/v0-button', target: '_blank', rel: 'noreferrer noopener', 'aria-label': 'Abrir componente no  (nova aba)' },
+  // O original envia o JSON de registro do componente ao v0.dev; aqui (sem registro publicado) o botão abre o v0.dev numa nova aba.
+  const a = h('a', { class: 'kk-v0-button-btn', href: 'https://v0.dev', target: '_blank', rel: 'noreferrer noopener', 'aria-label': 'Abrir no v0 (nova aba)' },
     'Abrir no ', svg('svg', { viewBox: '0 0 40 20', fill: 'none', 'aria-hidden': 'true' }, svg('path', { d: LOGO_A, fill: 'currentColor' }), svg('path', { d: LOGO_B, fill: 'currentColor' })));
-  stage.append(h('div', { class: 'kk-v0-button-wrap' }, a, h));
-  return () => a.remove();
+  const wrap = h('div', { class: 'kk-v0-button-wrap' }, a, h('p', { class: 'kk-v0-button-cap' }, 'Botão “Abrir no v0”: leva o componente para o v0.dev, onde dá para editar com IA.'));
+  stage.append(wrap);
+  return () => wrap.remove();
 }
