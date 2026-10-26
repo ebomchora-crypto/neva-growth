@@ -41,10 +41,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
   // cor da Neva: intensidade -> degradê; a diferença azul-vermelho do original vira variação entre azul e céu
   float l = clamp(max(o.r, max(o.g, o.b)), 0.0, 1.0);
   float hue = clamp(0.5 + 0.6 * (o.b - o.r), 0.0, 1.0);
-  vec3 col = mix(NAVY, mix(BLUE, SKY, hue), smoothstep(0.06, 0.45, l));
-  col = mix(col, ICE, smoothstep(0.62, 0.98, l));
-  float a = smoothstep(0.10, 0.55, l);
-  fragColor = vec4(col, a * a);
+  // azul claro que se destaca: céu -> azul-gelo -> branco (o fundo é escuro)
+  vec3 LIGHT = vec3(0.600, 0.808, 0.980);
+  vec3 col = mix(mix(SKY, LIGHT, hue), LIGHT, smoothstep(0.08, 0.45, l));
+  col = mix(col, vec3(1.0), smoothstep(0.55, 0.95, l));
+  float a = smoothstep(0.05, 0.38, l);
+  fragColor = vec4(col * (0.8 + 0.5 * l), a);
 }
 void main(){ mainImage(fragColor, gl_FragCoord.xy); }
 `;
