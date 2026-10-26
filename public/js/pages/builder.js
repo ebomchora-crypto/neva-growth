@@ -6,6 +6,8 @@ import { api } from '../api.js';
 import { h, mount, toast, fail, icon, modal, confirmBox, dtt, debounce } from '../ui.js';
 import { composer } from '../neva-code/composer.js';
 import { launchpad } from '../neva-code/launchpad.js';
+import { shaderCanvas } from '../neva-code/shader-canvas.js';
+import { GIGABIT_NEVA } from '../neva-code/shaders.js';
 import { contextMeter } from '../neva-code/context-meter.js';
 import { agentSteps } from '../neva-code/agent-steps.js';
 import { diffReview, hunksOf } from '../diff-review.js';
@@ -380,7 +382,7 @@ export default {
     box.classList.add('fill');
     document.documentElement.classList.add('studio-lock');
 
-    let pad = null;
+    let pad = null; let bg = null;
     if (!id) {
       // Tela inicial: palco com a caixa de pedido e os modelos (sem conversa).
       pad = launchpad({
@@ -407,7 +409,11 @@ export default {
             h('div', { class: 'nc-chat' }, thread, h('div', { class: 'nc-dock' }, cp.el)),
             h('section', { class: 'nc-view' }, h('div', { class: 'nc-vbar' }, devs, pageSel, h('span', { class: 'grow' }), h('button', { type: 'button', class: 'nc-tb', title: 'Recarregar prévia', 'aria-label': 'Recarregar prévia', onclick: loadPreview }, icon('refresh')), site.published && h('a', { class: 'nc-tb', href: liveLink(), target: '_blank', rel: 'noopener', title: 'Abrir site publicado' }, icon('external'))), stage))),
         h('div', { class: 'nc-scrim', onclick: () => root.classList.remove('side-open') }));
-      mount(box, root);
+      // mesmo palco da tela inicial: fundo animado escuro, com a conversa e a prévia em painéis de vidro
+      bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.5, timeOffset: 18, speed: 0.6, className: 'lp-bg', onFirstFrame: () => wstage.classList.add('gl-on') });
+      const wstage = h('div', { class: 'lp-stage lp-wstage' }, bg?.el, h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }), root);
+      box.classList.add('lp-box');
+      mount(box, h('section', { class: 'lp lp-work' }, wstage));
       drawThread(); loadPreview();
       if (site.status === 'ready') loadReview().then(() => { if (!disposed) drawThread(); });
       loadStages();
@@ -415,7 +421,7 @@ export default {
     }
     if (id) { loadSites(); refreshMeter(); paintUsage(); }
     return () => {
-      disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); pad?.destroy(); box.classList.remove('lp-box');
+      disposed = true; document.documentElement.classList.remove('studio-lock'); controller?.abort(); pad?.destroy(); bg?.destroy(); box.classList.remove('lp-box');
       clearTimeout(previewTimer); clearInterval(stageTimer); window.removeEventListener('message', onMsg); meter.destroy(); createSteps.destroy(); editRun?.steps.destroy();
     };
   }

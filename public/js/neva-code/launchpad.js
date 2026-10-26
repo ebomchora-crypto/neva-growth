@@ -5,7 +5,7 @@ import { api } from '../api.js';
 import { h, mount, toast, fail } from '../ui.js';
 import { attachControls, composeDetails } from '../attach.js';
 import { shaderCanvas } from './shader-canvas.js';
-import { PHOSPHOR_NEVA, GIGABIT_NEVA } from './shaders.js';
+import { SIRI_WAVE_NEVA, GIGABIT_NEVA } from './shaders.js';
 
 const KEY = 'neva-ai-selection';
 const sv = (html, cls = '') => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = html; return s; };
@@ -186,9 +186,9 @@ export function launchpad(opts) {
   const usage = h('span', { class: 'lp-usage' });
   api.get('/code-maker/usage').then((u) => { usage.textContent = `${u.sites_today}/${u.sites_limit} hoje`; usage.title = `Hoje: ${u.sites_today} de ${u.sites_limit} sites e ${u.edits_today} de ${u.edits_limit} alterações`; usage.classList.toggle('full', u.sites_today >= u.sites_limit); }).catch(() => { usage.hidden = true; });
 
-  // Emblema (anel de fósforo) e fundo (túnel gigabit) em WebGL2, nas cores da Neva; sem WebGL2 ficam o SVG e os feixes em CSS.
+  // Emblema (onda da Siri) e fundo (túnel gigabit) em WebGL2, nas cores da Neva; sem WebGL2 ficam o SVG e os feixes em CSS.
   const emblemEl = h('div', { class: 'lp-emblem', 'aria-hidden': 'true' });
-  const orb = shaderCanvas(PHOSPHOR_NEVA, { pixelRatio: 1.5, className: 'lp-orb', onFirstFrame: () => emblemEl.classList.add('on') });
+  const orb = shaderCanvas(SIRI_WAVE_NEVA, { pixelRatio: 1.5, className: 'lp-orb lp-wave', onFirstFrame: () => emblemEl.classList.add('on') });
   if (orb) { emblemEl.classList.add('gl'); emblemEl.append(orb.el); } else emblemEl.append(emblem());
   const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, timeOffset: 18, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
 

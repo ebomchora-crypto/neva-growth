@@ -2643,3 +2643,89 @@ button:disabled.lp-round,button:disabled.lp-pill,.lp-model:disabled{opacity:.5;c
 /* emblema com tamanho fixo: sem pulsação de escala no halo */
 .lp-emblem.gl::after{animation:none}
 .lp-emblem.gl{height:clamp(170px,27vh,230px)}
+
+/* Emblema: onda da Siri. O fundo preto do shader some (screen) e a onda flutua sobre o túnel */
+.lp-emblem.gl{width:min(620px,86vw);height:clamp(150px,22vh,200px);margin-bottom:-18px}
+.lp-emblem.gl::before{height:150%;aspect-ratio:3.2;background:radial-gradient(closest-side,rgba(2,9,20,.82) 0%,rgba(2,9,20,.5) 55%,rgba(2,9,20,0) 100%)}
+.lp-emblem.gl::after{height:70%;aspect-ratio:3.6;background:radial-gradient(closest-side,rgba(127,189,242,.22),rgba(90,163,220,.08) 55%,rgba(90,163,220,0) 80%);filter:blur(10px)}
+.lp-emblem.gl .lp-orb.lp-wave{mix-blend-mode:screen;filter:drop-shadow(0 0 14px rgba(127,189,242,.55)) drop-shadow(0 0 34px rgba(61,143,214,.35))}
+@media (max-width:900px){.lp-emblem.gl{height:clamp(110px,16vh,150px);margin-bottom:-8px}}
+.lp-emblem.gl .lp-orb.lp-wave{filter:drop-shadow(0 0 12px rgba(127,189,242,.75)) drop-shadow(0 0 40px rgba(61,143,214,.55))}
+
+/* ===== Builder: tela do site no mesmo palco da tela inicial (fundo animado + painéis de vidro escuro) ===== */
+html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-direction:column;flex:1;min-height:0}
+.lp-work{flex:1;min-height:0}
+.lp-stage.lp-wstage{align-items:stretch;padding:12px;border-radius:26px}
+.lp-wstage .lp-rays{opacity:.55}
+.lp-wstage>.nc{position:relative;z-index:1;flex:1;height:auto;min-height:0}
+.lp-work .nc{--nc-ink:#eef4fb;--nc-mut:#93a6bd;--nc-line:rgba(140,190,240,.15);--nc-soft:rgba(255,255,255,.05);--nc-panel:rgba(6,14,27,.68);--nc-acc:#7fbdf2;--nc-acc2:#5aa3dc;
+  --ink:#eef4fb;--mut:#93a6bd;--line:rgba(140,190,240,.15);color-scheme:dark}
+.lp-work .nc-side,.lp-work .nc-main{background:var(--nc-panel);border-color:rgba(140,190,240,.18);-webkit-backdrop-filter:blur(18px) saturate(140%);backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:inset 0 1px 0 rgba(190,225,255,.08),0 24px 60px -30px rgba(0,0,0,.8)}
+.lp-work .nc-mark,.lp-work .nc-av{background:linear-gradient(140deg,#5aa3dc,#174a7c);box-shadow:0 0 0 1px rgba(160,210,255,.25),0 6px 18px rgba(61,143,214,.35)}
+.lp-work .nc-new{background:linear-gradient(140deg,#3d8fd6,#174a7c);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px -10px rgba(61,143,214,.7)}
+.lp-work .nc-new:hover{background:linear-gradient(140deg,#5aa3dc,#1d5a94)}
+.lp-work .nc-search{background:rgba(255,255,255,.04);color:var(--nc-ink)}.lp-work .nc-search::placeholder{color:#7189a3}
+.lp-work .nc-search:focus{background:rgba(255,255,255,.07);border-color:rgba(127,189,242,.5)}
+.lp-work .nc-group>p,.lp-work .nc-lbl{color:#6f87a1}
+.lp-work .nc-item.on a{background:rgba(90,163,220,.16);box-shadow:inset 0 0 0 1px rgba(127,189,242,.22)}
+.lp-work .nc-more:hover{background:rgba(255,255,255,.08)}
+.lp-work .nc-pop,.lp-work .cp-menu,.lp-work .cp-slash,.lp-work .cm-panel{background:#0b1626;border-color:rgba(140,190,240,.2);box-shadow:0 24px 50px -14px rgba(0,0,0,.75)}
+.lp-work .nc-pop button{color:var(--nc-ink)}
+.lp-work .nc-top{border-color:var(--nc-line)}
+.lp-work .nc-status{background:rgba(255,255,255,.07)}
+.lp-work .nc-status.ok,.lp-work .nc-status.run{background:rgba(90,163,220,.16)}.lp-work .nc-status.pub{background:rgba(52,199,140,.14);color:#6fe0b0}
+.lp-work .nc-viewbtn[aria-pressed=true]{background:rgba(90,163,220,.16)}
+.lp-work .nc-pub{background:linear-gradient(140deg,#3d8fd6,#174a7c)}.lp-work .nc-pub:hover:not(:disabled){background:linear-gradient(140deg,#5aa3dc,#1d5a94)}
+.lp-work .nc-pub.on{background:rgba(255,255,255,.08);color:var(--nc-ink)}
+.lp-work .nc-chat{border-color:var(--nc-line)}
+.lp-work .nc-bubble{background:linear-gradient(160deg,rgba(61,143,214,.28),rgba(23,74,124,.32));border-color:rgba(127,189,242,.25)}
+.lp-work .nc-msg.me time{color:#6f87a1}
+.lp-work .nc-meta span{background:rgba(255,255,255,.06)}
+.lp-work .nc-live{background:rgba(255,255,255,.04);border-color:rgba(127,189,242,.22)}
+.lp-work .nc-live:hover{border-color:rgba(127,189,242,.5);box-shadow:0 0 0 3px rgba(90,163,220,.12)}
+.lp-work .nc-err{background:rgba(209,67,75,.1)}.lp-work .nc-err p{color:#ff9aa1}
+.lp-work .nc-view{background:rgba(2,8,16,.35)}
+.lp-work .nc-vbar{background:transparent;border-color:var(--nc-line)}
+.lp-work .nc-dev{background:rgba(255,255,255,.05)}.lp-work .nc-dev button.on{background:rgba(90,163,220,.2);box-shadow:none}
+.lp-work .nc-pages{background:rgba(255,255,255,.04);color:var(--nc-ink)}
+.lp-work .nc-stage iframe{box-shadow:0 0 0 1px rgba(140,190,240,.18),0 24px 60px -20px rgba(0,0,0,.8)}
+.lp-work .nc-orbit{border-color:rgba(140,190,240,.18);border-top-color:#7fbdf2}
+.lp-work .nc-tabs{border-color:var(--nc-line)}
+.lp-work .nc.side-open .nc-scrim{background:rgba(1,5,12,.6)}
+/* caixa de pedido */
+.lp-work .cp-box{background:rgba(255,255,255,.045);border-color:rgba(140,190,240,.2);box-shadow:inset 0 1px 0 rgba(190,225,255,.06),0 14px 34px -18px rgba(0,0,0,.8)}
+.lp-work .cp-box:focus-within{border-color:rgba(127,189,242,.55);box-shadow:0 0 0 4px rgba(90,163,220,.14),0 14px 34px -18px rgba(0,0,0,.8)}
+.lp-work .cp-ta{color:var(--nc-ink)}.lp-work .cp-ta::placeholder{color:#6f87a1}
+.lp-work .cp-attach{background:rgba(255,255,255,.05)!important;border-color:rgba(140,190,240,.2)!important;color:#b5c6d8!important}
+.lp-work .cp-attach:hover:not(:disabled){background:rgba(255,255,255,.1)!important;color:#fff!important}
+.lp-work .cp-ghost{color:#b5c6d8}.lp-work .cp-ghost:hover,.lp-work .cp-ghost.on{background:rgba(255,255,255,.07);color:#fff}.lp-work .cp-ghost .nv{color:#7fbdf2}
+.lp-work .cp-bars i{background:rgba(255,255,255,.18)}.lp-work .cp-bars i.on{background:#7fbdf2}
+.lp-work .cp-send{background:rgba(255,255,255,.07);color:#6f87a1}
+.lp-work .cp-send.ready{background:linear-gradient(140deg,#5aa3dc,#174a7c);color:#fff;box-shadow:0 0 22px rgba(90,163,220,.45)}
+.lp-work .cp-mi:hover,.lp-work .cp-mi:focus-visible,.lp-work .cp-opt.on{background:rgba(255,255,255,.07)}
+.lp-work .cp-mi .tx b,.lp-work .cp-opt .lb,.lp-work .cp-opt .lb b{color:var(--nc-ink)}
+.lp-work .cp-mfoot,.lp-work .cp-keys{border-color:rgba(140,190,240,.12)}.lp-work .cp-keys kbd{background:rgba(255,255,255,.08);color:#b5c6d8}
+.lp-work .cp-drop{background:rgba(6,14,27,.9)}
+.lp-work .cp-pill.cmd{background:rgba(90,163,220,.16);color:#a9d3f7}.lp-work .cp-pill.ref{background:rgba(52,199,140,.14);color:#6fe0b0}
+/* medidor de contexto */
+.lp-work .cm-model{color:#93a6bd}.lp-work .cm-trigger{color:var(--nc-ink)}.lp-work .cm-trigger:hover,.lp-work .cm-trigger.on{background:rgba(255,255,255,.07)}
+.lp-work .cm-ring .bg{stroke:rgba(255,255,255,.14)}.lp-work .cm-trigger:not(.warm):not(.hot) .cm-ring .fg{stroke:#7fbdf2}
+.lp-work .cm-bar{background:rgba(255,255,255,.08)}.lp-work .cm-list li.on{background:rgba(255,255,255,.06)}
+.lp-work .cm-list li span{color:#c9d7e6}.lp-work .cm-list li em{color:#93a6bd}.lp-work .cm-foot{border-color:rgba(140,190,240,.12)}
+/* etapas do agente */
+.lp-work .as{background:rgba(255,255,255,.035);border-color:var(--nc-line)}
+.lp-work .as-head{color:#c9d7e6}.lp-work .as-rail{background:rgba(255,255,255,.1)}.lp-work .as-rail i{background:#5aa3dc}
+.lp-work .as-dot{background:rgba(255,255,255,.22)}.lp-work .as-spin .trk{stroke:rgba(255,255,255,.14)}.lp-work .as-spin .arc{stroke:#7fbdf2}.lp-work .as-ok{color:#7fbdf2}
+.lp-work .as-step.pending p{color:#5f7690}.lp-work .as-step.done p{color:#93a6bd}.lp-work .as-line{color:#8ea3ba}.lp-work .as-line span{color:#5f7690}
+/* revisão de alterações */
+.lp-work .dr-box{background:rgba(255,255,255,.04)}.lp-work .dr-list{background:rgba(6,14,27,.6);box-shadow:0 0 0 1px var(--nc-line)}
+.lp-work .dr-btn{color:var(--nc-ink)}.lp-work .dr-btn:hover,.lp-work .dr-ic:hover{background:rgba(255,255,255,.08)}
+.lp-work .dr-diff{background:rgba(0,0,0,.3);box-shadow:0 0 0 1px var(--nc-line)}
+.lp-work .dr-line.add{background:rgba(52,199,140,.12);color:#7fe3b8}.lp-work .dr-line.remove{background:rgba(209,67,75,.14);color:#ff9aa1}
+@media (max-width:900px){
+  .lp-stage.lp-wstage{padding:8px;border-radius:20px}
+  .lp-work .nc-side{background:#08121f}
+}
+.lp-work .dr-btn.solid{background:linear-gradient(140deg,#3d8fd6,#174a7c);color:#fff}
+.lp-work .nc-tabs button[aria-selected=true]{background:rgba(90,163,220,.18)}
