@@ -4,6 +4,8 @@
 import { api } from '../api.js';
 import { h, mount, toast, fail } from '../ui.js';
 import { attachControls, composeDetails } from '../attach.js';
+import { shaderCanvas } from './shader-canvas.js';
+import { PHOSPHOR_NEVA, GIGABIT_NEVA } from './shaders.js';
 
 const KEY = 'neva-ai-selection';
 const sv = (html, cls = '') => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = html; return s; };
@@ -184,12 +186,18 @@ export function launchpad(opts) {
   const usage = h('span', { class: 'lp-usage' });
   api.get('/code-maker/usage').then((u) => { usage.textContent = `${u.sites_today}/${u.sites_limit} hoje`; usage.title = `Hoje: ${u.sites_today} de ${u.sites_limit} sites e ${u.edits_today} de ${u.edits_limit} alterações`; usage.classList.toggle('full', u.sites_today >= u.sites_limit); }).catch(() => { usage.hidden = true; });
 
+  // Emblema (anel de fósforo) e fundo (túnel gigabit) em WebGL2, nas cores da Neva; sem WebGL2 ficam o SVG e os feixes em CSS.
+  const emblemEl = h('div', { class: 'lp-emblem', 'aria-hidden': 'true' });
+  const orb = shaderCanvas(PHOSPHOR_NEVA, { pixelRatio: 1.5, className: 'lp-orb', onFirstFrame: () => emblemEl.classList.add('on') });
+  if (orb) { emblemEl.classList.add('gl'); emblemEl.append(orb.el); } else emblemEl.append(emblem());
+  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
+
   const el = h('section', { class: 'lp' },
     h('div', { class: 'lp-stage' },
-      h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }),
+      bg?.el, h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }),
       h('header', { class: 'lp-top' }, h('a', { class: 'lp-back', href: '#/sites' }, I.back(), 'Voltar aos sites'), h('span', { class: 'lp-grow' }),
         h('span', { class: 'lp-tag' }, h('i'), 'Builder de sites'), usage),
-      h('div', { class: 'lp-emblem', 'aria-hidden': 'true' }, emblem()),
+      emblemEl,
       h('h1', { class: 'lp-title' }, `O que vamos criar, ${opts.name}?`),
       disabled && opts.offMessage && h('p', { class: 'lp-off' }, opts.offMessage),
       h('div', { class: 'lp-panel' }, compose,
@@ -197,7 +205,7 @@ export function launchpad(opts) {
           h('div', { class: 'lp-mfoot' }, h('a', { class: 'lp-pill dark', href: '#/design' }, 'Ver todos os modelos', I.arrow()), h('span', { class: 'lp-grow' }), prev, next)))));
 
   paintModel(); paint(); drawModels();
-  return { el, focus: () => ta.focus(), destroy: () => { rec?.stop(); menu.close(); pal.close(); } };
+  return { el, focus: () => ta.focus(), destroy: () => { rec?.stop(); menu.close(); pal.close(); orb?.destroy(); bg?.destroy(); } };
 
   function item(label, hint, on, fn) {
     return h('button', { type: 'button', role: 'menuitemradio', 'aria-checked': String(on), class: 'lp-mi', onclick: fn }, h('span', h('b', label), hint && h('small', hint)), on && I.check());
