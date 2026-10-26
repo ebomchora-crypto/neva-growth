@@ -73,7 +73,7 @@ export default {
 
     // ================= card 1: Lucro no período (fluxo de lucro e custo) =================
     const profit = h('section', { class: 'nb-card nb-blue nb-profit', 'aria-label': 'Lucro no período' });
-    profit.innerHTML = `<div class="nb-g"></div><div class="nb-core"></div><div class="nb-in">
+    profit.innerHTML = `<div class="nb-g"></div><i class="nb-glow" aria-hidden="true"></i><i class="nb-sheen" aria-hidden="true"></i><i class="nb-frame" aria-hidden="true"></i><div class="nb-in">
       <div class="nb-row nb-sb"><div class="nb-ttl">Lucro no período</div><div class="nb-legend"><span><i style="background:#fff"></i>Lucro</span><span><i style="background:#a9d6ff"></i>Custo</span></div></div>
       <div class="nb-row nb-num"><span class="nb-big dash-money pv">R$ 0</span><span class="nb-chip pd"></span></div>
       <div class="nb-cap pc"></div>
@@ -139,7 +139,8 @@ export default {
       mount(promo, h('h2', 'Sua próxima venda começa agora.'), h('p', `${k.openLeads} ${k.openLeads === 1 ? 'empresa esperando' : 'empresas esperando'} seu próximo movimento.`),
         canWrite && h('a', { class: 'plus', href: '#/leads', title: 'Nova oportunidade no CRM', 'aria-label': 'Nova oportunidade no CRM' }, '+'),
         heroArt('dashboard'),
-        canWrite && h('a', { class: 'bigwhite', href: '#/clientes' }, 'Registrar cliente'), h('div', { class: 'nb-rim' }));
+        canWrite && h('a', { class: 'bigwhite', href: '#/clientes' }, 'Registrar cliente'),
+        h('i', { class: 'nb-glow', 'aria-hidden': 'true' }), h('i', { class: 'nb-sheen', 'aria-hidden': 'true' }), h('i', { class: 'nb-frame', 'aria-hidden': 'true' }), h('div', { class: 'nb-rim' }));
     }
 
     // ================= card 4: Lucro por período (cápsulas) =================
@@ -172,6 +173,12 @@ export default {
       if (animate && !reduce) RAF(() => RAF(() => svg.querySelectorAll('.cap').forEach((b) => { b.setAttribute('y', b.dataset.y); b.setAttribute('height', b.dataset.h); })));
       svg.querySelectorAll('.hit').forEach((hb) => { hb.onpointermove = (e) => { const p = P[Number(hb.dataset.i)]; showTip(e.clientX, e.clientY, p.full, [['Lucro', money(p.profit), '#2f7bbd'], ['Receita', money(p.revenue)]]); }; hb.onpointerleave = hideTip; });
     }
+
+    // luz suave que acompanha o mouse nos cards azuis (como nos banners das páginas)
+    [profit, promo].forEach((card) => {
+      card.addEventListener('pointermove', (e) => { const r = card.getBoundingClientRect(); card.style.setProperty('--mx', `${e.clientX - r.left}px`); card.style.setProperty('--my', `${e.clientY - r.top}px`); card.classList.add('lit'); });
+      card.addEventListener('pointerleave', () => card.classList.remove('lit'));
+    });
 
     // ---- montagem
     const grid = h('div', { class: 'nb-grid' }, profit, wallet, promo, bars);
