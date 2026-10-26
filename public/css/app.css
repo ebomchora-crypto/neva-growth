@@ -2606,3 +2606,16 @@ button:disabled.lp-round,button:disabled.lp-pill,.lp-model:disabled{opacity:.5;c
 .lp-tag,.lp-usage{text-shadow:0 1px 10px rgba(2,10,24,.9)}.lp-usage{color:#b8cce2}
 .lp-rays{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 28%,rgba(0,0,0,.05) 44%,rgba(0,0,0,.05) 56%,#000 72%,#000 100%),linear-gradient(180deg,#000 0,#000 42%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 28%,rgba(0,0,0,.05) 44%,rgba(0,0,0,.05) 56%,#000 72%,#000 100%),linear-gradient(180deg,#000 0,#000 42%,transparent 100%)}
 .lp-title{text-shadow:0 2px 36px rgba(2,12,28,.95),0 0 60px rgba(2,12,28,.8)}
+
+/* Cartão do seletor Modelo / Esforço: tamanho compacto, igual à referência (~280 px, alinhado ao botão) */
+.lp-pop.lp-epop{left:0;right:auto;width:min(284px,100%);bottom:calc(100% + 6px)}
+.lp-ecard{padding:12px 14px 13px;border-radius:14px}
+.lp-elab{font-size:.92rem;line-height:1.2;letter-spacing:0;text-shadow:0 0 14px rgba(61,143,214,.4)}
+.lp-ename{margin-top:2px;padding:1px 4px;font-size:.76rem;gap:2px;border-radius:6px}.lp-ename svg{width:11px;height:11px}
+.lp-ereset{right:9px;top:9px;width:26px;height:26px}.lp-ereset svg{width:14px;height:14px}
+.lp-track{height:34px;margin-top:10px}
+.lp-fill{width:calc(18px + (100% - 36px) * var(--lp-p,0))}
+.lp-thumb{width:30px;height:30px;margin:-15px 0 0 -15px;left:calc(18px + (100% - 36px) * var(--lp-p,0))}
+.lp-dots i{width:4px;height:4px;margin:-2px 0 0 -2px}
+.lp-emenu{top:46px;min-width:196px;padding:5px;border-radius:12px}.lp-emenu .lp-mi{padding:6px 9px}.lp-emenu .lp-mi b{font-size:.8rem}.lp-emenu .lp-mi small{font-size:.68rem}
+.lp-pop.lp-epop{left:-8px}
