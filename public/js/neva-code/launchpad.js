@@ -15,18 +15,18 @@ const I = {
 };
 // Modelos: referências do acervo com o hero real capturado. Escolher um faz dele a base visual obrigatória do site.
 const MODELS = [
-  { id: 'f5e2a889ccb0de95', label: 'Pizzaria', prompt: 'Site para pizzaria artesanal de bairro, com cardápio de pizzas e bebidas, horário, endereço com mapa e pedido pelo WhatsApp.' },
-  { id: '2e4e393eca6f87e2', label: 'Clínica e saúde', prompt: 'Site para clínica de saúde, com especialidades, equipe médica, convênios aceitos, depoimentos e agendamento pelo WhatsApp.' },
+  { id: '26a93f7d95a980e9', label: 'Design de interiores', prompt: 'Site para estúdio de design de interiores, com projetos em destaque, ambientes, processo de trabalho, equipe e contato para orçamento.' },
+  { id: 'cb6de64949b0bec6', label: 'Estúdio de tecnologia', prompt: 'Site para estúdio de tecnologia e experiências digitais imersivas, com trabalhos em destaque, serviços, equipe e contato.' },
+  { id: 'a93756f0c0cb59fc', label: 'Atendimento com IA', prompt: 'Landing page para plataforma de atendimento ao cliente com IA, com recursos, integrações, casos de sucesso e pedido de demonstração.' },
+  { id: '94d9841532f84af8', label: 'Agência criativa', prompt: 'Site para agência criativa, com portfólio de projetos, serviços, clientes atendidos, equipe e contato para novos projetos.' },
   { id: '3f5a569abcca0bbf', label: 'Moda e calçados', prompt: 'Loja de calçados confortáveis, com coleção em destaque, materiais, tabela de tamanhos, trocas e contato.' },
   { id: '0401e230bb9cda3a', label: 'Beleza e cosméticos', prompt: 'Site para marca de cosméticos, com linha de produtos, rotina de cuidados, depoimentos e onde comprar.' },
-  { id: '6edc8594e5a4fb17', label: 'Agência de design', prompt: 'Site para estúdio de design e branding, com projetos em destaque, serviços, equipe e contato para orçamento.' },
-  { id: 'dcc758c69efa7c9e', label: 'Música e áudio', prompt: 'Site para escola de produção musical, com cursos, professores, estúdio, planos e matrícula.' },
-  { id: 'c595fd0b94371aa8', label: 'Revista e editorial', prompt: 'Site editorial para revista de cultura e estilo de vida, com edição atual, matérias em destaque e assinatura.' },
-  { id: '7f6a838af8994dea', label: 'Bem-estar e sono', prompt: 'Landing page para produto de bem-estar e sono, com benefícios, como funciona, depoimentos, perguntas frequentes e compra.' },
-  { id: '6d2e58d5b24be71c', label: 'Restaurantes', prompt: 'Site para restaurante, com cardápio, ambiente, reservas, eventos e localização.' },
-  { id: '9eeb4057078be966', label: 'Educação', prompt: 'Site para escola de idiomas, com cursos, metodologia, depoimentos de alunos, planos e aula experimental.' },
-  { id: 'cc61a7288a538507', label: 'Software e SaaS', prompt: 'Landing page para software de gestão, com recursos, integrações, planos e preços, perguntas frequentes e teste grátis.' },
   { id: 'f64c0d544bffcec5', label: 'Velas e decoração', prompt: 'Loja de velas aromáticas e decoração, com coleções, aromas, kits para presente e compra.' },
+  { id: 'cfebfdafc08fb11d', label: 'Saúde e clínicas', prompt: 'Site para clínica de saúde, com especialidades, equipe médica, convênios aceitos, depoimentos e agendamento pelo WhatsApp.' },
+  { id: '3b24baef47b41477', label: 'Carros de luxo', prompt: 'Site para concessionária de carros de luxo, com modelos em destaque, ficha técnica, galeria, test drive e contato.' },
+  { id: 'c595fd0b94371aa8', label: 'Revista e editorial', prompt: 'Site editorial para revista de cultura e estilo de vida, com edição atual, matérias em destaque e assinatura.' },
+  { id: 'f99b584bac5ddeba', label: 'Finanças e fintech', prompt: 'Landing page para conta digital para empresas, com benefícios, como funciona, segurança, planos e abertura de conta.' },
+  { id: 'a685a334d586f159', label: 'Software e SaaS', prompt: 'Landing page para software de gestão de produto, com recursos, integrações, planos e preços, perguntas frequentes e teste grátis.' },
 ];
 const PER_PAGE = 4;
 
@@ -222,15 +222,17 @@ function popover(trigger, build, cls = '') {
 // Emblema de luz (lente azul com brilho), no lugar do símbolo da referência.
 function emblem() {
   const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  s.setAttribute('viewBox', '0 0 240 110');
+  s.setAttribute('viewBox', '0 0 260 120');
   s.innerHTML = `<defs>
-    <linearGradient id="lp-e1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f7bbd" stop-opacity="0"/><stop offset=".5" stop-color="#e8f4ff"/><stop offset="1" stop-color="#2f7bbd" stop-opacity="0"/></linearGradient>
-    <linearGradient id="lp-e2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e5f9e" stop-opacity="0"/><stop offset=".5" stop-color="#5aa3dc"/><stop offset="1" stop-color="#1e5f9e" stop-opacity="0"/></linearGradient>
-    <filter id="lp-blur" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="9"/></filter>
+    <linearGradient id="lp-e1" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2f7bbd" stop-opacity="0"/><stop offset=".22" stop-color="#7fbdf2"/><stop offset=".5" stop-color="#ffffff"/><stop offset=".78" stop-color="#7fbdf2"/><stop offset="1" stop-color="#2f7bbd" stop-opacity="0"/></linearGradient>
+    <linearGradient id="lp-e2" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#1e5f9e" stop-opacity="0"/><stop offset=".5" stop-color="#8fc6f5"/><stop offset="1" stop-color="#1e5f9e" stop-opacity="0"/></linearGradient>
+    <filter id="lp-b1" x="-30%" y="-120%" width="160%" height="340%"><feGaussianBlur stdDeviation="11"/></filter>
+    <filter id="lp-b2" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="4.5"/></filter>
   </defs>
-  <ellipse cx="120" cy="60" rx="92" ry="20" fill="#3d8fd6" opacity=".55" filter="url(#lp-blur)"/>
-  <path d="M14 60 C 70 14, 170 14, 226 60 C 170 40, 70 40, 14 60 Z" fill="url(#lp-e1)"/>
-  <path d="M34 64 C 84 90, 156 90, 206 64 C 156 78, 84 78, 34 64 Z" fill="url(#lp-e2)"/>
-  <path d="M60 52 C 92 34, 148 34, 180 52" fill="none" stroke="#ffffff" stroke-opacity=".85" stroke-width="2.4" stroke-linecap="round"/>`;
+  <ellipse cx="130" cy="62" rx="108" ry="24" fill="#4a95d2" opacity=".75" filter="url(#lp-b1)"/>
+  <ellipse cx="130" cy="58" rx="74" ry="9" fill="#ffffff" opacity=".9" filter="url(#lp-b2)"/>
+  <path d="M8 63 C 58 4, 202 4, 252 63 C 202 37, 58 37, 8 63 Z" fill="url(#lp-e1)"/>
+  <path d="M28 67 C 86 104, 174 104, 232 67 C 174 83, 86 83, 28 67 Z" fill="url(#lp-e2)"/>
+  <path d="M58 52 C 96 29, 164 29, 202 52" fill="none" stroke="#ffffff" stroke-opacity=".95" stroke-width="2.6" stroke-linecap="round"/>`;
   return s;
 }
