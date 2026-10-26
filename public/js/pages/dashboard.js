@@ -11,13 +11,21 @@ const PERIODS = [['hoje', 'Hoje'], ['7d', '7 dias'], ['1m', '1 mês'], ['3m', '3
 const SINCE = { hoje: 'hoje', '7d': 'nos últimos 7 dias', '1m': 'no último mês', '3m': 'em 3 meses', '6m': 'em 6 meses', '1a': 'em 12 meses' };
 const ease = (t) => 1 - Math.pow(1 - t, 3);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-function smoothPath(P, move = true) {
-  let d = (move ? 'M' : 'L') + `${P[0][0]},${P[0][1]}`;
-  for (let i = 0; i < P.length - 1; i++) {
-    const p0 = P[i - 1] || P[i]; const p1 = P[i]; const p2 = P[i + 1]; const p3 = P[i + 2] || p2; const k = 0.17;
-    d += `C${p1[0] + (p2[0] - p0[0]) * k},${p1[1] + (p2[1] - p0[1]) * k} ${p2[0] - (p3[0] - p1[0]) * k},${p2[1] - (p3[1] - p1[1]) * k} ${p2[0]},${p2[1]}`;
+
+// Interpolação cúbica monótona (Fritsch–Carlson): suave, mas nunca ultrapassa os valores dos pontos vizinhos.
+function monotone(xs, ys, step = 3) {
+  const n = xs.length; if (n < 2) return xs.map((x, i) => [x, ys[i]]);
+  const d = []; for (let i = 0; i < n - 1; i++) d.push((ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i]));
+  const m = [d[0]]; for (let i = 1; i < n - 1; i++) m.push(d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2); m.push(d[n - 2]);
+  for (let i = 0; i < n - 1; i++) { if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; } const a = m[i] / d[i]; const b = m[i + 1] / d[i]; const h2 = a * a + b * b; if (h2 > 9) { const t = 3 / Math.sqrt(h2); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; } }
+  const out = [];
+  for (let i = 0; i < n - 1; i++) {
+    const x0 = xs[i]; const x1 = xs[i + 1]; const hh = x1 - x0; const steps = Math.max(2, Math.ceil(hh / step));
+    for (let k = 0; k < steps; k++) { const t = k / steps; const t2 = t * t; const t3 = t2 * t;
+      out.push([x0 + t * hh, (2 * t3 - 3 * t2 + 1) * ys[i] + (t3 - 2 * t2 + t) * hh * m[i] + (-2 * t3 + 3 * t2) * ys[i + 1] + (t3 - t2) * hh * m[i + 1]]); }
   }
-  return d;
+  out.push([xs[n - 1], ys[n - 1]]);
+  return out;
 }
 
 export default {
@@ -83,20 +91,27 @@ export default {
       const m = data.metrics; const svg = profit.querySelector('.nb-stream'); const W = profit.clientWidth; const Hh = 210; const topY = 26; const bot = 26; const mid = topY + (Hh - topY - bot) / 2; const half = (Hh - topY - bot) / 2;
       svg.setAttribute('width', W); svg.setAttribute('height', Hh); svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
       const S = m.series.length > 1 ? m.series : [m.series[0], m.series[0]]; const n = S.length; const mx = Math.max(0, ...S.map((p) => p.revenue));
-      const X = (i) => -20 + (i / (n - 1)) * (W + 40); const g = ease(grow);
+      // todos os períodos dentro do card (o último não pode sair pela borda direita); a esquerda continua sumindo no degradê
+      const L = 14; const R = W - 34; const X = (i) => L + (i / (n - 1)) * (R - L); const g = ease(grow);
       // espessura = receita do período (com um mínimo, para o fluxo nunca sumir); a parte branca é o lucro, o resto é custo
       const lay = S.map((p) => { const t = (mx > 0 ? (p.revenue > 0 ? 0.14 + 0.86 * (p.revenue / mx) : 0.04) : 0.04) * half * g; return { r: t, p: p.revenue > 0 ? t * (Math.max(0, p.profit) / p.revenue) : 0 }; });
-      const band = (k) => smoothPath(S.map((p, i) => [X(i), mid - lay[i][k]])) + smoothPath(S.map((p, i) => [X(i), mid + lay[i][k]]).reverse(), false) + 'Z';
-      const marks = m.series.length < 2 ? [n - 1] : W < 520 ? [...new Set([Math.round((n - 1) * 0.25), n - 1])] : [...new Set([Math.round((n - 1) * 0.18), Math.round((n - 1) * 0.55), n - 1])];
-      svg.innerHTML = `<defs><linearGradient id="nbsf" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".22" stop-color="#fff" stop-opacity="1"/></linearGradient><mask id="nbsm"><rect width="${W}" height="${Hh}" fill="url(#nbsf)"/></mask></defs>
+      // interpolação monótona (sem passar do valor real entre dois meses, ao contrário da curva anterior)
+      const band = (k) => { const pts = monotone([...S.map((_, i) => X(i)), W + 12], [...lay.map((l) => l[k]), lay[n - 1][k]]); return 'M' + pts.map(([x, t]) => `${x.toFixed(1)},${(mid - t).toFixed(1)}`).join('L') + 'L' + pts.reverse().map(([x, t]) => `${x.toFixed(1)},${(mid + t).toFixed(1)}`).join('L') + 'Z'; };
+      // marcadores nos períodos de maior lucro (nunca num mês vazio), afastados entre si
+      const want = W < 520 ? 2 : 3; const gap = W < 520 ? 110 : 150; const marks = [];
+      for (const i of S.map((_, i) => i).filter((i) => S[i].profit > 0 || S[i].revenue > 0).sort((a, b) => S[b].profit - S[a].profit)) { if (marks.length >= want) break; if (marks.every((j) => Math.abs(X(j) - X(i)) >= gap)) marks.push(i); }
+      const empty = !marks.length; // período sem vendas pagas: nenhum marcador (seria só "R$ 0"), e uma frase no lugar
+      marks.sort((a, b) => a - b);
+      svg.innerHTML = `<defs><linearGradient id="nbsf" x1="0" x2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".22" stop-color="#fff" stop-opacity="1"/><stop offset="${(R / W).toFixed(3)}" stop-color="#fff" stop-opacity="1"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="nbsm"><rect width="${W}" height="${Hh}" fill="url(#nbsf)"/></mask></defs>
         <g mask="url(#nbsm)"><path d="${band('r')}" fill="#a9d6ff" opacity=".95"/><path d="${band('p')}" fill="#fff" opacity=".96"/></g>
-        ${marks.map((i, k) => { const x = Math.min(W - 48, Math.max(48, X(i))); return `<g style="opacity:${g > 0.6 ? 1 : 0};transition:opacity .4s ${k * 0.08}s">
+        ${marks.map((i, k) => { const x = X(i); const lx = Math.min(W - 44, Math.max(44, x)); return `<g style="opacity:${g > 0.6 ? 1 : 0};transition:opacity .4s ${k * 0.08}s">
           <line x1="${x}" x2="${x}" y1="${topY - 4}" y2="${Hh - bot + 4}" stroke="rgba(4,20,40,.45)" stroke-width="1.5"/>
-          <rect x="${x - 40}" y="${topY - 14}" width="80" height="22" rx="11" fill="#06182d"/><text x="${x}" y="${topY + 1}" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">${esc(money(S[i].profit, { compact: true }))}</text>
-          <rect x="${x - 32}" y="${Hh - bot - 8}" width="64" height="22" rx="11" fill="#06182d"/><text x="${x}" y="${Hh - bot + 7}" text-anchor="middle" font-size="10.5" font-weight="500" fill="rgba(255,255,255,.75)">${esc(S[i].label)}</text></g>`; }).join('')}
+          <rect x="${lx - 40}" y="${topY - 14}" width="80" height="22" rx="11" fill="#06182d"/><text x="${lx}" y="${topY + 1}" text-anchor="middle" font-size="11" font-weight="600" fill="#fff">${esc(money(S[i].profit, { compact: true }))}</text>
+          <rect x="${lx - 32}" y="${Hh - bot - 8}" width="64" height="22" rx="11" fill="#06182d"/><text x="${lx}" y="${Hh - bot + 7}" text-anchor="middle" font-size="10.5" font-weight="500" fill="rgba(255,255,255,.75)">${esc(S[i].label)}</text></g>`; }).join('')}
+        ${empty ? `<text x="${W / 2}" y="${mid - 18}" text-anchor="middle" font-size="12.5" font-weight="600" fill="rgba(255,255,255,.82)">Sem vendas pagas neste período</text>` : ''}
         <line class="hl" y1="${topY}" y2="${Hh - bot}" stroke="#fff" stroke-width="1.5" opacity="0"/><rect width="${W}" height="${Hh}" fill="transparent" class="hit"/>`;
       const hit = svg.querySelector('.hit'); const hl = svg.querySelector('.hl');
-      hit.onpointermove = (e) => { const r = svg.getBoundingClientRect(); const z = r.width / W; const x = (e.clientX - r.left) / z; const i = Math.max(0, Math.min(n - 1, Math.round(((x + 20) / (W + 40)) * (n - 1)))); const p = S[i];
+      hit.onpointermove = (e) => { const r = svg.getBoundingClientRect(); const z = r.width / W; const x = (e.clientX - r.left) / z; const i = Math.max(0, Math.min(n - 1, Math.round(((x - L) / (R - L)) * (n - 1)))); const p = S[i];
         hl.setAttribute('x1', X(i)); hl.setAttribute('x2', X(i)); hl.setAttribute('opacity', 1);
         showTip(r.left + X(i) * z, r.top + (mid - lay[i].r) * z, p.label, [['Lucro', money(p.profit), '#fff'], ['Custo', money(p.revenue - p.profit), '#a9d6ff'], ['Receita', money(p.revenue)]]); };
       hit.onpointerleave = () => { hl.setAttribute('opacity', 0); hideTip(); };
