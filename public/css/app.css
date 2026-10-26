@@ -2729,3 +2729,9 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 }
 .lp-work .dr-btn.solid{background:linear-gradient(140deg,#3d8fd6,#174a7c);color:#fff}
 .lp-work .nc-tabs button[aria-selected=true]{background:rgba(90,163,220,.18)}
+/* Onda da Siri na mesma proporção do componente original: canvas quadrado; as faixas vazias de cima e de baixo são transparentes e sobrepõem o título */
+.lp-emblem.gl{--wv:clamp(250px,40vh,380px);width:var(--wv);height:var(--wv);max-width:86vw;max-height:86vw;margin-bottom:calc(var(--wv) * -.27)}
+.lp-emblem.gl::before{height:62%;aspect-ratio:1.5}
+.lp-emblem.gl::after{height:40%;aspect-ratio:1.8}
+.lp-emblem.gl~*{position:relative;z-index:1}
+@media (max-width:900px){.lp-emblem.gl{--wv:clamp(220px,34vh,300px)}}
