@@ -1,0 +1,28 @@
+/* Tailwind só para os componentes do Motion Primitives. O build (build.mjs) confina tudo em .mp-scope. */
+@import 'tailwindcss/theme.css' layer(theme);
+@import 'tailwindcss/preflight.css' layer(base);
+@import 'tailwindcss/utilities.css' layer(utilities);
+@source './components';
+@source './demos';
+@source './runtime.tsx';
+
+/* dark: só por classe, nunca pelo tema do sistema (a galeria é clara) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Identidade Neva: os tons neutros (zinc/neutral/gray) dos exemplos originais viram a escala azul-marinho/gelo,
+   e o azul vira o ciano da marca. O código dos componentes continua o original. */
+@theme {
+  --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-zinc-50: #f5fbff;  --color-zinc-100: #e9f6fd; --color-zinc-200: #d3edfa; --color-zinc-300: #b9e8ff;
+  --color-zinc-400: #8eb4cf; --color-zinc-500: #5e7f9c; --color-zinc-600: #3e5d7b; --color-zinc-700: #294562;
+  --color-zinc-800: #183049; --color-zinc-900: #0f2138; --color-zinc-950: #091629;
+  --color-neutral-50: #f5fbff;  --color-neutral-100: #e9f6fd; --color-neutral-200: #d3edfa; --color-neutral-300: #b9e8ff;
+  --color-neutral-400: #8eb4cf; --color-neutral-500: #5e7f9c; --color-neutral-600: #3e5d7b; --color-neutral-700: #294562;
+  --color-neutral-800: #183049; --color-neutral-900: #0f2138; --color-neutral-950: #091629;
+  --color-gray-50: #f5fbff;  --color-gray-100: #e9f6fd; --color-gray-200: #d3edfa; --color-gray-300: #b9e8ff;
+  --color-gray-400: #8eb4cf; --color-gray-500: #5e7f9c; --color-gray-600: #3e5d7b; --color-gray-700: #294562;
+  --color-gray-800: #183049; --color-gray-900: #0f2138; --color-gray-950: #091629;
+  --color-blue-100: #dff5fe; --color-blue-200: #b9e8ff; --color-blue-300: #8fdcfb; --color-blue-400: #63d0f8;
+  --color-blue-500: #48c8f5; --color-blue-600: #1fa9dd; --color-blue-700: #1784b1; --color-blue-800: #13658a;
+  --color-neva-navy: #091629; --color-neva-ice: #b9e8ff; --color-neva-cyan: #48c8f5;
+}

@@ -1,4 +1,4 @@
-// Lista dos componentes da galeria. Cada um tem uma versão em JavaScript puro em ./c/<slug>.js.
+// Lista dos componentes da galeria. Os nativos têm versão em JavaScript puro em ./c/<slug>.js; os de src "mp" vêm do Motion Primitives (React + Motion, MIT), gerados por ui-kit-react/build.mjs em ./mp/<mp>.js.
 export const KIT = [
  {
   "slug": "dot-field",
@@ -479,5 +479,253 @@ export const KIT = [
   "name": "Undo Button",
   "cat": "Botões",
   "desc": "An action button that gives you a few seconds to take it back, with the time left drawn around its own edge."
+ },
+ {
+  "slug": "mp-accordion",
+  "name": "Accordion",
+  "cat": "Navegação",
+  "desc": "Seções que abrem e fecham com animação de altura; uma aberta por vez, com variantes e transição configuráveis.",
+  "src": "mp",
+  "mp": "accordion"
+ },
+ {
+  "slug": "mp-animated-background",
+  "name": "Animated Background",
+  "cat": "Navegação",
+  "desc": "Fundo que desliza até o item ativo ou sob o mouse (layout animation), para abas, segmentos e grades de cartões.",
+  "src": "mp",
+  "mp": "animated-background"
+ },
+ {
+  "slug": "mp-animated-group",
+  "name": "Animated Group",
+  "cat": "Efeitos",
+  "desc": "Entrada coordenada de um grupo de elementos, com 10 presets (fade, slide, scale, blur, zoom, flip, bounce, rotate, swing…).",
+  "src": "mp",
+  "mp": "animated-group"
+ },
+ {
+  "slug": "mp-animated-number",
+  "name": "Animated Number",
+  "cat": "Textos",
+  "desc": "Número que corre até o novo valor com física de mola (useSpring), ideal para contadores e indicadores.",
+  "src": "mp",
+  "mp": "animated-number"
+ },
+ {
+  "slug": "mp-border-trail",
+  "name": "Border Trail",
+  "cat": "Efeitos",
+  "desc": "Um rastro de luz que percorre a borda do elemento em loop, para campos ativos e estados de carregamento.",
+  "src": "mp",
+  "mp": "border-trail"
+ },
+ {
+  "slug": "mp-carousel",
+  "name": "Carousel",
+  "cat": "Mídia",
+  "desc": "Carrossel arrastável com setas, indicadores e vários itens por vez; índice controlado ou livre.",
+  "src": "mp",
+  "mp": "carousel"
+ },
+ {
+  "slug": "mp-cursor",
+  "name": "Cursor",
+  "cat": "Efeitos",
+  "desc": "Cursor personalizado que segue o mouse com mola, aparece só sobre a área e muda de forma sobre um alvo.",
+  "src": "mp",
+  "mp": "cursor"
+ },
+ {
+  "slug": "mp-dialog",
+  "name": "Dialog",
+  "cat": "Navegação",
+  "desc": "Modal acessível (dialog nativo) com entrada e saída animadas, variantes próprias e trava de rolagem.",
+  "src": "mp",
+  "mp": "dialog"
+ },
+ {
+  "slug": "mp-disclosure",
+  "name": "Disclosure",
+  "cat": "Cartões",
+  "desc": "Conteúdo que se revela com mola dentro de um cartão; aberto/fechado controlado e variantes customizáveis.",
+  "src": "mp",
+  "mp": "disclosure"
+ },
+ {
+  "slug": "mp-dock",
+  "name": "Dock",
+  "cat": "Navegação",
+  "desc": "Dock estilo macOS: os ícones crescem conforme a distância do mouse, com rótulos que aparecem no hover.",
+  "src": "mp",
+  "mp": "dock"
+ },
+ {
+  "slug": "mp-glow-effect",
+  "name": "Glow Effect",
+  "cat": "Efeitos",
+  "desc": "Brilho animado atrás de cartões e botões, com 6 modos (girar, pulsar, respirar, trocar cor, fluir, estático).",
+  "src": "mp",
+  "mp": "glow-effect"
+ },
+ {
+  "slug": "mp-image-comparison",
+  "name": "Image Comparison",
+  "cat": "Mídia",
+  "desc": "Compare duas imagens com um divisor que se arrasta ou segue o mouse, com mola opcional.",
+  "src": "mp",
+  "mp": "image-comparison"
+ },
+ {
+  "slug": "mp-in-view",
+  "name": "In View",
+  "cat": "Efeitos",
+  "desc": "Anima o conteúdo quando ele entra na área visível (useInView), uma vez ou sempre, com variantes e atraso em cascata.",
+  "src": "mp",
+  "mp": "in-view"
+ },
+ {
+  "slug": "mp-infinite-slider",
+  "name": "Infinite Slider",
+  "cat": "Mídia",
+  "desc": "Faixa contínua (marquee) horizontal ou vertical, com velocidade própria e outra ao passar o mouse.",
+  "src": "mp",
+  "mp": "infinite-slider"
+ },
+ {
+  "slug": "mp-magnetic",
+  "name": "Magnetic",
+  "cat": "Botões",
+  "desc": "O elemento é puxado na direção do mouse dentro de um raio, com intensidade e área de ação ajustáveis.",
+  "src": "mp",
+  "mp": "magnetic"
+ },
+ {
+  "slug": "mp-morphing-dialog",
+  "name": "Morphing Dialog",
+  "cat": "Cartões",
+  "desc": "Um cartão que se transforma no próprio diálogo: imagem, título e subtítulo viajam até a janela aberta.",
+  "src": "mp",
+  "mp": "morphing-dialog"
+ },
+ {
+  "slug": "mp-progressive-blur",
+  "name": "Progressive Blur",
+  "cat": "Mídia",
+  "desc": "Desfoque em camadas que aumenta gradualmente numa direção, para legendas sobre imagens e bordas de listas.",
+  "src": "mp",
+  "mp": "progressive-blur"
+ },
+ {
+  "slug": "mp-scroll-progress",
+  "name": "Scroll Progress",
+  "cat": "Navegação",
+  "desc": "Barra que mostra quanto do conteúdo já foi lido, acompanhando a rolagem com mola.",
+  "src": "mp",
+  "mp": "scroll-progress"
+ },
+ {
+  "slug": "mp-sliding-number",
+  "name": "Sliding Number",
+  "cat": "Textos",
+  "desc": "Dígitos que deslizam um a um até o novo número, como num contador mecânico; serve para relógios e valores.",
+  "src": "mp",
+  "mp": "sliding-number"
+ },
+ {
+  "slug": "mp-spinning-text",
+  "name": "Spinning Text",
+  "cat": "Textos",
+  "desc": "Texto distribuído em círculo girando sem parar, com raio, velocidade, sentido e variantes de entrada.",
+  "src": "mp",
+  "mp": "spinning-text"
+ },
+ {
+  "slug": "mp-spotlight",
+  "name": "Spotlight",
+  "cat": "Efeitos",
+  "desc": "Um foco de luz que segue o mouse dentro do elemento, para bordas iluminadas e fundos interativos.",
+  "src": "mp",
+  "mp": "spotlight"
+ },
+ {
+  "slug": "mp-text-effect",
+  "name": "Text Effect",
+  "cat": "Textos",
+  "desc": "Revela o texto por palavra, letra ou linha com presets (blur, fade, slide, scale) e saída animada.",
+  "src": "mp",
+  "mp": "text-effect"
+ },
+ {
+  "slug": "mp-text-loop",
+  "name": "Text Loop",
+  "cat": "Textos",
+  "desc": "Alterna frases em loop com transição de entrada e saída, intervalo e variantes configuráveis.",
+  "src": "mp",
+  "mp": "text-loop"
+ },
+ {
+  "slug": "mp-text-roll",
+  "name": "Text Roll",
+  "cat": "Textos",
+  "desc": "Letras que giram no eixo X uma após a outra, como um letreiro de aeroporto, com atrasos por letra.",
+  "src": "mp",
+  "mp": "text-roll"
+ },
+ {
+  "slug": "mp-text-scramble",
+  "name": "Text Scramble",
+  "cat": "Textos",
+  "desc": "Embaralha os caracteres até formar o texto final; dispara ao montar, no hover ou por gatilho.",
+  "src": "mp",
+  "mp": "text-scramble"
+ },
+ {
+  "slug": "mp-text-shimmer",
+  "name": "Text Shimmer",
+  "cat": "Textos",
+  "desc": "Um brilho que atravessa o texto em loop, com cor base, cor do brilho, duração e largura ajustáveis.",
+  "src": "mp",
+  "mp": "text-shimmer"
+ },
+ {
+  "slug": "mp-text-shimmer-wave",
+  "name": "Text Shimmer Wave",
+  "cat": "Textos",
+  "desc": "Onda que passa pelas letras mudando cor, escala e profundidade em 3D, para estados de 'pensando' ou carregando.",
+  "src": "mp",
+  "mp": "text-shimmer-wave"
+ },
+ {
+  "slug": "mp-tilt",
+  "name": "Tilt",
+  "cat": "Cartões",
+  "desc": "Cartão que inclina em 3D seguindo o mouse, com fator de rotação, inversão e mola; combina com o Spotlight.",
+  "src": "mp",
+  "mp": "tilt"
+ },
+ {
+  "slug": "mp-toolbar-dynamic",
+  "name": "Toolbar Dynamic",
+  "cat": "Navegação",
+  "desc": "Barra de ferramentas que se transforma num campo de busca, mudando de largura com mola.",
+  "src": "mp",
+  "mp": "toolbar-dynamic"
+ },
+ {
+  "slug": "mp-toolbar-expandable",
+  "name": "Toolbar Expandable",
+  "cat": "Navegação",
+  "desc": "Barra de ferramentas que abre um painel acima de cada botão, medindo a altura do conteúdo e animando a troca.",
+  "src": "mp",
+  "mp": "toolbar-expandable"
+ },
+ {
+  "slug": "mp-transition-panel",
+  "name": "Transition Panel",
+  "cat": "Navegação",
+  "desc": "Troca o conteúdo de um painel com variantes de entrada, centro e saída, para abas e passo a passo.",
+  "src": "mp",
+  "mp": "transition-panel"
  }
 ];

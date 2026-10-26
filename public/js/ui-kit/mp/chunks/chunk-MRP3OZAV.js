@@ -1,0 +1,1 @@
+import{b as c,c as s}from"./chunk-QEHCDPQO.js";var u=c(s());function d(e,n){(0,u.useEffect)(()=>{let t=o=>{!e||!e.current||e.current.contains(o.target)||n(o)};return document.addEventListener("mousedown",t),document.addEventListener("touchstart",t),()=>{document.removeEventListener("mousedown",t),document.removeEventListener("touchstart",t)}},[e,n])}var i=d;export{i as a};

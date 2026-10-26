@@ -47,7 +47,8 @@ export function modal({ title, body, actions = [], size = '', onClose }) {
   const back = h('div', { class: 'modal-back' });
   let closing = false;
   const close = () => { if (closing) return; closing = true; document.removeEventListener('keydown', esc); modalOut(back, box, () => back.remove()); onClose?.(); };
-  const esc = (e) => { if (e.key === 'Escape') close(); };
+  // Esc fecha só a camada de cima: se há um <dialog> nativo aberto ou um portal (ex.: Motion Primitives) por cima deste modal, ele cuida do Esc.
+  const esc = (e) => { if (e.key !== 'Escape') return; if (document.querySelector('dialog[open]') || [...document.body.children].some((n) => n !== back && n.classList?.contains('mp-scope') && n.compareDocumentPosition(back) & Node.DOCUMENT_POSITION_PRECEDING)) return; close(); };
   const box = h('div', { class: 'modal ' + size, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
     h('header', h('h2', title), h('button', { class: 'x', 'aria-label': 'Fechar', onclick: close }, '×')),
     h('div', { class: 'body' }, body),

@@ -1,0 +1,193 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles.
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder (or install it with: npx motion-primitives@latest add toolbar-dynamic):
+```tsx
+toolbar-dynamic.tsx
+'use client';
+import React, { useRef, useState } from 'react';
+import { motion, MotionConfig } from 'motion/react';
+import useClickOutside from '@/hooks/useClickOutside';
+import { ArrowLeft, Search, User } from 'lucide-react';
+
+const transition = {
+  type: 'spring',
+  bounce: 0.1,
+  duration: 0.2,
+};
+
+function Button({
+  children,
+  onClick,
+  disabled,
+  ariaLabel,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  ariaLabel?: string;
+}) {
+  return (
+    <button
+      className='relative flex h-9 w-9 shrink-0 scale-100 select-none appearance-none items-center justify-center rounded-lg text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 focus-visible:ring-2 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50'
+      type='button'
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={ariaLabel}
+    >
+      {children}
+    </button>
+  );
+}
+
+export default function ToolbarDynamic() {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useClickOutside(containerRef, () => {
+    setIsOpen(false);
+  });
+
+  return (
+    <MotionConfig transition={transition}>
+      <div className='absolute bottom-8' ref={containerRef}>
+        <div className='h-full w-full rounded-xl border border-zinc-950/10 bg-white'>
+          <motion.div
+            animate={{
+              // @todo: here I want to remove the width
+              width: isOpen ? '300px' : '98px',
+            }}
+            initial={false}
+          >
+            <div className='overflow-hidden p-2'>
+              {!isOpen ? (
+                <div className='flex space-x-2'>
+                  <Button disabled ariaLabel='User profile'>
+                    <User className='h-5 w-5' />
+                  </Button>
+                  <Button
+                    onClick={() => setIsOpen(true)}
+                    ariaLabel='Search notes'
+                  >
+                    <Search className='h-5 w-5' />
+                  </Button>
+                </div>
+              ) : (
+                <div className='flex space-x-2'>
+                  <Button onClick={() => setIsOpen(false)} ariaLabel='Back'>
+                    <ArrowLeft className='h-5 w-5' />
+                  </Button>
+                  <div className='relative w-full'>
+                    <input
+                      className='h-9 w-full rounded-lg border border-zinc-950/10 bg-transparent p-2 text-zinc-900 placeholder-zinc-500 focus:outline-hidden'
+                      autoFocus
+                      placeholder='Search notes'
+                    />
+                    <div className='absolute right-1 top-0 flex h-full items-center justify-center'></div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
+    </MotionConfig>
+  );
+}
+
+
+useClickOutside.tsx (hooks/useClickOutside.tsx)
+import { RefObject, useEffect } from 'react';
+
+function useClickOutside<T extends HTMLElement>(
+  ref: RefObject<T>,
+  handler: (event: MouseEvent | TouchEvent) => void
+): void {
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+      if (!ref || !ref.current || ref.current.contains(event.target as Node)) {
+        return;
+      }
+
+      handler(event);
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [ref, handler]);
+}
+
+export default useClickOutside;
+
+
+lib/utils.ts
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+```
+
+Install NPM dependencies:
+```bash
+motion, lucide-react, clsx, tailwind-merge
+```
+
+Documentation and examples: https://motion-primitives.com/docs/toolbar-dynamic
+Source: https://github.com/ibelick/motion-primitives (components/core/toolbar-dynamic.tsx)
+
+License (keep this notice when you copy the code):
+MIT License
+
+Copyright (c) 2024 ibelick
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+app/page.tsx
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's arguments and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Use your own image assets
+ 3. Use lucide-react icons for svgs or logos if component requires them

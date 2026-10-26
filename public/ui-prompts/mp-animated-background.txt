@@ -1,0 +1,164 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles.
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder (or install it with: npx motion-primitives@latest add animated-background):
+```tsx
+animated-background.tsx
+'use client';
+import { cn } from '@/lib/utils';
+import { AnimatePresence, Transition, motion } from 'motion/react';
+import {
+  Children,
+  cloneElement,
+  ReactElement,
+  useEffect,
+  useState,
+  useId,
+} from 'react';
+
+export type AnimatedBackgroundProps = {
+  children:
+    | ReactElement<{ 'data-id': string }>[]
+    | ReactElement<{ 'data-id': string }>;
+  defaultValue?: string;
+  onValueChange?: (newActiveId: string | null) => void;
+  className?: string;
+  transition?: Transition;
+  enableHover?: boolean;
+};
+
+export function AnimatedBackground({
+  children,
+  defaultValue,
+  onValueChange,
+  className,
+  transition,
+  enableHover = false,
+}: AnimatedBackgroundProps) {
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const uniqueId = useId();
+
+  const handleSetActiveId = (id: string | null) => {
+    setActiveId(id);
+
+    if (onValueChange) {
+      onValueChange(id);
+    }
+  };
+
+  useEffect(() => {
+    if (defaultValue !== undefined) {
+      setActiveId(defaultValue);
+    }
+  }, [defaultValue]);
+
+  return Children.map(children, (child: any, index) => {
+    const id = child.props['data-id'];
+
+    const interactionProps = enableHover
+      ? {
+          onMouseEnter: () => handleSetActiveId(id),
+          onMouseLeave: () => handleSetActiveId(null),
+        }
+      : {
+          onClick: () => handleSetActiveId(id),
+        };
+
+    return cloneElement(
+      child,
+      {
+        key: index,
+        className: cn('relative inline-flex', child.props.className),
+        'data-checked': activeId === id ? 'true' : 'false',
+        ...interactionProps,
+      },
+      <>
+        <AnimatePresence initial={false}>
+          {activeId === id && (
+            <motion.div
+              layoutId={`background-${uniqueId}`}
+              className={cn('absolute inset-0', className)}
+              transition={transition}
+              initial={{ opacity: defaultValue ? 1 : 0 }}
+              animate={{
+                opacity: 1,
+              }}
+              exit={{
+                opacity: 0,
+              }}
+            />
+          )}
+        </AnimatePresence>
+        <div className='z-10'>{child.props.children}</div>
+      </>
+    );
+  });
+}
+
+
+lib/utils.ts
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+```
+
+Install NPM dependencies:
+```bash
+motion, clsx, tailwind-merge
+```
+
+Documentation and examples: https://motion-primitives.com/docs/animated-background
+Source: https://github.com/ibelick/motion-primitives (components/core/animated-background.tsx)
+
+License (keep this notice when you copy the code):
+MIT License
+
+Copyright (c) 2024 ibelick
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+app/page.tsx
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's arguments and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Use your own image assets
+ 3. Use lucide-react icons for svgs or logos if component requires them

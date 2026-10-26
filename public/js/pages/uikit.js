@@ -4,11 +4,12 @@
 import { h, mount, icon, modal, hero, copyText, downloadFile, toast } from '../ui.js';
 import { KIT } from '../ui-kit/manifest.js';
 
-const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões'];
+const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões', 'Efeitos'];
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 
-async function load(slug) {
-  try { return (await import(`../ui-kit/c/${slug}.js`)).default; } catch (e) { if (/Failed to fetch|Cannot find|Unexpected token|404|error loading/i.test(String(e?.message))) return null; console.error('[ui-kit]', slug, e); return 'erro'; }
+async function load(item) {
+  // Motion Primitives: módulos React gerados em ../ui-kit/mp (React e Motion carregados só aqui, sob demanda)
+  try { return (await import(item.src === 'mp' ? `../ui-kit/mp/${item.mp}.js` : `../ui-kit/c/${item.slug}.js`)).default; } catch (e) { if (/Failed to fetch|Cannot find|Unexpected token|404|error loading/i.test(String(e?.message))) return null; console.error('[ui-kit]', item.slug, e); return 'erro'; }
 }
 
 /** Prompt de integração do componente (texto completo, com o código original e as dependências), em /ui-prompts/<slug>.txt. */
@@ -28,9 +29,19 @@ async function openPrompt(item) {
       h('button', { type: 'button', class: 'btn ghost', onclick: () => downloadFile(`${item.slug}-prompt.txt`, text) }, 'Baixar .txt'))) });
 }
 
+/** Código-fonte original (componentes do Motion Primitives), em /ui-code/<slug>.tsx. */
+async function getCode(item) {
+  const r = await fetch(`/ui-code/${item.slug}.tsx`);
+  if (!r.ok) throw new Error('Não consegui carregar o código deste componente.');
+  return r.text();
+}
+async function copyCode(item) {
+  try { copyText(await getCode(item), 'Código copiado.'); } catch (e) { toast(e.message, 'err'); }
+}
+
 /** Monta um componente num palco; devolve a limpeza. */
 async function run(stage, item, big) {
-  const fn = await load(item.slug);
+  const fn = await load(item);
   if (typeof fn !== 'function') { stage.replaceChildren(h('p', { class: 'kk-empty' }, fn === 'erro' ? 'Este componente falhou ao abrir.' : 'Em breve.')); return () => {}; }
   stage.replaceChildren();
   try { const out = await fn(stage, { big, theme: 'light' }); return typeof out === 'function' ? out : () => {}; }
@@ -40,7 +51,7 @@ async function run(stage, item, big) {
 export default {
   async render(box, ctx) {
     let cat = 'Todos'; let q = ''; const live = new Map(); // stage -> { item, stop, on }
-    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug}`).includes(norm(q))));
+    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : ''}`).includes(norm(q))));
     const grid = h('div', { class: 'kk-grid' });
     const count = h('span', { class: 'kk-count' });
     const io = new IntersectionObserver((entries) => {
@@ -53,20 +64,29 @@ export default {
     const release = () => { for (const [stage, rec] of live) { rec.on = false; rec.stop?.(); io.unobserve(stage); } live.clear(); };
 
     const expand = (item) => {
-      const stage = h('div', { class: 'kk-stage big' }); let stop = () => {};
-      modal({ title: item.name, size: 'kk-modal', body: h('div', { class: 'kk-big' }, stage, h('p', { class: 'kk-desc' }, item.desc)), onClose: () => stop() });
+      const stage = h('div', { class: 'kk-stage big' + (item.src === 'mp' ? ' mp' : '') }); let stop = () => {};
+      const code = item.src === 'mp' && h('details', { class: 'kk-code', ontoggle: async (e) => {
+        const pre = e.currentTarget.querySelector('pre'); if (!e.currentTarget.open || pre.dataset.loaded) return;
+        try { pre.textContent = await getCode(item); pre.dataset.loaded = '1'; } catch (err) { pre.textContent = err.message; } } },
+        h('summary', 'Código-fonte (', h('code', `components/core/${item.mp}.tsx`), ')'),
+        h('div', { class: 'row', style: 'margin:8px 0' }, h('button', { type: 'button', class: 'btn sm', onclick: () => copyCode(item) }, icon('copy'), 'Copiar código'),
+          h('a', { class: 'btn ghost sm', href: `https://motion-primitives.com/docs/${item.mp}`, target: '_blank', rel: 'noopener' }, 'Documentação oficial')),
+        h('pre', { class: 'code kk-prompt', tabindex: 0 }, 'Carregando…'));
+      modal({ title: item.name, size: 'kk-modal', body: h('div', { class: 'kk-big' }, stage, h('p', { class: 'kk-desc' }, item.desc,
+        item.src === 'mp' ? h('span', { class: 'kk-src' }, ' · Motion Primitives (MIT, © ibelick)') : ''), code), onClose: () => stop() });
       run(stage, item, true).then((s) => { stop = s; });
       history.replaceState(null, '', `#/componentes/${item.slug}`);
     };
     const card = (item) => {
-      const stage = h('div', { class: 'kk-stage', 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
+      const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
       return h('article', { class: 'kk-card', id: 'kk-' + item.slug },
         h('div', { class: 'kk-frame' }, stage, h('span', { class: 'kk-chip' }, item.cat)),
-        h('div', { class: 'kk-meta' }, h('b', item.name), h('p', item.desc)),
+        h('div', { class: 'kk-meta' }, h('b', item.name, item.src === 'mp' && h('span', { class: 'kk-badge', title: 'Motion Primitives · licença MIT' }, 'Motion Primitives')), h('p', item.desc)),
         h('div', { class: 'kk-acts' },
           h('button', { type: 'button', class: 'kk-open', onclick: () => expand(item) }, icon('expand'), 'Ampliar'),
-          h('button', { type: 'button', class: 'kk-prompt-btn', onclick: () => openPrompt(item) }, icon('copy'), 'Copiar prompt')));
+          item.src === 'mp' && h('button', { type: 'button', class: 'kk-prompt-btn', title: 'Copiar o código-fonte do componente', onclick: () => copyCode(item) }, icon('code'), 'Código'),
+          h('button', { type: 'button', class: 'kk-prompt-btn', title: 'Copiar o prompt de integração', onclick: () => openPrompt(item) }, icon('copy'), item.src === 'mp' ? 'Prompt' : 'Copiar prompt')));
     };
     const draw = () => {
       release(); const list = items();
@@ -78,8 +98,8 @@ export default {
     const pills = h('div', { class: 'pills kk-pills', role: 'tablist' }, CATS.map((c) => h('button', { type: 'button', class: 'pill' + (c === cat ? ' on' : ''), role: 'tab', onclick: (e) => { cat = c; pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p === e.currentTarget)); draw(); } }, c)));
     const bar = h('div', { class: 'kk-bar' }, h('div', { class: 'kk-sbox' }, icon('search'), search), pills, count);
     mount(box,
-      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface em JavaScript puro, no azul da Neva. Interaja com cada um e abra em tela grande.',
-        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), 'JavaScript puro')) }),
+      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface no azul da Neva: os nossos em JavaScript puro e os do Motion Primitives em React + Motion. Interaja com cada um e abra em tela grande.',
+        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), `${KIT.filter((i) => i.src !== 'mp').length} em JavaScript puro · ${KIT.filter((i) => i.src === 'mp').length} Motion Primitives`)) }),
       bar, grid);
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);

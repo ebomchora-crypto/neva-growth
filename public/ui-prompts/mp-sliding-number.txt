@@ -1,0 +1,196 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles.
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder (or install it with: npx motion-primitives@latest add sliding-number):
+```tsx
+sliding-number.tsx
+'use client';
+import { useEffect, useId } from 'react';
+import {
+  MotionValue,
+  motion,
+  useSpring,
+  useTransform,
+  motionValue,
+} from 'motion/react';
+import useMeasure from 'react-use-measure';
+
+const TRANSITION = {
+  type: 'spring' as const,
+  stiffness: 280,
+  damping: 18,
+  mass: 0.3,
+};
+
+function Digit({ value, place }: { value: number; place: number }) {
+  const valueRoundedToPlace = Math.floor(value / place) % 10;
+  const initial = motionValue(valueRoundedToPlace);
+  const animatedValue = useSpring(initial, TRANSITION);
+
+  useEffect(() => {
+    animatedValue.set(valueRoundedToPlace);
+  }, [animatedValue, valueRoundedToPlace]);
+
+  return (
+    <div className='relative inline-block w-[1ch] overflow-x-visible overflow-y-clip leading-none tabular-nums'>
+      <div className='invisible'>0</div>
+      {Array.from({ length: 10 }, (_, i) => (
+        <Number key={i} mv={animatedValue} number={i} />
+      ))}
+    </div>
+  );
+}
+
+function Number({ mv, number }: { mv: MotionValue<number>; number: number }) {
+  const uniqueId = useId();
+  const [ref, bounds] = useMeasure();
+
+  const y = useTransform(mv, (latest) => {
+    if (!bounds.height) return 0;
+    const placeValue = latest % 10;
+    const offset = (10 + number - placeValue) % 10;
+    let memo = offset * bounds.height;
+
+    if (offset > 5) {
+      memo -= 10 * bounds.height;
+    }
+
+    return memo;
+  });
+
+  // don't render the animated number until we know the height
+  if (!bounds.height) {
+    return (
+      <span ref={ref} className='invisible absolute'>
+        {number}
+      </span>
+    );
+  }
+
+  return (
+    <motion.span
+      style={{ y }}
+      layoutId={`${uniqueId}-${number}`}
+      className='absolute inset-0 flex items-center justify-center'
+      transition={TRANSITION}
+      ref={ref}
+    >
+      {number}
+    </motion.span>
+  );
+}
+
+type SlidingNumberProps = {
+  value: number;
+  padStart?: boolean;
+  decimalSeparator?: string;
+};
+
+export function SlidingNumber({
+  value,
+  padStart = false,
+  decimalSeparator = '.',
+}: SlidingNumberProps) {
+  const absValue = Math.abs(value);
+  const [integerPart, decimalPart] = absValue.toString().split('.');
+  const integerValue = parseInt(integerPart, 10);
+  const paddedInteger =
+    padStart && integerValue < 10 ? `0${integerPart}` : integerPart;
+  const integerDigits = paddedInteger.split('');
+  const integerPlaces = integerDigits.map((_, i) =>
+    Math.pow(10, integerDigits.length - i - 1)
+  );
+
+  return (
+    <div className='flex items-center'>
+      {value < 0 && '-'}
+      {integerDigits.map((_, index) => (
+        <Digit
+          key={`pos-${integerPlaces[index]}`}
+          value={integerValue}
+          place={integerPlaces[index]}
+        />
+      ))}
+      {decimalPart && (
+        <>
+          <span>{decimalSeparator}</span>
+          {decimalPart.split('').map((_, index) => (
+            <Digit
+              key={`decimal-${index}`}
+              value={parseInt(decimalPart, 10)}
+              place={Math.pow(10, decimalPart.length - index - 1)}
+            />
+          ))}
+        </>
+      )}
+    </div>
+  );
+}
+
+
+lib/utils.ts
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+```
+
+Install NPM dependencies:
+```bash
+motion, react-use-measure, clsx, tailwind-merge
+```
+
+Documentation and examples: https://motion-primitives.com/docs/sliding-number
+Source: https://github.com/ibelick/motion-primitives (components/core/sliding-number.tsx)
+
+License (keep this notice when you copy the code):
+MIT License
+
+Copyright (c) 2024 ibelick
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+app/page.tsx
+
+Implementation Guidelines
+ 1. Analyze the component structure and identify all required dependencies
+ 2. Review the component's arguments and state
+ 3. Identify any required context providers or hooks and install them
+ 4. Questions to Ask
+ - What data/props will be passed to this component?
+ - Are there any specific state management requirements?
+ - Are there any required assets (images, icons, etc.)?
+ - What is the expected responsive behavior?
+ - What is the best place to use this component in the app?
+
+Steps to integrate
+ 0. Copy paste all the code above in the correct directories
+ 1. Install external dependencies
+ 2. Use your own image assets
+ 3. Use lucide-react icons for svgs or logos if component requires them
