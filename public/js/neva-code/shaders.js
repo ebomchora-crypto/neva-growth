@@ -120,15 +120,14 @@ const float HIGH_ABAMP  = 0.06;
 const float RESOLVED    = 1.0;
 const float UNRES_SCALE = 0.14;
 
-// 6 fios em tons de azul diferentes (no original, 4 cores do arco-íris): índigo, royal, azul Neva, azure, ciano-céu e gelo
-const int STRANDS = 6;
+// 4 fios, como no original (lá são 4 cores do espectro); aqui, 4 azuis bem diferentes entre si: gelo, céu, azul Neva e marinho profundo.
+// Onde os fios se cruzam a luz soma e o miolo fica branco, como na onda original.
+const int STRANDS = 4;
 vec3 strand(int s){
-  if (s == 0) return vec3(0.20, 0.26, 0.95);
-  if (s == 1) return vec3(0.16, 0.42, 1.00);
-  if (s == 2) return BLUE;
-  if (s == 3) return vec3(0.22, 0.66, 1.00);
-  if (s == 4) return vec3(0.38, 0.84, 1.00);
-  return vec3(0.74, 0.90, 1.00);
+  if (s == 0) return vec3(0.86, 0.95, 1.00);
+  if (s == 1) return vec3(0.33, 0.74, 1.00);
+  if (s == 2) return vec3(0.10, 0.44, 0.96);
+  return vec3(0.05, 0.20, 0.92);
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord){
@@ -184,16 +183,12 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     float boost = (1.0 - res) * (14.0*low + 4.0);
     col += vec3(0.78, 0.90, 1.0) * 0.5 * inten * (lorM + boost) / (sqrt(dM*dM + soft*soft) + th);   // fio central gelo
 
-    // degradê que passeia devagar pela onda: índigo de um lado, ciano do outro
-    float g = smoothstep(-1.1, 1.1, xN + 0.35*sin(t*0.35));
-    col *= mix(vec3(0.42, 0.55, 1.30), vec3(0.48, 1.02, 1.30), g);
-
     col = pow(max(col, 0.0), vec3(1.5));
     float emT = clamp((abs(yScreen) - 1.0 + EDGE_INSET) / (-max(EDGE_MASK, 1e-4)), 0.0, 1.0);
     float em  = emT*emT*(3.0 - 2.0*emT);
     float gauss = exp(-pow(xN*FALLOFF, 2.0));
     col *= mix(1.0, em*gauss, res);
-    col *= res * 1.45;   // mais brilho
+    col *= res * 1.15;   // um pouco mais de brilho, sem lavar os azuis escuros
     float lum = max(col.r, max(col.g, col.b));
     float a = clamp(lum * 1.3, 0.0, 1.0);
     fragColor = vec4(min(col, 1.0) / max(a, 1e-3), a);   // preto = transparente; onde satura, o miolo clareia (como no original)

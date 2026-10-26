@@ -2757,3 +2757,13 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 .lp-opt-more{display:inline-block;max-width:5em;overflow:hidden;white-space:nowrap;margin-left:-5px;transition:max-width .4s cubic-bezier(.22,1,.36,1),opacity .3s,margin-left .4s cubic-bezier(.22,1,.36,1)}
 .lp-bar:has(.lp-voice.on) .lp-opt-more{max-width:0;opacity:0;margin-left:-9px}
 .lp-bar:has(.lp-voice.on) .lp-go{gap:12px;padding:0 18px}
+/* Fundo "Waves" (cores originais do shader). Ele é claro em cima; como na referência, o centro fica num bolsão escuro
+   (marinho da própria paleta, #031c26) e as laterais seguem claras. Assim a onda e o título aparecem. */
+.lp-veil{position:absolute;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .9s ease;
+  background:radial-gradient(ellipse 38% 46% at 50% 34%,rgba(3,28,38,.92) 0%,rgba(3,28,38,.74) 42%,rgba(3,28,38,.28) 72%,rgba(3,28,38,0) 100%),
+    linear-gradient(180deg,rgba(3,28,38,.55) 0,rgba(3,28,38,0) 120px)}
+.lp-stage.gl-on .lp-veil{opacity:1}
+.lp-emblem.gl::before{display:none}
+.lp-stage.gl-on .lp-title,.lp-stage.gl-on .lp-top{text-shadow:0 1px 18px rgba(3,28,38,.65)}
+.lp-wstage .lp-veil{background:linear-gradient(180deg,rgba(3,28,38,.35),rgba(3,28,38,.15))}
+@media (max-width:900px){.lp-veil{background:radial-gradient(ellipse 62% 24% at 50% 36%,rgba(3,28,38,.9) 0%,rgba(3,28,38,.55) 55%,rgba(3,28,38,0) 100%),linear-gradient(180deg,rgba(3,28,38,.55) 0,rgba(3,28,38,0) 110px)}}

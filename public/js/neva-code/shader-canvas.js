@@ -13,6 +13,11 @@ void main(){
 }
 `;
 
+// Vertex shader em GLSL ES 1.00, para fragment shaders do WebGL1 (ex.: o fundo "Waves" do 21st.dev)
+const VERT_SRC_1 = `attribute vec2 a_position;
+void main(){ gl_Position = vec4(a_position, 0.0, 1.0); }
+`;
+
 function compile(gl, type, src) {
   const sh = gl.createShader(type);
   gl.shaderSource(sh, src); gl.compileShader(sh);
@@ -21,7 +26,8 @@ function compile(gl, type, src) {
 }
 
 /**
- * opts: { pixelRatio (teto do DPR; abaixo de 1 renderiza em resolução menor, bom para fundos), speed, timeOffset (segundos), className, onFirstFrame }
+ * opts: { pixelRatio (teto do DPR; abaixo de 1 renderiza em resolução menor, bom para fundos), speed, timeOffset (segundos), className, onFirstFrame,
+ *         glsl1 (fragment em GLSL ES 1.00), setup(gl, program) (uniformes fixos), frame(gl, program, { time, width, height }) (uniformes por quadro) }
  * Devolve { el, destroy } ou null sem WebGL2 / se o shader não compilar.
  */
 export function shaderCanvas(fragSource, opts = {}) {
@@ -31,10 +37,10 @@ export function shaderCanvas(fragSource, opts = {}) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: false, alpha: true, antialias: false, powerPreference: 'low-power' });
   if (!gl) return null;
 
-  const vs = compile(gl, gl.VERTEX_SHADER, VERT_SRC); const fs = vs && compile(gl, gl.FRAGMENT_SHADER, fragSource);
+  const vs = compile(gl, gl.VERTEX_SHADER, opts.glsl1 ? VERT_SRC_1 : VERT_SRC); const fs = vs && compile(gl, gl.FRAGMENT_SHADER, fragSource);
   if (!vs || !fs) return null;
   const program = gl.createProgram();
-  gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
+  gl.attachShader(program, vs); gl.attachShader(program, fs); if (opts.glsl1) gl.bindAttribLocation(program, 0, 'a_position'); gl.linkProgram(program);
   gl.deleteShader(vs); gl.deleteShader(fs);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); return null; }
 
@@ -42,6 +48,7 @@ export function shaderCanvas(fragSource, opts = {}) {
   const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+  gl.useProgram(program); opts.setup?.(gl, program);
   const u = { res: gl.getUniformLocation(program, 'iResolution'), time: gl.getUniformLocation(program, 'iTime'), frame: gl.getUniformLocation(program, 'iFrame'), mouse: gl.getUniformLocation(program, 'iMouse') };
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -64,7 +71,9 @@ export function shaderCanvas(fragSource, opts = {}) {
     if (resizeQueued) applySize();
     gl.useProgram(program);
     if (u.res) gl.uniform3f(u.res, canvas.width, canvas.height, dpr());
-    if (u.time) gl.uniform1f(u.time, (opts.timeOffset || 0) + (reduce ? 12 : ((now - start) / 1000) * speed));
+    const time = (opts.timeOffset || 0) + (reduce ? 12 : ((now - start) / 1000) * speed);
+    if (u.time) gl.uniform1f(u.time, time);
+    opts.frame?.(gl, program, { time, width: canvas.width, height: canvas.height });
     if (u.frame) gl.uniform1i(u.frame, frame++);
     if (u.mouse) gl.uniform4f(u.mouse, 0, 0, 0, 0);
     gl.bindVertexArray(vao); gl.drawArrays(gl.TRIANGLES, 0, 3);

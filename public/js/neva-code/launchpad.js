@@ -5,7 +5,8 @@ import { api } from '../api.js';
 import { h, mount, toast, fail } from '../ui.js';
 import { attachControls, composeDetails } from '../attach.js';
 import { shaderCanvas } from './shader-canvas.js';
-import { SIRI_WAVE_NEVA, GIGABIT_NEVA } from './shaders.js';
+import { SIRI_WAVE_NEVA } from './shaders.js';
+import { wavesBackground } from './waves-bg.js';
 
 const KEY = 'neva-ai-selection';
 const sv = (html, cls = '') => { const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none'); s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '2'); s.setAttribute('stroke-linecap', 'round'); s.setAttribute('stroke-linejoin', 'round'); s.setAttribute('aria-hidden', 'true'); if (cls) s.setAttribute('class', cls); s.innerHTML = html; return s; };
@@ -205,11 +206,11 @@ export function launchpad(opts) {
   const emblemEl = h('div', { class: 'lp-emblem', 'aria-hidden': 'true' });
   const orb = shaderCanvas(SIRI_WAVE_NEVA, { pixelRatio: 1.5, className: 'lp-orb lp-wave', onFirstFrame: () => emblemEl.classList.add('on') });
   if (orb) { emblemEl.classList.add('gl'); emblemEl.append(orb.el); } else emblemEl.append(emblem());
-  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, timeOffset: 18, speed: 0.45, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
+  const bg = wavesBackground({ className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
 
   const el = h('section', { class: 'lp' },
     h('div', { class: 'lp-stage' },
-      bg?.el, h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }),
+      bg?.el, h('div', { class: 'lp-veil', 'aria-hidden': 'true' }), h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }),
       h('header', { class: 'lp-top' }, h('a', { class: 'lp-back', href: '#/sites' }, I.back(), 'Voltar aos sites'), h('span', { class: 'lp-grow' }),
         h('span', { class: 'lp-tag' }, h('i'), 'Builder de sites'), usage),
       emblemEl,
