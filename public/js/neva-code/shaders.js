@@ -190,7 +190,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     col *= mix(1.0, em*gauss, res);
     col *= res * 1.15;   // um pouco mais de brilho, sem lavar os azuis escuros
     float lum = max(col.r, max(col.g, col.b));
-    float a = clamp(lum * 1.3, 0.0, 1.0);
+    float a = clamp((lum - 0.035) * 1.45, 0.0, 1.0);   // corta o brilho bem fraco: sem ele, o quadro da onda aparecia como uma mancha clara
     fragColor = vec4(min(col, 1.0) / max(a, 1e-3), a);   // preto = transparente; onde satura, o miolo clareia (como no original)
 }
 void main(){ mainImage(fragColor, gl_FragCoord.xy); }
