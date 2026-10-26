@@ -110,24 +110,39 @@ export function launchpad(opts) {
   // ---- ditado por voz (Chrome/Edge/Safari); sem suporte, o botão não aparece
   const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
   let rec = null;
-  const micBtn = Rec ? h('button', { type: 'button', class: 'lp-round', title: 'Ditar por voz', 'aria-label': 'Ditar por voz', 'aria-pressed': 'false', disabled }, I.mic()) : null;
+  // mesmo botão redondo; gravando, ele se abre em pílula com o quadrado girando, as barrinhas de frequência e o tempo (como o VoiceInput)
+  const viTime = h('span', { class: 'lp-vi-time' }, '00:00');
+  const micBtn = Rec ? h('button', { type: 'button', class: 'lp-round lp-voice', title: 'Ditar por voz', 'aria-label': 'Ditar por voz', 'aria-pressed': 'false', disabled },
+    h('span', { class: 'lp-vi-ico' }, I.mic(), h('i', { class: 'lp-vi-sq' })),
+    h('span', { class: 'lp-vi-live', 'aria-hidden': 'true' }, h('span', { class: 'lp-vi-in' },
+      h('span', { class: 'lp-vi-bars' }, Array.from({ length: 12 }, (_, i) => h('i', { style: `--d:${(i * 0.05).toFixed(2)}s;--a:${(0.25 + Math.random() * 0.75).toFixed(2)};--b:${(0.2 + Math.random() * 0.4).toFixed(2)}` }))),
+      viTime))) : null;
+  let viTimer = 0;
+  const fmt = (n) => `${String(Math.floor(n / 60)).padStart(2, '0')}:${String(n % 60).padStart(2, '0')}`;
+  function listening(on) {
+    clearInterval(viTimer); viTimer = 0;
+    micBtn.classList.toggle('on', on); micBtn.setAttribute('aria-pressed', String(on));
+    micBtn.setAttribute('aria-label', on ? 'Parar de ditar' : 'Ditar por voz'); micBtn.title = on ? 'Parar de ditar' : 'Ditar por voz';
+    if (on) { let n = 0; viTime.textContent = fmt(0); viTimer = setInterval(() => { viTime.textContent = fmt(++n); }, 1000); }
+  }
   micBtn?.addEventListener('click', () => {
     if (rec) { rec.stop(); return; }
     rec = new Rec(); rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = false;
     rec.onresult = (e) => { for (let i = e.resultIndex; i < e.results.length; i++) if (e.results[i].isFinal) { const t = e.results[i][0].transcript.trim(); ta.value = (ta.value.trim() ? ta.value.trimEnd() + ' ' : '') + t; } paint(); };
     rec.onerror = (e) => { if (e.error === 'not-allowed') toast('Libere o microfone no navegador para ditar.', 'err'); };
-    rec.onend = () => { rec = null; micBtn.classList.remove('on'); micBtn.setAttribute('aria-pressed', 'false'); };
-    try { rec.start(); micBtn.classList.add('on'); micBtn.setAttribute('aria-pressed', 'true'); } catch { rec = null; }
+    rec.onend = () => { rec = null; listening(false); };
+    try { rec.start(); listening(true); } catch { rec = null; }
   });
 
   // ---- otimizar prompt
-  const optBtn = h('button', { type: 'button', class: 'lp-pill', disabled }, 'Otimizar prompt');
+  const optLabel = () => ['Otimizar', h('span', { class: 'lp-opt-more' }, 'prompt')]; // "prompt" recolhe enquanto o ditado abre a pílula
+  const optBtn = h('button', { type: 'button', class: 'lp-pill', disabled }, optLabel());
   optBtn.addEventListener('click', async () => {
     const text = ta.value.trim();
     if (!text) { toast('Escreva primeiro a ideia do site.', 'err'); ta.focus(); return; }
     optBtn.disabled = true; optBtn.classList.add('busy'); optBtn.textContent = 'Otimizando…';
     try { const r = await api.post('/code-maker', { action: 'optimize', text, model: sel.model, effort: sel.effort }); undoText = text; ta.value = r.text; paint(); ta.focus(); }
-    catch (e) { fail(e); } finally { optBtn.disabled = disabled; optBtn.classList.remove('busy'); optBtn.textContent = 'Otimizar prompt'; }
+    catch (e) { fail(e); } finally { optBtn.disabled = disabled; optBtn.classList.remove('busy'); optBtn.replaceChildren(...optLabel()); }
   });
 
   const plusBtn = h('button', { type: 'button', class: 'lp-round', title: 'Anexar fotos, logo ou documentos', 'aria-label': 'Anexar fotos, logo ou documentos', disabled, onclick: () => att.picker.click() }, I.plus());
@@ -190,7 +205,7 @@ export function launchpad(opts) {
   const emblemEl = h('div', { class: 'lp-emblem', 'aria-hidden': 'true' });
   const orb = shaderCanvas(SIRI_WAVE_NEVA, { pixelRatio: 1.5, className: 'lp-orb lp-wave', onFirstFrame: () => emblemEl.classList.add('on') });
   if (orb) { emblemEl.classList.add('gl'); emblemEl.append(orb.el); } else emblemEl.append(emblem());
-  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, timeOffset: 18, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
+  const bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.6, timeOffset: 18, speed: 0.45, className: 'lp-bg', onFirstFrame: () => el.querySelector('.lp-stage')?.classList.add('gl-on') });
 
   const el = h('section', { class: 'lp' },
     h('div', { class: 'lp-stage' },
@@ -205,7 +220,7 @@ export function launchpad(opts) {
           h('div', { class: 'lp-mfoot' }, h('a', { class: 'lp-pill dark', href: '#/design' }, 'Ver todos os modelos', I.arrow()), h('span', { class: 'lp-grow' }), prev, next)))));
 
   paintModel(); paint(); drawModels();
-  return { el, focus: () => ta.focus(), destroy: () => { rec?.stop(); menu.close(); pal.close(); orb?.destroy(); bg?.destroy(); } };
+  return { el, focus: () => ta.focus(), destroy: () => { clearInterval(viTimer); if (rec) { rec.onend = null; rec.stop(); } menu.close(); pal.close(); orb?.destroy(); bg?.destroy(); } };
 
   function item(label, hint, on, fn) {
     return h('button', { type: 'button', role: 'menuitemradio', 'aria-checked': String(on), class: 'lp-mi', onclick: fn }, h('span', h('b', label), hint && h('small', hint)), on && I.check());

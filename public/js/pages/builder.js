@@ -410,7 +410,7 @@ export default {
             h('section', { class: 'nc-view' }, h('div', { class: 'nc-vbar' }, devs, pageSel, h('span', { class: 'grow' }), h('button', { type: 'button', class: 'nc-tb', title: 'Recarregar prévia', 'aria-label': 'Recarregar prévia', onclick: loadPreview }, icon('refresh')), site.published && h('a', { class: 'nc-tb', href: liveLink(), target: '_blank', rel: 'noopener', title: 'Abrir site publicado' }, icon('external'))), stage))),
         h('div', { class: 'nc-scrim', onclick: () => root.classList.remove('side-open') }));
       // mesmo palco da tela inicial: fundo animado escuro, com a conversa e a prévia em painéis de vidro
-      bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.5, timeOffset: 18, speed: 0.6, className: 'lp-bg', onFirstFrame: () => wstage.classList.add('gl-on') });
+      bg = shaderCanvas(GIGABIT_NEVA, { pixelRatio: 0.5, timeOffset: 18, speed: 0.4, className: 'lp-bg', onFirstFrame: () => wstage.classList.add('gl-on') });
       const wstage = h('div', { class: 'lp-stage lp-wstage' }, bg?.el, h('div', { class: 'lp-rays', 'aria-hidden': 'true' }), h('div', { class: 'lp-dust', 'aria-hidden': 'true' }), root);
       box.classList.add('lp-box');
       mount(box, h('section', { class: 'lp lp-work' }, wstage));

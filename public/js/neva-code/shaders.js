@@ -72,21 +72,21 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord)
     float xyComp = length(cos(p.xy)) - 0.6;
     d = 0.5 * length(vec2(zPulse, xyComp));
     z += d;
-    o += (cos(i * 0.1 + t + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / max(d, 1e-3) / max(z, 1e-3);
+    o += min((cos(i * 0.1 + t + vec4(6.0, 1.0, 2.0, 0.0)) + 1.0) / max(d, 1e-3) / max(z, 1e-3), vec4(2e3));   // teto: evita infinito
   }
-  o = tanh(o / 300.0);
+  o = tanh(clamp(o / 300.0, 0.0, 10.0));   // tanh de valor enorme vira NaN em algumas GPUs (pontinhos pretos)
   o = mix(o, vec4(1.0), vec4(isnan(o)));   // pontos singulares do túnel (NaN) viram brilho, não um buraco preto
 
   float l = clamp(max(o.r, max(o.g, o.b)), 0.0, 1.0);
   float hue = clamp(0.5 + 0.5 * (o.b - o.r), 0.0, 1.0);
   vec3 LIGHT = vec3(0.600, 0.808, 0.980);
-  vec3 col = mix(vec3(0.005, 0.015, 0.034), NAVY * 0.30, smoothstep(0.30, 0.80, l));   // quase tudo escuro (sem névoa cinza)
+  vec3 col = mix(vec3(0.030, 0.072, 0.135), NAVY * 0.85, smoothstep(0.25, 0.80, l));   // azul-marinho (mais claro), sem névoa cinza
   float hi = smoothstep(0.62, 1.0, l);
-  col = mix(col, mix(SKY, LIGHT, hue) * 0.75, hi * hi);                                 // realces em azul claro
+  col = mix(col, mix(SKY, LIGHT, hue) * 0.9, hi * hi);                                 // realces em azul claro
   vec2 uv = fragCoord / r;
-  col *= mix(0.40, 1.0, smoothstep(0.05, 0.85, uv.y));
-  col *= 0.55 + 0.45 * smoothstep(0.0, 0.5, abs(uv.x - 0.5));
-  col = max(col, vec3(0.008, 0.026, 0.058));
+  col *= mix(0.62, 1.0, smoothstep(0.05, 0.85, uv.y));
+  col *= 0.72 + 0.28 * smoothstep(0.0, 0.5, abs(uv.x - 0.5));
+  col = max(col, vec3(0.024, 0.060, 0.115));
   fragColor = vec4(col, 1.0);
 }
 void main(){ mainImage(fragColor, gl_FragCoord.xy); }
@@ -120,12 +120,15 @@ const float HIGH_ABAMP  = 0.06;
 const float RESOLVED    = 1.0;
 const float UNRES_SCALE = 0.14;
 
-// os 4 fios: azul profundo, azul Neva, céu e gelo (no original, o espectro do arco-íris)
+// 6 fios em tons de azul diferentes (no original, 4 cores do arco-íris): índigo, royal, azul Neva, azure, ciano-céu e gelo
+const int STRANDS = 6;
 vec3 strand(int s){
-  if (s == 0) return vec3(0.12, 0.34, 0.70);
-  if (s == 1) return BLUE;
-  if (s == 2) return SKY;
-  return vec3(0.72, 0.87, 1.00);
+  if (s == 0) return vec3(0.20, 0.26, 0.95);
+  if (s == 1) return vec3(0.16, 0.42, 1.00);
+  if (s == 2) return BLUE;
+  if (s == 3) return vec3(0.22, 0.66, 1.00);
+  if (s == 4) return vec3(0.38, 0.84, 1.00);
+  return vec3(0.74, 0.90, 1.00);
 }
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord){
@@ -161,10 +164,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     float bandFillTh = max(BAND_THICK, 1e-4);
     float bandAmt    = 1e-4 * BAND_FILL * inten;
     vec3 num = vec3(0.0); float den = 0.0;
-    for(int s = 0; s < 4; s++){
+    for(int s = 0; s < STRANDS; s++){
         vec3 hue = mix(vec3(1.0), strand(s), res);
         den += dot(hue, vec3(0.3333));          // normaliza pelo brilho: mantém o tom azul
-        float ab = mix(-AB, AB, float(s)/3.0);
+        float ab = mix(-AB, AB, float(s)/float(STRANDS - 1));
         float yL = A2 * env * res * sin(p.x*ABER_FREQ + drift + ab);
         float d   = mix(dUnres, abs(p.y - yL), res);
         float lor = mix(1.0/(1.0 + (0.02*d)*(0.02*d)), 1.0, res);
@@ -181,6 +184,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     float boost = (1.0 - res) * (14.0*low + 4.0);
     col += vec3(0.78, 0.90, 1.0) * 0.5 * inten * (lorM + boost) / (sqrt(dM*dM + soft*soft) + th);   // fio central gelo
 
+    // degradê que passeia devagar pela onda: índigo de um lado, ciano do outro
+    float g = smoothstep(-1.1, 1.1, xN + 0.35*sin(t*0.35));
+    col *= mix(vec3(0.42, 0.55, 1.30), vec3(0.48, 1.02, 1.30), g);
+
     col = pow(max(col, 0.0), vec3(1.5));
     float emT = clamp((abs(yScreen) - 1.0 + EDGE_INSET) / (-max(EDGE_MASK, 1e-4)), 0.0, 1.0);
     float em  = emT*emT*(3.0 - 2.0*emT);
@@ -188,7 +195,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord){
     col *= mix(1.0, em*gauss, res);
     col *= res * 1.45;   // mais brilho
     float lum = max(col.r, max(col.g, col.b));
-    fragColor = vec4(col / max(lum, 1e-3) * min(lum, 1.0), clamp(lum * 1.3, 0.0, 1.0));   // preto = transparente
+    float a = clamp(lum * 1.3, 0.0, 1.0);
+    fragColor = vec4(min(col, 1.0) / max(a, 1e-3), a);   // preto = transparente; onde satura, o miolo clareia (como no original)
 }
 void main(){ mainImage(fragColor, gl_FragCoord.xy); }
 `;

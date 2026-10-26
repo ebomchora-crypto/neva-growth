@@ -2735,3 +2735,25 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 .lp-emblem.gl::after{height:40%;aspect-ratio:1.8}
 .lp-emblem.gl~*{position:relative;z-index:1}
 @media (max-width:900px){.lp-emblem.gl{--wv:clamp(220px,34vh,300px)}}
+/* Ditado por voz (VoiceInput): o botão redondo de sempre; gravando, abre em pílula com quadrado girando, 12 barrinhas e o tempo */
+.lp-round.lp-voice{display:inline-flex;align-items:center;width:auto;min-width:44px;padding:0 11.5px;border-radius:99px;transition:background .2s,border-color .2s,color .2s,box-shadow .25s,padding .4s cubic-bezier(.22,1,.36,1)}
+.lp-round.lp-voice.on{padding:0 14px 0 11.5px;animation:none}
+.lp-vi-ico{position:relative;width:19px;height:19px;flex:none;display:grid;place-items:center}
+.lp-vi-ico svg{transition:opacity .2s,transform .3s cubic-bezier(.22,1,.36,1)}
+.lp-vi-sq{position:absolute;width:13px;height:13px;border-radius:3px;background:linear-gradient(140deg,#9fd2ff,#3d8fd6);box-shadow:0 0 10px rgba(127,189,242,.7);opacity:0;transform:scale(.4);transition:opacity .2s,transform .3s cubic-bezier(.22,1,.36,1)}
+.lp-voice.on .lp-vi-ico svg{opacity:0;transform:scale(.5)}
+.lp-voice.on .lp-vi-sq{opacity:1;transform:none;animation:lp-vi-spin 2s ease-in-out infinite .3s}
+@keyframes lp-vi-spin{50%{transform:rotate(180deg)}100%{transform:rotate(360deg)}}
+.lp-vi-live{display:grid;grid-template-columns:0fr;opacity:0;margin-left:0;transition:grid-template-columns .4s cubic-bezier(.22,1,.36,1),opacity .3s,margin-left .4s cubic-bezier(.22,1,.36,1)}
+.lp-voice.on .lp-vi-live{grid-template-columns:1fr;opacity:1;margin-left:10px}
+.lp-vi-in{min-width:0;overflow:hidden;display:flex;align-items:center;gap:8px}
+.lp-vi-bars{display:flex;align-items:center;gap:2px;height:16px}
+.lp-vi-bars i{width:2px;height:14px;border-radius:2px;background:linear-gradient(180deg,#bfe2ff,#5aa3dc);transform:scaleY(.15);transform-origin:center}
+.lp-voice.on .lp-vi-bars i{animation:lp-vi-bar 1s ease-in-out var(--d) infinite}
+@keyframes lp-vi-bar{0%,100%{transform:scaleY(.15)}35%{transform:scaleY(var(--a))}70%{transform:scaleY(var(--b))}}
+.lp-vi-time{width:40px;text-align:center;font-size:.74rem;font-weight:600;color:#a9c3dc;font-variant-numeric:tabular-nums;white-space:nowrap}
+@media (prefers-reduced-motion:reduce){.lp-voice.on .lp-vi-sq,.lp-voice.on .lp-vi-bars i{animation:none}.lp-voice.on .lp-vi-bars i{transform:scaleY(var(--a))}}
+.lp-go{white-space:nowrap}
+.lp-opt-more{display:inline-block;max-width:5em;overflow:hidden;white-space:nowrap;margin-left:-5px;transition:max-width .4s cubic-bezier(.22,1,.36,1),opacity .3s,margin-left .4s cubic-bezier(.22,1,.36,1)}
+.lp-bar:has(.lp-voice.on) .lp-opt-more{max-width:0;opacity:0;margin-left:-9px}
+.lp-bar:has(.lp-voice.on) .lp-go{gap:12px;padding:0 18px}
