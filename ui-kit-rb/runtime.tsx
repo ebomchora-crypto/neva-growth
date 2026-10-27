@@ -66,13 +66,13 @@ function useDrive(ref: React.RefObject<HTMLElement | null>, mode: false | 'move'
 }
 
 /** Moldura padrão: ocupa o palco inteiro; `dark` põe o azul-marinho da Neva atrás; `center` centraliza o componente. */
-export function Box({ children, dark, center, drive = false, big = false, boxRef, className = '', style }: { children?: React.ReactNode; dark?: boolean; center?: boolean; drive?: false | 'move' | 'click'; big?: boolean; boxRef?: React.RefObject<HTMLDivElement | null>; className?: string; style?: React.CSSProperties }) {
+export function Box({ children, dark, center, zoom = 1, drive = false, big = false, boxRef, className = '', style }: { children?: React.ReactNode; dark?: boolean; center?: boolean; zoom?: number; drive?: false | 'move' | 'click'; big?: boolean; boxRef?: React.RefObject<HTMLDivElement | null>; className?: string; style?: React.CSSProperties }) {
   const own = React.useRef<HTMLDivElement | null>(null); const ref = boxRef || own;
   useDrive(ref, drive, big);
   return (
     <div ref={ref} className={`relative h-full w-full overflow-hidden ${center ? 'flex items-center justify-center' : ''} ${className}`}
       style={{ background: dark ? '#071426' : '#ffffff', color: dark ? '#eaf6ff' : '#091629', ...style }}>
-      {children}
+      {zoom !== 1 ? <div style={{ transform: `scale(${zoom})`, transformOrigin: 'center' }}>{children}</div> : children}
     </div>
   );
 }

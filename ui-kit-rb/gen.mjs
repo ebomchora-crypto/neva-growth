@@ -31,7 +31,7 @@ ${pre}
 function Demo({ big }: DemoProps) {
   ${c.hooks || ''}
   return (
-    <Box big={big} dark={${dark}} center={${center}} drive={${c.drive ? `'${c.drive}'` : 'false'}}${c.boxClass ? ` className='${c.boxClass}'` : ''}${c.hooks && c.hooks.includes('boxRef') ? ' boxRef={boxRef}' : ''}>
+    <Box big={big} dark={${dark}} center={${center}} zoom={${c.zoom ?? (cat === 'Micro' ? 1.6 : 1)}} drive={${c.drive ? `'${c.drive}'` : 'false'}}${c.boxClass ? ` className='${c.boxClass}'` : ''}${c.hooks && c.hooks.includes('boxRef') ? ' boxRef={boxRef}' : ''}>
       ${body}
     </Box>
   );
