@@ -1,6 +1,7 @@
 // Componentes UI: galeria de componentes em JavaScript puro,
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
+import { heroWaves } from '../hero-waves.js';
 import { h, mount, icon, modal, hero, copyText, downloadFile, toast } from '../ui.js';
 import { KIT } from '../ui-kit/manifest.js';
 
@@ -114,13 +115,13 @@ export default {
     const search = h('input', { type: 'search', class: 'kk-q', placeholder: 'Buscar componente: botão, cartão, IA…', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });
     const pills = h('div', { class: 'pills kk-pills', role: 'tablist' }, CATS.map((c) => h('button', { type: 'button', class: 'pill' + (c === cat ? ' on' : ''), role: 'tab', onclick: (e) => { cat = c; pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p === e.currentTarget)); draw(); } }, c)));
     const bar = h('div', { class: 'kk-bar' }, h('div', { class: 'kk-sbox' }, icon('search'), search), pills, count);
-    mount(box,
-      hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface no azul da Neva: os nossos em JavaScript puro e os do Motion Primitives em React + Motion. Interaja com cada um e abra em tela grande.',
-        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), `${KIT.filter((i) => i.src !== 'mp').length} em JavaScript puro · ${KIT.filter((i) => i.src === 'mp').length} Motion Primitives`)) }),
-      bar, grid);
+    const heroEl = hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface no azul da Neva: os nossos em JavaScript puro e os do Motion Primitives em React + Motion. Interaja com cada um e abra em tela grande.',
+        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), `${KIT.filter((i) => i.src !== 'mp').length} em JavaScript puro · ${KIT.filter((i) => i.src === 'mp').length} Motion Primitives`)) });
+    mount(box, heroEl, bar, grid);
+    const fx = heroWaves(heroEl);
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);
     if (open) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
-    return () => { release(); io.disconnect(); };
+    return () => { release(); io.disconnect(); fx.destroy(); };
   }
 };

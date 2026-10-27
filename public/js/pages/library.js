@@ -1,4 +1,5 @@
 import { api } from '../api.js';
+import { heroWaves } from '../hero-waves.js';
 import { animTile, isPromptAnim, animOrder } from '../anim-tiles.js';
 import { h, mount, mascotImg, modal, confirmBox, fieldEl, readForm, toast, fail, debounce, copyText, downloadFile, pills, hero, statCard, icon } from '../ui.js';
 
@@ -132,15 +133,19 @@ export const design = {
       mount(grid, items.length ? designCards(items) : h('div', { class: 'emptyart dashed', style: 'grid-column:1/-1' }, h('span', { class: 'eico' }, icon('palette')), h('b', 'Nenhuma referência encontrada'), isAdmin ? 'Cadastre referências com DESIGN.md em "+ Nova referência".' : 'Peça a um administrador para cadastrar referências.'));
     }
     const sortSel = h('select', { 'aria-label': 'Ordenar', style: 'width:auto', onchange: (e) => { st.sort = e.target.value; st.visible = 60; load(); } }, [['title', 'Nome: A → Z'], ['recent', 'Mais recentes']].map(([v, l]) => h('option', { value: v }, l)));
-    catalogView = h('div', hero({ kicker: 'Design Neva / Referências', title: 'Identidades reais. DESIGN.md prontos.', art: 'design', subtitle: 'Explore sites do mundo todo, encontre sua próxima referência e leve o DESIGN.md completo para o seu projeto.',
-      actions: [isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, 'design') }, '+ Nova referência')] }),
+    const heroEl = hero({ kicker: 'Design Neva / Referências', title: 'Identidades reais. DESIGN.md prontos.', art: 'design', subtitle: 'Explore sites do mundo todo, encontre sua próxima referência e leve o DESIGN.md completo para o seu projeto.',
+      actions: [isAdmin && h('button', { class: 'btn', onclick: () => itemForm(null, load, 'design') }, '+ Nova referência')] });
+    catalogView = h('div', heroEl,
       h('div', { class: 'dhead' }, h('span', { class: 'k' }, h('i', '/'), ' Explore por design'), h('div', { class: 'row' }, count, sortSel)),
       h('div', { class: 'card pad stack' }, h('div', { class: 'ksearch', style: 'max-width:420px' }, icon('search'), h('input', { type: 'search', placeholder: 'Buscar referência, estilo ou categoria', 'aria-label': 'Buscar', oninput: debounce((e) => { st.q = e.target.value; st.visible = 60; load(); }) })), filtersBox, shortcuts),
       h('div', { style: 'height:14px' }), grid);
     mount(box, catalogView);
+    designFx?.destroy(); designFx = heroWaves(heroEl);
     await load();
+    return () => { designFx?.destroy(); designFx = null; };
   }
 };
+let designFx = null;
 
 // ---- Skill Vault: detalhe no estilo "arquivo da skill + método + instalação"
 const SKILL_ORDER = ['code performance', 'code accessibility', 'code testing', 'code responsive', 'code architecture', 'code database', 'code auth', 'code integrations', 'code ads', 'code copywriting', 'code funnel builder', 'code security', 'code pentest'];

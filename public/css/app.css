@@ -2924,3 +2924,22 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 @media(max-width:560px){.kk-frame .kk-stage{height:380px;aspect-ratio:auto}}
 .kk-card.tall .kk-frame .kk-stage{height:480px}
 @media(max-width:560px){.kk-card.tall .kk-frame .kk-stage{height:500px}}
+
+/* ===== Banners com o fundo do Builder (Waves) e tipografia/espaçamento mais calmos: Componentes e Design ===== */
+.hero.fx{isolation:isolate;min-height:clamp(250px,26vw,310px);padding:clamp(26px,3vw,42px) clamp(22px,3.2vw,46px);gap:20px;border-color:rgba(255,255,255,.28)}
+.hero.fx>.hero-bg{position:absolute;inset:0;z-index:0;width:100%;height:100%;display:block;opacity:0;transition:opacity .9s ease}
+.hero.fx.gl-on>.hero-bg{opacity:1}
+.hero.fx>.hero-veil{position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(ellipse 62% 125% at 16% 56%,rgba(3,28,38,.86) 0%,rgba(3,28,38,.6) 48%,rgba(3,28,38,0) 100%),linear-gradient(180deg,rgba(3,28,38,.3),rgba(3,28,38,0) 36%)}
+.hero.fx::before{z-index:0;opacity:.55}
+.hero.fx>.hero-main,.hero.fx>.hero-side{z-index:1}
+.hero.fx .kicker{font-size:.7rem;letter-spacing:.18em;margin-bottom:14px;color:rgba(185,232,255,.95)}
+.hero.fx h1{font-size:clamp(2rem,3.9vw,3.25rem);line-height:1.04;letter-spacing:-.04em;font-weight:700;text-wrap:balance;text-shadow:0 2px 22px rgba(3,28,38,.55)}
+.hero.fx p{margin:14px 0 24px;max-width:52ch;font-size:clamp(.95rem,1.15vw,1.05rem);line-height:1.6;color:rgba(255,255,255,.9);text-wrap:pretty;text-shadow:0 1px 14px rgba(3,28,38,.5)}
+.hero.fx .hero-actions{gap:10px}
+.hero.fx .chips3{gap:10px}
+.hero.fx .chipk{padding:10px 16px;border-radius:999px;background:rgba(255,255,255,.1);border-color:rgba(185,232,255,.38);font-size:.84rem;font-weight:600;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.hero.fx .chipk .ico{width:16px;height:16px;color:#b9e8ff}
+.hero.fx .hero-mascot{filter:drop-shadow(0 14px 22px rgba(3,28,38,.55))}
+@media(max-width:700px){.hero.fx{min-height:0;padding:24px 20px 26px}.hero.fx>.hero-veil{background:radial-gradient(ellipse 120% 110% at 40% 50%,rgba(3,28,38,.9) 0%,rgba(3,28,38,.66) 60%,rgba(3,28,38,.25) 100%)}.hero.fx p{margin:12px 0 20px}.hero.fx .chips3{flex-direction:row;align-items:center;flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.hero.fx>.hero-bg{transition:none}}
