@@ -3022,3 +3022,8 @@ html.waves-on .kx{background:rgba(255,255,255,.96)}
 .kx-grid.g3 .kx-cell.wide .kx-thumb .kk-stage{height:100%}
 .kx-grid .kx-thumb{aspect-ratio:1/1}.kx-grid .kx-cell.tall .kx-thumb{aspect-ratio:4/5}
 .kx-grid.g3 .kx-cell.wide .kx-thumb{aspect-ratio:auto}
+/* a barra lateral fica parada enquanto a vitrine rola: sticky não funciona com overflow:hidden no contêiner */
+.kx{overflow:visible}
+.kx-side{top:12px;max-height:calc(100vh - 24px);border-radius:22px 0 0 22px}
+.kx-tabs{border-radius:0 22px 0 0}
+@media(max-width:860px){.kx-side{position:static;border-radius:18px 18px 0 0}}
