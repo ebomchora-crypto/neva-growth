@@ -3027,3 +3027,11 @@ html.waves-on .kx{background:rgba(255,255,255,.96)}
 .kx-side{top:12px;max-height:calc(100vh - 24px);border-radius:22px 0 0 22px}
 .kx-tabs{border-radius:0 22px 0 0}
 @media(max-width:860px){.kx-side{position:static;border-radius:18px 18px 0 0}}
+/* miniaturas em escala: o palco tem o tamanho real (--dw x --dh) e é reduzido para caber, então nada é cortado */
+.kx-grid .kx-thumb,.kx-grid .kx-cell.tall .kx-thumb,.kx-grid.g3 .kx-cell.wide .kx-thumb{aspect-ratio:calc(var(--dw)/var(--dh));height:auto;overflow:hidden;border-radius:12px}
+.kx-grid .kx-thumb .kk-stage,.kx-grid .kx-cell.tall .kx-thumb .kk-stage,.kx-grid.g3 .kx-cell.wide .kx-thumb .kk-stage{position:absolute;left:0;top:0;inset:auto;width:calc(var(--dw)*1px);height:calc(var(--dh)*1px);aspect-ratio:auto;transform:scale(var(--s,.45));transform-origin:0 0}
+.kx-cell{padding:18px;gap:14px}
+.kx-content{gap:44px;padding:26px 26px 36px}
+.kx-sechead{margin-bottom:16px}
+.kx-thumb{pointer-events:none}.kx-thumb .kk-stage{pointer-events:none}
+.kx-cell .kx-thumb{cursor:default}

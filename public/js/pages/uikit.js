@@ -69,7 +69,7 @@ export default {
         else if (!en.isIntersecting && rec.on) { rec.on = false; rec.stop?.(); rec.stop = null; en.target.replaceChildren(); }
       }
     }, { rootMargin: '240px 0px' });
-    const release = () => { for (const [stage, rec] of live) { rec.on = false; rec.stop?.(); io.unobserve(stage); } live.clear(); };
+    const release = () => { scaler.disconnect(); for (const [stage, rec] of live) { rec.on = false; rec.stop?.(); io.unobserve(stage); } live.clear(); };
 
     const expand = (item) => {
       const stage = h('div', { class: 'kk-stage big' + (item.src === 'mp' ? ' mp' : '') }); let stop = () => {};
@@ -85,11 +85,17 @@ export default {
       run(stage, item, true).then((s) => { stop = s; });
       history.replaceState(null, '', `#/componentes/${item.slug}`);
     };
+    const scaler = new ResizeObserver((es) => { for (const e of es) { const t = e.target; t.style.setProperty('--s', (e.contentRect.width / +t.style.getPropertyValue('--dw')).toFixed(4)); } });
     const card = (item, wide) => {
       const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
-      return h('article', { class: 'kx-cell' + (wide && WIDE.has(item.slug) ? ' wide' : '') + (wide && TALL.has(item.slug) ? ' tall' : ''), id: 'kk-' + item.slug },
-        h('div', { class: 'kx-thumb' }, stage),
+      // a miniatura monta o componente num palco de tamanho "de verdade" (dw x dh) e o reduz para caber no cartão: nada fica cortado
+      const isWide = wide && WIDE.has(item.slug); const isTall = wide && TALL.has(item.slug);
+      const [dw, dh] = isWide ? [900, 440] : isTall ? [520, 650] : [520, 400];
+      const thumb = h('div', { class: 'kx-thumb', style: `--dw:${dw};--dh:${dh}` }, stage);
+      scaler.observe(thumb);
+      return h('article', { class: 'kx-cell' + (isWide ? ' wide' : ''), id: 'kk-' + item.slug },
+        thumb,
         h('div', { class: 'kx-foot' },
           h('button', { type: 'button', class: 'kx-name', title: item.desc, onclick: () => expand(item) }, h('b', item.name), item.src === 'mp' && h('span', { class: 'kx-tag' }, 'Motion')),
           h('div', { class: 'kx-acts' },
@@ -108,9 +114,9 @@ export default {
       tabs.querySelectorAll('[data-src]').forEach((b) => b.classList.toggle('on', b.dataset.src === src));
       if (!list.length) mount(content, h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.'));
       else if (cat === 'Todos' && !q) {
-        const feat = CATS.slice(1).map((c) => list.find((i) => i.cat === c)).filter(Boolean);
-        mount(content, row('Em destaque', 'Um de cada tipo, para começar.', feat.slice(0, 3), null, false),
-          CATS.slice(1).map((c) => { const part = list.filter((i) => i.cat === c); return part.length && row(c, CAT_INFO[c], part.slice(0, 3), () => go(c), false); }));
+        const feat = CATS.slice(1).map((c) => list.find((i) => i.cat === c)).filter(Boolean).slice(0, 3); const used = new Set(feat.map((i) => i.slug));
+        mount(content, row('Em destaque', 'Um de cada tipo, para começar.', feat, null, false),
+          CATS.slice(1).map((c) => { const part = list.filter((i) => i.cat === c && !used.has(i.slug)); return part.length && row(c, CAT_INFO[c], part.slice(0, 3), () => go(c), false); }));
       } else mount(content, row(q ? `Resultados para “${q}”` : cat, q ? '' : CAT_INFO[cat], list, null, true));
       for (const stage of live.keys()) io.observe(stage);
     };
@@ -130,6 +136,6 @@ export default {
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);
     if (open) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
-    return () => { release(); io.disconnect(); document.removeEventListener('keydown', onKey); };
+    return () => { release(); io.disconnect(); scaler.disconnect(); document.removeEventListener('keydown', onKey); };
   }
 };
