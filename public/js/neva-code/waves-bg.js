@@ -204,6 +204,7 @@ const R = {
 
 /** Canvas do fundo animado; devolve { el, destroy } ou null sem WebGL. opts: className, onFirstFrame, pixelRatio. */
 export function wavesBackground(opts = {}) {
+  const loc = { program: null, scene: null };
   return shaderCanvas(FRAG, {
     glsl1: true, pixelRatio: opts.pixelRatio ?? 1, speed: R.timeScale, className: opts.className, onFirstFrame: opts.onFirstFrame,
     setup(gl, program) {
@@ -217,7 +218,8 @@ export function wavesBackground(opts = {}) {
       gl.uniform4f(at('u_cursor'), 0, 2, 0.65, 0.46);
     },
     frame(gl, program, { time, width, height }) {
-      gl.uniform4f(gl.getUniformLocation(program, 'u_scene'), width, height, time, R.colorCount);
+      if (loc.program !== program) { loc.program = program; loc.scene = gl.getUniformLocation(program, 'u_scene'); } // 1x por programa (muda se o contexto for refeito)
+      gl.uniform4f(loc.scene, width, height, time, R.colorCount);
     },
   });
 }

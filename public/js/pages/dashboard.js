@@ -88,7 +88,7 @@ export default {
       <svg class="nb-stream" aria-hidden="true"></svg></div><div class="nb-rim"></div>`;
     let grow = 1; let growRaf = 0;
     function drawStream() {
-      const m = data.metrics; const svg = profit.querySelector('.nb-stream'); const W = profit.clientWidth; const Hh = 210; const topY = 26; const bot = 26; const mid = topY + (Hh - topY - bot) / 2; const half = (Hh - topY - bot) / 2;
+      const m = data.metrics; const svg = profit.querySelector('.nb-stream'); const W = profit.clientWidth; if (W < 40) return; /* card oculto ou ainda sem largura */ const Hh = 210; const topY = 26; const bot = 26; const mid = topY + (Hh - topY - bot) / 2; const half = (Hh - topY - bot) / 2;
       svg.setAttribute('width', W); svg.setAttribute('height', Hh); svg.setAttribute('viewBox', `0 0 ${W} ${Hh}`);
       const S = m.series.length > 1 ? m.series : [m.series[0], m.series[0]]; const n = S.length; const mx = Math.max(0, ...S.map((p) => p.revenue));
       // todos os períodos dentro do card (o último não pode sair pela borda direita); a esquerda continua sumindo no degradê

@@ -37,19 +37,26 @@ export function shaderCanvas(fragSource, opts = {}) {
   const gl = canvas.getContext('webgl2', { premultipliedAlpha: false, alpha: true, antialias: false, powerPreference: 'low-power' });
   if (!gl) return null;
 
-  const vs = compile(gl, gl.VERTEX_SHADER, opts.glsl1 ? VERT_SRC_1 : VERT_SRC); const fs = vs && compile(gl, gl.FRAGMENT_SHADER, fragSource);
-  if (!vs || !fs) return null;
-  const program = gl.createProgram();
-  gl.attachShader(program, vs); gl.attachShader(program, fs); if (opts.glsl1) gl.bindAttribLocation(program, 0, 'a_position'); gl.linkProgram(program);
-  gl.deleteShader(vs); gl.deleteShader(fs);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); return null; }
-
-  const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
-  const vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.useProgram(program); opts.setup?.(gl, program);
-  const u = { res: gl.getUniformLocation(program, 'iResolution'), time: gl.getUniformLocation(program, 'iTime'), frame: gl.getUniformLocation(program, 'iFrame'), mouse: gl.getUniformLocation(program, 'iMouse') };
+  // Tudo que mora na GPU (programa, buffers, uniformes) é criado em init(), para poder ser refeito quando o navegador
+  // perde o contexto (muitos canvas WebGL abertos, troca de GPU, aba em segundo plano) e o devolve depois.
+  let program = null; let vao = null; let vbo = null; let u = {};
+  function init() {
+    const vs = compile(gl, gl.VERTEX_SHADER, opts.glsl1 ? VERT_SRC_1 : VERT_SRC); const fs = vs && compile(gl, gl.FRAGMENT_SHADER, fragSource);
+    if (!vs || !fs) return false;
+    program = gl.createProgram();
+    gl.attachShader(program, vs); gl.attachShader(program, fs); if (opts.glsl1) gl.bindAttribLocation(program, 0, 'a_position'); gl.linkProgram(program);
+    gl.deleteShader(vs); gl.deleteShader(fs);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); return false; }
+    vao = gl.createVertexArray(); gl.bindVertexArray(vao);
+    vbo = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+    gl.useProgram(program); opts.setup?.(gl, program);
+    u = { res: gl.getUniformLocation(program, 'iResolution'), time: gl.getUniformLocation(program, 'iTime'), frame: gl.getUniformLocation(program, 'iFrame'), mouse: gl.getUniformLocation(program, 'iMouse') };
+    gl.viewport(0, 0, canvas.width, canvas.height);
+    return true;
+  }
+  if (!init()) return null;
 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const speed = opts.speed ?? 1;
@@ -92,7 +99,7 @@ export function shaderCanvas(fragSource, opts = {}) {
   const io = new IntersectionObserver((entries) => { visible = entries[entries.length - 1].isIntersecting; if (visible) play(); else if (raf) { cancelAnimationFrame(raf); raf = 0; } });
   io.observe(canvas);
   const onLost = (e) => { e.preventDefault(); if (raf) cancelAnimationFrame(raf); raf = 0; };
-  const onRestored = () => { queueSize(); play(); };
+  const onRestored = () => { if (disposed) return; first = false; if (init()) { queueSize(); play(); } };
   canvas.addEventListener('webglcontextlost', onLost);
   canvas.addEventListener('webglcontextrestored', onRestored);
   queueSize();
