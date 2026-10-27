@@ -1,8 +1,7 @@
 // Componentes UI: galeria de componentes em JavaScript puro,
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
-import { heroWaves } from '../hero-waves.js';
-import { h, mount, icon, modal, hero, copyText, downloadFile, toast } from '../ui.js';
+import { h, mount, icon, modal, copyText, downloadFile, toast } from '../ui.js';
 import { KIT } from '../ui-kit/manifest.js';
 
 const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões', 'Efeitos'];
@@ -60,10 +59,9 @@ async function run(stage, item, big) {
 
 export default {
   async render(box, ctx) {
-    let cat = 'Todos'; let q = ''; const live = new Map(); // stage -> { item, stop, on }
-    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : ''}`).includes(norm(q))));
-    const grid = h('div', { class: 'kk-list' });
-    const count = h('span', { class: 'kk-count' });
+    let cat = 'Todos'; let q = ''; let src = 'todos'; const live = new Map(); // stage -> { item, stop, on }
+    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (src === 'todos' || (src === 'mp') === (i.src === 'mp')) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : ''}`).includes(norm(q))));
+        const count = h('span', { class: 'kk-count' });
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
         const rec = live.get(en.target); if (!rec) continue;
@@ -87,41 +85,51 @@ export default {
       run(stage, item, true).then((s) => { stop = s; });
       history.replaceState(null, '', `#/componentes/${item.slug}`);
     };
-    const card = (item) => {
+    const card = (item, wide) => {
       const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
-      return h('article', { class: 'kk-card' + (WIDE.has(item.slug) ? ' wide' : '') + (TALL.has(item.slug) ? ' tall' : ''), id: 'kk-' + item.slug },
-        h('div', { class: 'kk-frame' }, stage),
-        h('div', { class: 'kk-foot' },
-          h('div', { class: 'kk-meta' },
-            h('div', { class: 'kk-name' }, h('b', item.name), h('span', { class: 'kk-cat' }, item.cat), item.src === 'mp' && h('span', { class: 'kk-badge', title: 'Motion Primitives · licença MIT' }, 'Motion Primitives')),
-            h('p', item.desc)),
-          h('div', { class: 'kk-acts' },
-            item.src === 'mp' && h('button', { type: 'button', class: 'kk-ic', title: 'Copiar o código-fonte', 'aria-label': `Copiar o código de ${item.name}`, onclick: () => copyCode(item) }, icon('code')),
-            h('button', { type: 'button', class: 'kk-ic', title: 'Copiar o prompt de integração', 'aria-label': `Copiar o prompt de ${item.name}`, onclick: () => openPrompt(item) }, icon('copy')),
-            h('button', { type: 'button', class: 'kk-open', onclick: () => expand(item) }, icon('expand'), 'Abrir'))));
+      return h('article', { class: 'kx-cell' + (wide && WIDE.has(item.slug) ? ' wide' : '') + (wide && TALL.has(item.slug) ? ' tall' : ''), id: 'kk-' + item.slug },
+        h('div', { class: 'kx-thumb' }, stage),
+        h('div', { class: 'kx-foot' },
+          h('button', { type: 'button', class: 'kx-name', title: item.desc, onclick: () => expand(item) }, h('b', item.name), item.src === 'mp' && h('span', { class: 'kx-tag' }, 'Motion')),
+          h('div', { class: 'kx-acts' },
+            item.src === 'mp' && h('button', { type: 'button', class: 'kx-ic', title: 'Copiar o código-fonte', 'aria-label': `Copiar o código de ${item.name}`, onclick: () => copyCode(item) }, icon('code')),
+            h('button', { type: 'button', class: 'kx-ic', title: 'Copiar o prompt de integração', 'aria-label': `Copiar o prompt de ${item.name}`, onclick: () => openPrompt(item) }, icon('copy')),
+            h('button', { type: 'button', class: 'kx-ic', title: 'Abrir em tela grande', 'aria-label': `Abrir ${item.name}`, onclick: () => expand(item) }, icon('expand')))));
     };
+    const row = (title, sub, list, more, wide) => h('section', { class: 'kx-sec' },
+      h('header', { class: 'kx-sechead' }, h('div', h('h2', title), sub && h('p', sub)), more && h('button', { type: 'button', class: 'kx-more', onclick: more }, 'Ver todos', icon('arrow'))),
+      h('div', { class: 'kx-grid' + ' g3' }, list.map((i) => card(i, wide))));
+    const go = (c) => { cat = c; q = ''; search.value = ''; draw(); main.scrollTo?.(0, 0); box.scrollIntoView?.({ block: 'start' }); };
     const draw = () => {
       release(); const list = items();
       count.textContent = `${list.length} de ${KIT.length}`;
-      if (!list.length) mount(grid, h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.'));
+      nav.querySelectorAll('[data-cat]').forEach((b) => b.classList.toggle('on', b.dataset.cat === cat && !q));
+      tabs.querySelectorAll('[data-src]').forEach((b) => b.classList.toggle('on', b.dataset.src === src));
+      if (!list.length) mount(content, h('div', { class: 'empty' }, h('b', 'Nenhum componente encontrado'), 'Tente outra palavra ou categoria.'));
       else if (cat === 'Todos' && !q) {
-        // visão geral: uma seção por categoria, com título e contagem (fica mais fácil de achar e menos repetitivo)
-        mount(grid, CATS.slice(1).map((c) => { const part = list.filter((i) => i.cat === c); return part.length && h('section', { class: 'kk-sec' },
-          h('header', { class: 'kk-sechead' }, h('h2', c, h('span', part.length)), h('p', CAT_INFO[c] || '')), h('div', { class: 'kk-grid' }, part.map(card))); }));
-      } else mount(grid, h('div', { class: 'kk-grid' }, list.map(card)));
+        const feat = CATS.slice(1).map((c) => list.find((i) => i.cat === c)).filter(Boolean);
+        mount(content, row('Em destaque', 'Um de cada tipo, para começar.', feat.slice(0, 3), null, false),
+          CATS.slice(1).map((c) => { const part = list.filter((i) => i.cat === c); return part.length && row(c, CAT_INFO[c], part.slice(0, 3), () => go(c), false); }));
+      } else mount(content, row(q ? `Resultados para “${q}”` : cat, q ? '' : CAT_INFO[cat], list, null, true));
       for (const stage of live.keys()) io.observe(stage);
     };
-    const search = h('input', { type: 'search', class: 'kk-q', placeholder: 'Buscar componente: botão, cartão, IA…', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });
-    const pills = h('div', { class: 'pills kk-pills', role: 'tablist' }, CATS.map((c) => h('button', { type: 'button', class: 'pill' + (c === cat ? ' on' : ''), role: 'tab', onclick: (e) => { cat = c; pills.querySelectorAll('.pill').forEach((p) => p.classList.toggle('on', p === e.currentTarget)); draw(); } }, c)));
-    const bar = h('div', { class: 'kk-bar' }, h('div', { class: 'kk-sbox' }, icon('search'), search), pills, count);
-    const heroEl = hero({ kicker: 'Neva Growth / Componentes UI', title: 'Componentes prontos para o seu site.', subtitle: 'Componentes de interface no azul da Neva: os nossos em JavaScript puro e os do Motion Primitives em React + Motion. Interaja com cada um e abra em tela grande.',
-        stats: h('div', { class: 'chips3' }, h('span', { class: 'chipk' }, icon('layers'), `${KIT.length} componentes`), h('span', { class: 'chipk' }, icon('code'), `${KIT.filter((i) => i.src !== 'mp').length} em JavaScript puro · ${KIT.filter((i) => i.src === 'mp').length} Motion Primitives`)) });
-    mount(box, heroEl, bar, grid);
-    const fx = heroWaves(heroEl);
+    const search = h('input', { type: 'search', class: 'kx-q', placeholder: 'Buscar', 'aria-label': 'Buscar componente', oninput: (e) => { q = e.target.value; draw(); } });
+    const onKey = (e) => { if (e.key === '/' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName) && !document.activeElement?.isContentEditable) { e.preventDefault(); search.focus(); } };
+    document.addEventListener('keydown', onKey);
+    const side = KIT.reduce((m, i) => (m[i.cat] = (m[i.cat] || 0) + 1, m), {});
+    const nav = h('nav', { class: 'kx-nav', 'aria-label': 'Categorias' },
+      h('button', { type: 'button', class: 'kx-item', 'data-cat': 'Todos', onclick: () => go('Todos') }, icon('home'), h('span', 'Início')),
+      h('p', { class: 'kx-lab' }, 'Explorar'),
+      CATS.slice(1).map((c) => h('button', { type: 'button', class: 'kx-item', 'data-cat': c, onclick: () => go(c) }, h('span', c), h('em', side[c] || 0))));
+    const SRC = [['todos', 'Todos'], ['js', 'JavaScript puro'], ['mp', 'Motion Primitives']];
+    const tabs = h('div', { class: 'kx-tabs', role: 'tablist' }, SRC.map(([k, l]) => h('button', { type: 'button', role: 'tab', class: 'kx-tab', 'data-src': k, onclick: () => { src = k; draw(); } }, l)), count);
+    const content = h('div', { class: 'kx-content' });
+    const main = h('div', { class: 'kx-main' }, tabs, content);
+    mount(box, h('div', { class: 'kx' }, h('aside', { class: 'kx-side' }, h('label', { class: 'kx-sbox' }, icon('search'), search, h('kbd', '/')), nav), main));
     draw();
     const open = ctx.params?.[0] && KIT.find((i) => i.slug === ctx.params[0]);
     if (open) { document.getElementById('kk-' + open.slug)?.scrollIntoView({ block: 'center' }); expand(open); }
-    return () => { release(); io.disconnect(); fx.destroy(); };
+    return () => { release(); io.disconnect(); document.removeEventListener('keydown', onKey); };
   }
 };

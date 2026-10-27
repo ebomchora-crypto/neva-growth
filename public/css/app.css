@@ -2962,3 +2962,63 @@ html.waves-on .kk-bar{background:rgba(255,255,255,.88)}
   .topbar2{position:static!important;background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important}
   .skick2{flex-wrap:wrap;row-gap:4px;padding-right:44px}
 }
+
+/* ===== Componentes UI no layout de biblioteca: barra lateral de categorias + vitrine em grade com bordas ===== */
+.kx{display:grid;grid-template-columns:230px minmax(0,1fr);gap:0;background:#fff;border:1px solid var(--ice-200);border-radius:22px;overflow:hidden;box-shadow:var(--shadow);min-height:70vh;margin-top:6px}
+.kx-side{position:sticky;top:0;align-self:start;max-height:100vh;overflow:auto;padding:14px 10px;background:#f6f9fc;border-right:1px solid var(--ice-200);display:flex;flex-direction:column;gap:12px}
+.kx-sbox{display:flex;align-items:center;gap:8px;height:40px;padding:0 10px;border:1px solid var(--ice-200);border-radius:10px;background:#fff;cursor:text}
+.kx-sbox .ico{width:16px;height:16px;color:var(--mut);flex:none}
+.kx-q{flex:1;min-width:0;border:0;outline:0;background:transparent;font-size:16px;color:var(--ink);padding:0}
+.kx-sbox kbd{font:600 .72rem ui-monospace,Menlo,monospace;color:var(--mut);border:1px solid var(--ice-200);border-radius:6px;padding:1px 6px;background:var(--ice-50)}
+.kx-nav{display:flex;flex-direction:column;gap:2px}
+.kx-lab{margin:12px 8px 4px;font-size:.72rem;font-weight:700;letter-spacing:.04em;color:var(--mut)}
+.kx-item{display:flex;align-items:center;gap:10px;width:100%;min-height:36px;padding:0 10px;border:0;border-radius:9px;background:transparent;color:var(--ink);font:600 .88rem inherit;font-family:inherit;text-align:left;cursor:pointer}
+.kx-item .ico{width:16px;height:16px;color:var(--mut)}
+.kx-item span{flex:1}.kx-item em{font-style:normal;font-size:.72rem;color:var(--mut);font-weight:600}
+.kx-item:hover{background:rgba(47,123,189,.08)}.kx-item.on{background:#e4eef8;color:#164a7c}
+.kx-main{min-width:0;display:flex;flex-direction:column}
+.kx-tabs{display:flex;align-items:center;gap:4px;padding:0 18px;border-bottom:1px solid var(--ice-200);overflow-x:auto;scrollbar-width:none;min-height:50px}
+.kx-tabs::-webkit-scrollbar{display:none}
+.kx-tab{flex:none;height:50px;padding:0 12px;border:0;border-bottom:2px solid transparent;background:transparent;color:var(--mut);font:600 .88rem inherit;font-family:inherit;cursor:pointer}
+.kx-tab.on{color:var(--ink);border-bottom-color:var(--ink)}
+.kx-tabs .kk-count{margin-left:auto;flex:none;padding-left:12px;white-space:nowrap}
+.kx-content{padding:22px 22px 30px;display:flex;flex-direction:column;gap:34px;min-width:0}
+.kx-sechead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.kx-sechead h2{margin:0;font-size:1.05rem;letter-spacing:-.01em;color:var(--ink)}
+.kx-sechead p{margin:3px 0 0;font-size:.85rem;color:var(--mut)}
+.kx-more{display:inline-flex;align-items:center;gap:4px;border:0;background:transparent;color:var(--mut);font:600 .85rem inherit;font-family:inherit;cursor:pointer;white-space:nowrap;padding:4px 0}
+.kx-more:hover{color:var(--ink)}.kx-more .ico{width:14px;height:14px}
+.kx-grid{display:grid;border-top:1px solid var(--ice-200);border-left:1px solid var(--ice-200)}
+.kx-grid.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.kx-grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.kx-cell{display:flex;flex-direction:column;gap:10px;padding:14px;border-right:1px solid var(--ice-200);border-bottom:1px solid var(--ice-200);background:#fff;min-width:0}
+.kx-grid.g3 .kx-cell.wide{grid-column:span 2}
+.kx-thumb{border-radius:10px;overflow:hidden;background:linear-gradient(160deg,#f7fbff,#e9f2fb);box-shadow:inset 0 0 0 1px var(--ice-100)}
+.kx-thumb .kk-stage{aspect-ratio:16/11;min-height:0;height:auto;width:100%;border:0;border-radius:0;background:transparent}
+.kx-cell.tall .kx-thumb .kk-stage{aspect-ratio:4/5}
+.kx-grid.g3 .kx-cell.wide .kx-thumb .kk-stage{aspect-ratio:auto;height:clamp(240px,26vw,340px)}
+.kx-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.kx-name{display:flex;align-items:center;gap:8px;min-width:0;border:0;background:transparent;padding:0;color:var(--ink);font:inherit;cursor:pointer;text-align:left}
+.kx-name b{font-size:.9rem;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kx-name:hover b{color:#164a7c}
+.kx-tag{flex:none;font-size:.62rem;font-weight:700;letter-spacing:.04em;color:#1784b1;background:rgba(72,200,245,.14);border-radius:9px;padding:2px 7px}
+.kx-acts{display:flex;gap:2px;flex:none}
+.kx-ic{display:grid;place-items:center;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:var(--mut);cursor:pointer}
+.kx-ic:hover{background:var(--ice-100);color:var(--ink)}.kx-ic .ico{width:15px;height:15px}
+@media(max-width:1180px){.kx-grid.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.kx-grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))}.kx-grid.g3 .kx-cell.wide{grid-column:1/-1}}
+@media(max-width:860px){
+  .kx{grid-template-columns:minmax(0,1fr);border-radius:18px}
+  .kx-side{position:static;max-height:none;border-right:0;border-bottom:1px solid var(--ice-200);padding:12px}
+  .kx-nav{flex-direction:row;overflow-x:auto;scrollbar-width:none;gap:6px}.kx-nav::-webkit-scrollbar{display:none}
+  .kx-lab{display:none}.kx-item{width:auto;flex:none;border:1px solid var(--ice-200);background:#fff;border-radius:99px;min-height:34px}
+  .kx-item .ico,.kx-item em{display:none}.kx-item.on{background:#e4eef8;border-color:var(--ice-400)}
+  .kx-tabs{padding:0 12px}.kx-content{padding:16px 12px 24px}
+}
+@media(max-width:560px){.kx-grid.g4,.kx-grid.g3{grid-template-columns:minmax(0,1fr)}}
+html.waves-on .kx{background:rgba(255,255,255,.96)}
+.kx-thumb{position:relative;aspect-ratio:4/3}
+.kx-thumb .kk-stage{position:absolute;inset:0;aspect-ratio:auto;height:100%}
+.kx-cell.tall .kx-thumb{aspect-ratio:4/5}.kx-cell.tall .kx-thumb .kk-stage{aspect-ratio:auto}
+.kx-grid.g3 .kx-cell.wide .kx-thumb{aspect-ratio:auto;height:clamp(240px,26vw,340px)}
+.kx-grid.g3 .kx-cell.wide .kx-thumb .kk-stage{height:100%}
+.kx-grid .kx-thumb{aspect-ratio:1/1}.kx-grid .kx-cell.tall .kx-thumb{aspect-ratio:4/5}
+.kx-grid.g3 .kx-cell.wide .kx-thumb{aspect-ratio:auto}
