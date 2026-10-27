@@ -133,7 +133,7 @@ export default {
       h('button', { type: 'button', class: 'kx-item', 'data-cat': 'Todos', onclick: () => go('Todos') }, icon('home'), h('span', 'Início')),
       h('p', { class: 'kx-lab' }, 'Explorar'),
       CATS.slice(1).map((c) => h('button', { type: 'button', class: 'kx-item', 'data-cat': c, onclick: () => go(c) }, h('span', c), h('em', side[c] || 0))));
-    const SRC = [['todos', 'Todos'], ['js', 'JavaScript puro'], ['mp', 'Motion Primitives'], ['rb', 'React Bits']];
+    const SRC = [['todos', 'Todos']]; // tudo numa lista só: a origem (Motion Primitives, React Bits) aparece só como etiqueta no cartão
     const tabs = h('div', { class: 'kx-tabs', role: 'tablist' }, SRC.map(([k, l]) => h('button', { type: 'button', role: 'tab', class: 'kx-tab', 'data-src': k, onclick: () => { src = k; draw(); } }, l)), count);
     const content = h('div', { class: 'kx-content' });
     const main = h('div', { class: 'kx-main' }, tabs, content);
