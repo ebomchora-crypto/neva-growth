@@ -2856,13 +2856,13 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 .lcard,.libitem{background:rgba(255,255,255,.7);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .lcard{border-color:var(--glass-br);box-shadow:var(--glass-rim),0 4px 12px -8px rgba(22,74,124,.35)}
 /* controles do topo e campos */
-.iconbtn,.kbtn,.fwrap,.searchbtn,.acct,.dg{background:var(--glass-bg);border-color:var(--glass-br);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-rim),0 6px 16px -10px rgba(22,74,124,.35)}
+.iconbtn,.kbtn,.fwrap,.searchbtn,.dg{background:var(--glass-bg);border-color:var(--glass-br);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-rim),0 6px 16px -10px rgba(22,74,124,.35)}
 .fwrap:focus-within{background:rgba(255,255,255,.82)}
 /* janelas, menus e listas suspensas: vidro mais opaco, para o texto continuar legível */
 .modal,.dropdown,.fs-card,.acm{background:var(--glass-bg-strong);-webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%)}
 .modal,.dropdown{border:1px solid var(--glass-br)}
 @supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
-  .card,.mc,.dcard,.dcard2,.kk-card,.ap-card,.reference-columns,.col,.iconbtn,.kbtn,.fwrap,.searchbtn,.acct,.dg,.nb-glass,.nb-seg,.nb-btn{background:rgba(255,255,255,.92)}
+  .card,.mc,.dcard,.dcard2,.kk-card,.ap-card,.reference-columns,.col,.iconbtn,.kbtn,.fwrap,.searchbtn,.dg,.nb-glass,.nb-seg,.nb-btn{background:rgba(255,255,255,.92)}
   .modal,.dropdown,.fs-card,.acm{background:#fff}}
 /* mais seções em vidro (encontradas varrendo as páginas atrás de painéis brancos opacos) */
 .setshell,.scard,.sv-fin,.step.stack,.mk-info,.dnotice,.emptyart.dashed,.reference-hero{background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-rim),var(--glass-shadow)}
@@ -2953,3 +2953,6 @@ html.waves-on .kk-sechead{width:fit-content;max-width:100%}
 html.waves-on .kk-card,html.waves-on .card{background:rgba(255,255,255,.88)}
 html.waves-on .kk-bar{background:rgba(255,255,255,.88)}
 @media(prefers-reduced-motion:reduce){.page-waves,.page-waves-veil{transition:none}}
+
+/* o contêiner da conta é só um invólucro: sem vidro próprio (a pílula de dentro é que tem), senão aparece um retângulo atrás dela */
+.acct{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
