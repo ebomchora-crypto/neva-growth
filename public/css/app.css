@@ -2939,14 +2939,17 @@ html.rail-page .content.lp-box:has(.lp-work){overflow:hidden;display:flex;flex-d
 
 /* ===== Fundo da página com o "Waves" do Builder (Componentes e Design): substitui as linhas topográficas ===== */
 .page-waves{position:fixed;inset:0;z-index:-2;width:100%;height:100%;display:block;pointer-events:none;opacity:0;transition:opacity .9s ease}
-.page-waves{filter:saturate(1.9) contrast(1.22)}
-.page-waves-veil{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .9s ease;background:radial-gradient(ellipse 80% 75% at 50% 42%,rgba(4,40,62,.74) 0%,rgba(8,70,110,.44) 52%,rgba(8,70,110,.08) 100%)}
+.page-waves-veil{position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:0;transition:opacity .9s ease;
+  background:radial-gradient(ellipse 120% 95% at 50% 28%,rgba(3,28,38,.9) 0%,rgba(3,28,38,.74) 50%,rgba(4,36,58,.5) 100%),linear-gradient(180deg,rgba(3,28,38,.55) 0,rgba(3,28,38,0) 160px)}
 html.waves-on .page-waves,html.waves-on .page-waves-veil{opacity:1}
 html.waves-on #topo-bg{display:none}
-/* títulos soltos sobre o fundo ficam num vidro claro (texto escuro), como o resto da interface */
-html.waves-on .kk-sechead,html.waves-on .dhead{background:var(--glass-bg);border:1px solid var(--glass-br);border-radius:16px;padding:10px 16px;-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);box-shadow:var(--glass-rim),var(--glass-shadow)}
+html.waves-on body{background:#02070f}
+/* títulos soltos sobre o fundo escuro: texto claro em vidro escuro (como no Builder) */
+html.waves-on .kk-sechead h2,html.waves-on .dhead .k,html.waves-on .dhead .k i,html.waves-on .dhead b{color:#fff}
+html.waves-on .kk-sechead p,html.waves-on .dhead span,html.waves-on .dhead .kk-count{color:rgba(205,230,250,.85)}
+html.waves-on .kk-sechead h2 span{background:rgba(255,255,255,.14);color:#fff}
+html.waves-on .kk-sechead,html.waves-on .dhead{background:rgba(255,255,255,.06);border:1px solid rgba(140,190,240,.2);border-radius:16px;padding:10px 16px;-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px)}
 html.waves-on .kk-sechead{width:fit-content;max-width:100%}
-/* cartões um pouco mais transparentes para o fundo aparecer */
-html.waves-on .kk-card{background:rgba(255,255,255,.6)}
-html.waves-on .kk-bar{background:rgba(255,255,255,.66)}
+html.waves-on .kk-card,html.waves-on .card{background:rgba(255,255,255,.88)}
+html.waves-on .kk-bar{background:rgba(255,255,255,.88)}
 @media(prefers-reduced-motion:reduce){.page-waves,.page-waves-veil{transition:none}}
