@@ -2956,3 +2956,9 @@ html.waves-on .kk-bar{background:rgba(255,255,255,.88)}
 
 /* o contêiner da conta é só um invólucro: sem vidro próprio (a pílula de dentro é que tem), senão aparece um retângulo atrás dela */
 .acct{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+
+/* celular: o cabeçalho (botões + busca) rolava junto e ocupava ~20% da tela; agora sai da frente ao rolar e não faz faixa clara sobre o fundo */
+@media(max-width:860px){
+  .topbar2{position:static!important;background:transparent!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;border:0!important}
+  .skick2{flex-wrap:wrap;row-gap:4px;padding-right:44px}
+}
