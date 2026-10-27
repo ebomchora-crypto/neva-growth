@@ -60,10 +60,11 @@ export const CONF = {
   // ----- Micro
   'Micro/Shredder': SKIP,
   'Micro/DodgeField': { drive: 'move', body: "<Comp />" },
-  'Micro/PaperCrumple': { props: "src={IMGS[0]}" },
-  'Micro/RubberSegment': { props: "items={[{ value: 'dia', label: 'Dia' }, { value: 'semana', label: 'Semana' }, { value: 'mes', label: 'Mês' }]} defaultValue='semana'" },
+  'Micro/PaperCrumple': { zoom: 1, props: "src={IMGS[0]}" },
   'Micro/SwipeRow': { body: "<div className='w-72'><Comp><span className='px-4'>Arraste para o lado</span></Comp></div>" },
-  'Micro/TearTicket': { body: "<Comp><div className='p-6 text-lg font-semibold'>Ingresso Neva</div></Comp>" },
+  'Micro/TearTicket': { zoom: 0.8, body: "<Comp><div className='p-6 text-lg font-semibold'>Ingresso Neva</div></Comp>" },
+  'Micro/SwipeToast': { zoom: 1 }, 'Micro/WakeSlider': { zoom: 1 }, 'Micro/FlyingButton': { zoom: 1 }, 'Micro/RefineFrame': { zoom: 1 },
+  'Micro/JellyRadio': { zoom: 1.2 }, 'Micro/CodeSlots': { zoom: 1.3 }, 'Micro/SlideCommit': { zoom: 1.2 }, 'Micro/RubberSegment': { zoom: 1.2, props: "items={[{ value: 'dia', label: 'Dia' }, { value: 'semana', label: 'Semana' }, { value: 'mes', label: 'Mês' }]} defaultValue='semana'" },
   'Micro/WarmTooltip': { body: "<Comp content='Dica rápida' shortcut='⌘K'><button className='rounded-lg bg-slate-700 px-4 py-2'>Passe o mouse</button></Comp>" },
   // ----- TextAnimations (fundo claro)
   'TextAnimations/ASCIIText': { props: "text='Neva' textColor='#091629' colors={['#48c8f5', '#2f7bbd', '#091629']}" },

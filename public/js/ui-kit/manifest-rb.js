@@ -122,14 +122,6 @@ export const RB = [
   "rbPath": "animations/halftone-reveal"
  },
  {
-  "slug": "rb-image-trail",
-  "name": "Image Trail",
-  "cat": "Efeitos",
-  "desc": "Rastro de imagens que aparecem e somem atrás do cursor.",
-  "src": "rb",
-  "rbPath": "animations/image-trail"
- },
- {
   "slug": "rb-laser-flow",
   "name": "Laser Flow",
   "cat": "Efeitos",
@@ -152,14 +144,6 @@ export const RB = [
   "desc": "Bolhas que se fundem como líquido e seguem o cursor.",
   "src": "rb",
   "rbPath": "animations/meta-balls"
- },
- {
-  "slug": "rb-metallic-paint",
-  "name": "Metallic Paint",
-  "cat": "Efeitos",
-  "desc": "Texto ou forma com tinta metálica líquida que reflete a luz.",
-  "src": "rb",
-  "rbPath": "animations/metallic-paint"
  },
  {
   "slug": "rb-noise",
@@ -986,14 +970,6 @@ export const RB = [
   "rbPath": "components/infinite-spiral"
  },
  {
-  "slug": "rb-lanyard",
-  "name": "Lanyard",
-  "cat": "Cartões",
-  "desc": "Crachá pendurado em cordão, com física: dá para puxar e balançar.",
-  "src": "rb",
-  "rbPath": "components/lanyard"
- },
- {
   "slug": "rb-line-sidebar",
   "name": "Line Sidebar",
   "cat": "Navegação",
@@ -1088,14 +1064,6 @@ export const RB = [
   "desc": "Pilha de fotos que se descarta arrastando, em leque ou cascata.",
   "src": "rb",
   "rbPath": "components/stack"
- },
- {
-  "slug": "rb-staggered-menu",
-  "name": "Staggered Menu",
-  "cat": "Navegação",
-  "desc": "Menu lateral em camadas que entra escalonado.",
-  "src": "rb",
-  "rbPath": "components/staggered-menu"
  },
  {
   "slug": "rb-stepper",
@@ -1264,14 +1232,6 @@ export const RB = [
   "desc": "Número que se ajusta arrastando o rótulo, como no Figma.",
   "src": "rb",
   "rbPath": "micro/scrub-field"
- },
- {
-  "slug": "rb-shredder",
-  "name": "Shredder",
-  "cat": "Efeitos",
-  "desc": "Lista de itens que passam por uma trituradora de papel.",
-  "src": "rb",
-  "rbPath": "micro/shredder"
  },
  {
   "slug": "rb-slide-commit",
@@ -1552,14 +1512,6 @@ export const RB = [
   "desc": "Texto técnico com linhas tracejadas e coordenadas perto do cursor.",
   "src": "rb",
   "rbPath": "text-animations/tech-text"
- },
- {
-  "slug": "rb-text-cursor",
-  "name": "Text Cursor",
-  "cat": "Textos",
-  "desc": "Palavra que deixa um rastro de carimbos atrás do cursor.",
-  "src": "rb",
-  "rbPath": "text-animations/text-cursor"
  },
  {
   "slug": "rb-text-pressure",

@@ -64,7 +64,7 @@ async function run(stage, item, big) {
 export default {
   async render(box, ctx) {
     let cat = 'Todos'; let q = ''; let src = 'todos'; const live = new Map(); // stage -> { item, stop, on }
-    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (src === 'todos' || srcOf(i) === src) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : i.src === 'rb' ? 'react bits reactbits' : ''}`).includes(norm(q))));
+    const items = () => KIT.filter((i) => (q || cat === 'Todos' || i.cat === cat) && (src === 'todos' || srcOf(i) === src) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : i.src === 'rb' ? 'react bits reactbits' : ''}`).includes(norm(q))));
         const count = h('span', { class: 'kk-count' });
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -95,7 +95,7 @@ export default {
       const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : item.src === 'rb' ? ' rb' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
       // a miniatura monta o componente num palco de tamanho "de verdade" (dw x dh) e o reduz para caber no cartão: nada fica cortado
-      const isWide = wide && WIDE.has(item.slug); const isTall = wide && TALL.has(item.slug);
+      const isWide = false; const isTall = wide && TALL.has(item.slug); // todos do mesmo tamanho na grade, sem buracos
       const [dw, dh] = isWide ? [900, 440] : isTall ? [520, 650] : [520, 400];
       const thumb = h('div', { class: 'kx-thumb', style: `--dw:${dw};--dh:${dh}` }, stage);
       scaler.observe(thumb);
