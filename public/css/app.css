@@ -3035,3 +3035,6 @@ html.waves-on .kx{background:rgba(255,255,255,.96)}
 .kx-sechead{margin-bottom:16px}
 .kx-thumb{pointer-events:none}.kx-thumb .kk-stage{pointer-events:none}
 .kx-cell .kx-thumb{cursor:default}
+.kk-stage.rb{display:block}.kk-stage.rb>.rb-host{max-width:none;max-height:none}
+.kx-tag.rb{color:#5b4bd6;background:rgba(91,75,214,.1)}
+.kk-src a{color:var(--ice-700);font-weight:600}

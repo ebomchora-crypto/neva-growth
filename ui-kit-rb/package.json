@@ -1,0 +1,12 @@
+{
+  "name": "neva-ui-kit-rb",
+  "private": true,
+  "type": "module",
+  "description": "Build isolado (React 19) das pré-visualizações do React Bits na galeria /#/componentes. Saída: public/js/ui-kit/rb e public/css/ui-kit-rb.css.",
+  "dependencies": {
+    "react": "19.1.1", "react-dom": "19.1.1", "motion": "12.23.12", "gsap": "3.13.0", "@gsap/react": "2.1.2", "ogl": "1.0.11",
+    "three": "0.180.0", "@react-three/fiber": "9.3.0", "@react-three/drei": "10.7.4", "@hugeicons/react": "1.1.10", "@hugeicons/core-free-icons": "4.3.3",
+    "vgpu": "0.3.1", "matter-js": "0.20.0", "@use-gesture/react": "10.2.27"
+  },
+  "devDependencies": { "esbuild": "0.24.2", "postcss": "8.4.49", "tailwindcss": "4.1.11", "@tailwindcss/cli": "4.1.11" }
+}

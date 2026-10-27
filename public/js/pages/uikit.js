@@ -2,7 +2,11 @@
 // no azul da Neva. Cada cartão monta o componente ao entrar na tela e o desmonta ao sair (animações e canvas não ficam rodando fora de vista).
 // Abrir em tela grande: botão "Ampliar" (ou #/componentes/<nome>).
 import { h, mount, icon, modal, copyText, downloadFile, toast } from '../ui.js';
-import { KIT } from '../ui-kit/manifest.js';
+import { KIT as KIT_BASE } from '../ui-kit/manifest.js';
+import { RB } from '../ui-kit/manifest-rb.js';
+
+const KIT = [...KIT_BASE, ...RB];
+const srcOf = (i) => (i.src === 'mp' ? 'mp' : i.src === 'rb' ? 'rb' : 'js');
 
 const CATS = ['Todos', 'Fundos', 'Cartões', 'Navegação', 'Campos', 'IA', 'Mídia', 'Textos', 'Botões', 'Efeitos'];
 const CAT_INFO = { Fundos: 'Fundos animados para o topo da página e para seções.', 'Cartões': 'Cartões interativos para mostrar dados, mídia e conteúdo.', 'Navegação': 'Menus, abas, barras, gavetas e painéis.',
@@ -18,7 +22,7 @@ const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toL
 
 async function load(item) {
   // Motion Primitives: módulos React gerados em ../ui-kit/mp (React e Motion carregados só aqui, sob demanda)
-  try { return (await import(item.src === 'mp' ? `../ui-kit/mp/${item.mp}.js` : `../ui-kit/c/${item.slug}.js`)).default; } catch (e) { if (/Failed to fetch|Cannot find|Unexpected token|404|error loading/i.test(String(e?.message))) return null; console.error('[ui-kit]', item.slug, e); return 'erro'; }
+  try { return (await import(item.src === 'mp' ? `../ui-kit/mp/${item.mp}.js` : item.src === 'rb' ? `../ui-kit/rb/${item.slug}.js` : `../ui-kit/c/${item.slug}.js`)).default; } catch (e) { if (/Failed to fetch|Cannot find|Unexpected token|404|error loading/i.test(String(e?.message))) return null; console.error('[ui-kit]', item.slug, e); return 'erro'; }
 }
 
 /** Prompt de integração do componente (texto completo, com o código original e as dependências), em /ui-prompts/<slug>.txt. */
@@ -60,7 +64,7 @@ async function run(stage, item, big) {
 export default {
   async render(box, ctx) {
     let cat = 'Todos'; let q = ''; let src = 'todos'; const live = new Map(); // stage -> { item, stop, on }
-    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (src === 'todos' || (src === 'mp') === (i.src === 'mp')) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : ''}`).includes(norm(q))));
+    const items = () => KIT.filter((i) => (cat === 'Todos' || i.cat === cat) && (src === 'todos' || srcOf(i) === src) && (!q || norm(`${i.name} ${i.desc} ${i.cat} ${i.slug} ${i.src === 'mp' ? 'motion primitives react' : i.src === 'rb' ? 'react bits reactbits' : ''}`).includes(norm(q))));
         const count = h('span', { class: 'kk-count' });
     const io = new IntersectionObserver((entries) => {
       for (const en of entries) {
@@ -72,7 +76,7 @@ export default {
     const release = () => { scaler.disconnect(); for (const [stage, rec] of live) { rec.on = false; rec.stop?.(); io.unobserve(stage); } live.clear(); };
 
     const expand = (item) => {
-      const stage = h('div', { class: 'kk-stage big' + (item.src === 'mp' ? ' mp' : '') }); let stop = () => {};
+      const stage = h('div', { class: 'kk-stage big' + (item.src === 'mp' ? ' mp' : item.src === 'rb' ? ' rb' : '') }); let stop = () => {};
       const code = item.src === 'mp' && h('details', { class: 'kk-code', ontoggle: async (e) => {
         const pre = e.currentTarget.querySelector('pre'); if (!e.currentTarget.open || pre.dataset.loaded) return;
         try { pre.textContent = await getCode(item); pre.dataset.loaded = '1'; } catch (err) { pre.textContent = err.message; } } },
@@ -81,13 +85,14 @@ export default {
           h('a', { class: 'btn ghost sm', href: `https://motion-primitives.com/docs/${item.mp}`, target: '_blank', rel: 'noopener' }, 'Documentação oficial')),
         h('pre', { class: 'code kk-prompt', tabindex: 0 }, 'Carregando…'));
       modal({ title: item.name, size: 'kk-modal', body: h('div', { class: 'kk-big' }, stage, h('p', { class: 'kk-desc' }, item.desc,
-        item.src === 'mp' ? h('span', { class: 'kk-src' }, ' · Motion Primitives (MIT, © ibelick)') : ''), code), onClose: () => stop() });
+        item.src === 'mp' ? h('span', { class: 'kk-src' }, ' · Motion Primitives (MIT, © ibelick)') : '',
+        item.src === 'rb' ? h('span', { class: 'kk-src' }, ' · React Bits (© David Haz) · ', h('a', { href: `https://reactbits.dev/${item.rbPath || ''}`, target: '_blank', rel: 'noopener' }, 'código e licença em reactbits.dev')) : ''), code), onClose: () => stop() });
       run(stage, item, true).then((s) => { stop = s; });
       history.replaceState(null, '', `#/componentes/${item.slug}`);
     };
     const scaler = new ResizeObserver((es) => { for (const e of es) { const t = e.target; t.style.setProperty('--s', (e.contentRect.width / +t.style.getPropertyValue('--dw')).toFixed(4)); } });
     const card = (item, wide) => {
-      const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
+      const stage = h('div', { class: 'kk-stage' + (item.src === 'mp' ? ' mp' : item.src === 'rb' ? ' rb' : ''), 'data-slug': item.slug }, h('span', { class: 'kk-skel', 'aria-hidden': 'true' }));
       live.set(stage, { item, on: false, stop: null });
       // a miniatura monta o componente num palco de tamanho "de verdade" (dw x dh) e o reduz para caber no cartão: nada fica cortado
       const isWide = wide && WIDE.has(item.slug); const isTall = wide && TALL.has(item.slug);
@@ -97,10 +102,10 @@ export default {
       return h('article', { class: 'kx-cell' + (isWide ? ' wide' : ''), id: 'kk-' + item.slug },
         thumb,
         h('div', { class: 'kx-foot' },
-          h('button', { type: 'button', class: 'kx-name', title: item.desc, onclick: () => expand(item) }, h('b', item.name), item.src === 'mp' && h('span', { class: 'kx-tag' }, 'Motion')),
+          h('button', { type: 'button', class: 'kx-name', title: item.desc, onclick: () => expand(item) }, h('b', item.name), item.src === 'mp' && h('span', { class: 'kx-tag' }, 'Motion'), item.src === 'rb' && h('span', { class: 'kx-tag rb' }, 'React Bits')),
           h('div', { class: 'kx-acts' },
             item.src === 'mp' && h('button', { type: 'button', class: 'kx-ic', title: 'Copiar o código-fonte', 'aria-label': `Copiar o código de ${item.name}`, onclick: () => copyCode(item) }, icon('code')),
-            h('button', { type: 'button', class: 'kx-ic', title: 'Copiar o prompt de integração', 'aria-label': `Copiar o prompt de ${item.name}`, onclick: () => openPrompt(item) }, icon('copy')),
+            item.src !== 'rb' && h('button', { type: 'button', class: 'kx-ic', title: 'Copiar o prompt de integração', 'aria-label': `Copiar o prompt de ${item.name}`, onclick: () => openPrompt(item) }, icon('copy')),
             h('button', { type: 'button', class: 'kx-ic', title: 'Abrir em tela grande', 'aria-label': `Abrir ${item.name}`, onclick: () => expand(item) }, icon('expand')))));
     };
     const row = (title, sub, list, more, wide) => h('section', { class: 'kx-sec' },
@@ -128,7 +133,7 @@ export default {
       h('button', { type: 'button', class: 'kx-item', 'data-cat': 'Todos', onclick: () => go('Todos') }, icon('home'), h('span', 'Início')),
       h('p', { class: 'kx-lab' }, 'Explorar'),
       CATS.slice(1).map((c) => h('button', { type: 'button', class: 'kx-item', 'data-cat': c, onclick: () => go(c) }, h('span', c), h('em', side[c] || 0))));
-    const SRC = [['todos', 'Todos'], ['js', 'JavaScript puro'], ['mp', 'Motion Primitives']];
+    const SRC = [['todos', 'Todos'], ['js', 'JavaScript puro'], ['mp', 'Motion Primitives'], ['rb', 'React Bits']];
     const tabs = h('div', { class: 'kx-tabs', role: 'tablist' }, SRC.map(([k, l]) => h('button', { type: 'button', role: 'tab', class: 'kx-tab', 'data-src': k, onclick: () => { src = k; draw(); } }, l)), count);
     const content = h('div', { class: 'kx-content' });
     const main = h('div', { class: 'kx-main' }, tabs, content);
