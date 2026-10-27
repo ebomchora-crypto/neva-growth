@@ -5,6 +5,7 @@ import { pushNew, resetPush } from './push.js';
 import { openTips } from './tips.js';
 import { initMotion, routeStart, routeEnd, navIndicator, shellIn, snow, authIn, shake, kill, motionEnabled } from './motion.js';
 import { topoBackground } from './topo-bg.js';
+import { pageWaves } from './page-waves.js';
 
 const state = { user: null, me: null, cleanup: null, syncAt: null };
 initMotion();
@@ -28,8 +29,8 @@ const ROUTES = [
   { path: 'studio/:id', hidden: true, wide: true, page: lazy('./pages/studio.js') },
   { path: 'ao-vivo', hidden: true, wide: true, page: lazy('./pages/live.js') },
   { sec: 'Ferramentas' },
-  { path: 'design', search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
-  { path: 'componentes', search: 'Buscar componente', tool: true, label: 'Componentes UI', icon: 'layers', page: lazy('./pages/uikit.js') },
+  { path: 'design', waves: true, search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
+  { path: 'componentes', waves: true, search: 'Buscar componente', tool: true, label: 'Componentes UI', icon: 'layers', page: lazy('./pages/uikit.js') },
   { path: 'acervo', search: 'Buscar recurso, prompt ou animação', tool: true, label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
   { path: 'play', search: 'Buscar conteúdo', tool: true, label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
   { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
@@ -277,7 +278,8 @@ async function route() {
   // Telas "bare" (Chat) ocupam a janela inteira, sem o menu lateral nem a barra do topo.
   // "rail": mantém o menu lateral e esconde só a barra do topo (tela inicial do Builder).
   { const m = match(); const b = typeof m.route?.bare === 'function' ? m.route.bare(m.params) : (m.route?.bare ? 'full' : '');
-    document.documentElement.classList.toggle('bare-page', b === 'full'); document.documentElement.classList.toggle('rail-page', b === 'rail'); }
+    document.documentElement.classList.toggle('bare-page', b === 'full'); document.documentElement.classList.toggle('rail-page', b === 'rail');
+    pageWaves(!!m.route?.waves && b === ''); }
   const view = document.getElementById('view'); if (!view) return;
   const { route: r, params } = match();
   if (!r) { location.hash = '#/dashboard'; return; }
