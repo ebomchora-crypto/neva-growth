@@ -53,6 +53,7 @@ function createApp() {
   api.use('/dashboard', require('./routes/dashboard'));
   api.use('/library', require('./routes/library'));
   api.use('/play', require('./routes/play'));
+  api.use('/potentials', require('./routes/potentials'));
   api.use('/prompts', require('./routes/prompts'));
   api.use('/search', require('./routes/search'));
   api.use('/projects', projects);

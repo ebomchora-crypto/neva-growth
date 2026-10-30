@@ -25,6 +25,7 @@ const ROUTES = [
   { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/sales.js') },
   { path: 'sites', site: true, search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
+  { path: 'potenciais', search: 'Buscar oportunidade', label: 'Potenciais', icon: 'trend', page: lazy('./pages/potentials.js') },
   { path: 'builder', site: true, wide: true, bare: () => 'rail', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
   { path: 'ide/:id', site: true, hidden: true, wide: true, page: lazy('./pages/ide.js') },
   { path: 'studio/:id', site: true, hidden: true, wide: true, page: lazy('./pages/studio.js') },

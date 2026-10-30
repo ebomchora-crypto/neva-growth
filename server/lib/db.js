@@ -13,7 +13,7 @@ const als = new AsyncLocalStorage();
 const NOW = "to_char(now() AT TIME ZONE 'utc','YYYY-MM-DD HH24:MI:SS')";
 const TODAY = "to_char((now() AT TIME ZONE 'utc')::date,'YYYY-MM-DD')";
 const ID_TABLES = new Set(['users', 'leads', 'clients', 'activities', 'tasks', 'products', 'sales', 'courses', 'lessons', 'projects', 'project_files',
-  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls', 'build_events', 'chats']);
+  'pipeline_stages', 'notifications', 'library_items', 'play_items', 'saved_prompts', 'file_versions', 'ai_conversations', 'ai_usage', 'credit_ledger', 'play_suggestions', 'prospect_searches', 'site_versions', 'ai_calls', 'build_events', 'chats', 'potentials']);
 
 // Tradução mínima de construções herdadas do SQLite + placeholders
 function translate(sql) {
@@ -343,6 +343,15 @@ ALTER TABLE public.chats ENABLE ROW LEVEL SECURITY;
 DO $$ BEGIN
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.chats FROM anon'; END IF;
   IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.chats FROM authenticated'; END IF;
+END $$;
+` }, { v: 15, name: 'v15-potenciais', sql: `
+CREATE TABLE IF NOT EXISTS potentials (id ${ID}, ws INTEGER NOT NULL DEFAULT 1, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, name TEXT NOT NULL, phone TEXT, store TEXT,
+  value ${REAL} NOT NULL DEFAULT 0, status TEXT NOT NULL DEFAULT 'aberta', lead_id INTEGER, client_id INTEGER, created_at ${TS}, updated_at ${TS});
+CREATE INDEX IF NOT EXISTS idx_potentials_user ON potentials(user_id, status);
+ALTER TABLE public.potentials ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN EXECUTE 'REVOKE ALL ON public.potentials FROM anon'; END IF;
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'authenticated') THEN EXECUTE 'REVOKE ALL ON public.potentials FROM authenticated'; END IF;
 END $$;
 ` }];
 
