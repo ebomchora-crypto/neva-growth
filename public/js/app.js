@@ -16,25 +16,26 @@ const root = document.getElementById('app');
 const lazy = (file, name) => () => import(file).then((m) => (name ? m[name] : m));
 
 // Ordem do menu = ordem do menu lateral de referência: portal/associação, início, clientes, vendas, sites, CRM, builder | ferramentas | gestão.
+const SITE_DESC = { builder: 'Crie sites e sistemas com IA', sites: 'Seu portfólio web e entregas', design: 'Identidades e DESIGN.md prontos', componentes: 'Componentes de interface para o site', acervo: 'Prompts, skills e animações', prompts: 'Prepare prompts melhores' };
 const ROUTES = [
   { sec: 'Principal' },
   { path: 'associacao', label: 'Associação', icon: 'card', page: lazy('./pages/membership.js') },
   { path: 'dashboard', search: 'Buscar cliente ou projeto', label: 'Dashboard', icon: 'home', page: lazy('./pages/dashboard.js') },
   { path: 'clientes', search: 'Buscar cliente, empresa ou telefone', label: 'Clientes', icon: 'users', page: lazy('./pages/resources.js', 'clients') },
   { path: 'vendas', search: 'Buscar venda, projeto ou cliente', label: 'Vendas', icon: 'wallet', page: lazy('./pages/sales.js') },
-  { path: 'sites', search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
+  { path: 'sites', site: true, search: 'Buscar site, domínio ou cliente', label: 'Sites e sistemas', icon: 'layout', page: lazy('./pages/sites.js') },
   { path: 'leads', search: 'Buscar oportunidade, cliente ou empresa', label: 'CRM e funil', icon: 'kanban', page: lazy('./pages/leads.js') },
-  { path: 'builder', wide: true, bare: () => 'rail', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
-  { path: 'ide/:id', hidden: true, wide: true, page: lazy('./pages/ide.js') },
-  { path: 'studio/:id', hidden: true, wide: true, page: lazy('./pages/studio.js') },
+  { path: 'builder', site: true, wide: true, bare: () => 'rail', search: 'Buscar site, modelo ou projeto', label: 'Builder com IA', icon: 'gridplus', page: lazy('./pages/builder.js') },
+  { path: 'ide/:id', site: true, hidden: true, wide: true, page: lazy('./pages/ide.js') },
+  { path: 'studio/:id', site: true, hidden: true, wide: true, page: lazy('./pages/studio.js') },
   { path: 'ao-vivo', hidden: true, wide: true, page: lazy('./pages/live.js') },
   { sec: 'Ferramentas' },
-  { path: 'design', search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
-  { path: 'componentes', search: 'Buscar componente', tool: true, label: 'Componentes UI', icon: 'layers', page: lazy('./pages/uikit.js') },
-  { path: 'acervo', search: 'Buscar recurso, prompt ou animação', tool: true, label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
+  { path: 'design', site: true, search: 'Buscar referência, estilo ou categoria', tool: true, label: 'Referências de design', icon: 'palette', page: lazy('./pages/library.js', 'design') },
+  { path: 'componentes', site: true, search: 'Buscar componente', tool: true, label: 'Componentes UI', icon: 'layers', page: lazy('./pages/uikit.js') },
+  { path: 'acervo', site: true, search: 'Buscar recurso, prompt ou animação', tool: true, label: 'Acervo', icon: 'box', page: lazy('./pages/library.js', 'acervo') },
   { path: 'play', search: 'Buscar conteúdo', tool: true, label: 'Play', icon: 'play', page: lazy('./pages/play.js') },
   { path: 'prospeccao', tool: true, label: 'Prospecção', icon: 'target', page: lazy('./pages/prospect.js') },
-  { path: 'prompts', tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
+  { path: 'prompts', site: true, tool: true, label: 'Gerador de prompts', icon: 'wand', page: lazy('./pages/promptgen.js') },
   { sec: 'Gestão' },
   { path: 'tarefas', norail: true, label: 'Tarefas', icon: 'check', page: lazy('./pages/resources.js', 'tasks') },
   { path: 'produtos', norail: true, label: 'Produtos', icon: 'tag', page: lazy('./pages/resources.js', 'products') },
@@ -225,9 +226,30 @@ function shell() {
   const links = ROUTES.filter((r) => !r.hidden && (!r.admin || state.user.role === 'admin'));
   const logout = async () => { await api.post('/auth/logout').catch(() => {}); resetPush(); clearInterval(pollTimer); state.user = null; state.me = null; applyPrivacy(false); boot(); };
   const navLink = (r) => h('a', { href: r.link || (r.newTab ? '/' + r.path : '#/' + r.path), class: (r.tool ? 'tool' : '') + (r.norail ? ' norail' : ''), dataset: { path: r.path }, title: r.label, 'aria-label': r.label, onclick: () => toggle(false) }, icon(r.icon), h('span', { class: 'lbl' }, r.label));
+  // Bloco "Site": um ícone na barra lateral que abre um menu sanduíche com tudo que é de site (Builder, design, componentes…).
+  // No computador é uma gaveta ao lado da barra; no celular vira uma sanfona dentro do menu.
+  const siteOrder = Object.keys(SITE_DESC); const siteLinks = links.filter((r) => r.site && !r.hidden).sort((a, b) => siteOrder.indexOf(a.path) - siteOrder.indexOf(b.path));
+  const siteFly = h('div', { class: 'site-fly', id: 'site-fly', role: 'menu', 'aria-label': 'Site' },
+    h('header', h('b', 'Site'), h('small', 'Tudo para criar e publicar sites')),
+    siteLinks.map((r) => h('a', { href: '#/' + r.path, role: 'menuitem', dataset: { path: r.path }, onclick: () => { closeSite(); toggle(false); } }, icon(r.icon), h('span', h('b', r.label), h('small', SITE_DESC[r.path] || '')))));
+  const siteTrigger = h('a', { href: '#', class: 'site-trigger', role: 'button', 'aria-haspopup': 'menu', 'aria-expanded': 'false', 'aria-controls': 'site-fly', title: 'Site', 'aria-label': 'Site', dataset: { site: '1' }, onclick: (e) => { e.preventDefault(); siteOpen ? closeSite() : openSite(); } }, icon('globe'), h('span', { class: 'lbl' }, 'Site'), h('i', { class: 'site-chev' }, icon('chevron')));
+  let siteOpen = false;
+  const mobile = () => matchMedia('(max-width:860px)').matches;
+  const placeSite = () => {
+    if (mobile()) { siteFly.classList.remove('float'); siteFly.classList.add('inline'); siteFly.style.cssText = ''; if (siteFly.previousElementSibling !== siteTrigger) siteTrigger.after(siteFly); return; }
+    siteFly.classList.remove('inline'); siteFly.classList.add('float'); if (siteFly.parentElement !== document.body) document.body.append(siteFly);
+    const r = siteTrigger.getBoundingClientRect(); const room = innerHeight - 24;
+    siteFly.style.left = Math.round(r.right + 14) + 'px'; siteFly.style.maxHeight = room + 'px';
+    siteFly.style.top = Math.max(12, Math.min(Math.round(r.top - 10), innerHeight - siteFly.offsetHeight - 12)) + 'px';
+  };
+  const away = (e) => { if (!siteFly.contains(e.target) && !siteTrigger.contains(e.target)) closeSite(); };
+  const esc = (e) => { if (e.key === 'Escape') { closeSite(); siteTrigger.focus(); } };
+  const openSite = () => { siteOpen = true; placeSite(); siteFly.classList.add('open'); siteTrigger.classList.add('open'); siteTrigger.setAttribute('aria-expanded', 'true'); placeSite(); document.addEventListener('mousedown', away); document.addEventListener('keydown', esc); window.addEventListener('resize', placeSite); siteFly.querySelector('a')?.focus({ preventScroll: true }); };
+  const closeSite = () => { siteOpen = false; siteFly.classList.remove('open'); siteTrigger.classList.remove('open'); siteTrigger.setAttribute('aria-expanded', 'false'); document.removeEventListener('mousedown', away); document.removeEventListener('keydown', esc); window.removeEventListener('resize', placeSite); };
+  document.getElementById('site-fly')?.remove(); // reconstruído a cada montagem da casca
   const cfg = links.find((r) => r.path === 'configuracoes');
   side.append(h('a', { class: 'brand', href: '#/dashboard', title: 'Neva Growth' }, h('i', { class: 'logo' }, h('img', { src: '/img/logo-128.png', alt: '', width: 128, height: 128, decoding: 'async' })), h('span', { class: 'lbl' }, 'Neva Growth')),
-    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes').map((r) => r.sec ? h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)) : navLink(r))),
+    h('nav', { class: 'nav', 'aria-label': 'Principal' }, links.filter((r) => r.path !== 'configuracoes' && !r.site).flatMap((r) => r.sec ? [h('div', { class: 'nav-sec', title: r.sec }, h('span', r.sec)), ...(r.sec === 'Ferramentas' ? [siteTrigger] : [])] : [navLink(r)])),
     h('div', { class: 'railfoot' }, cfg && navLink(cfg), h('button', { class: 'railbtn', title: 'Sair', 'aria-label': 'Sair', onclick: logout }, icon('logout'), h('span', { class: 'lbl' }, 'Sair'))));
   const hidden = () => state.me?.settings.hide_values === '1';
   const eye = h('button', { class: 'iconbtn', title: 'Ocultar/mostrar valores', 'aria-label': 'Ocultar ou mostrar valores', onclick: async () => {
@@ -284,7 +306,8 @@ async function route() {
   const { route: r, params } = match();
   if (!r) { location.hash = '#/dashboard'; return; }
   if (r.admin && state.user.role !== 'admin') { location.hash = '#/dashboard'; return; }
-  document.querySelectorAll('.side a[data-path]').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
+  document.querySelectorAll('.side a[data-path], .site-fly a[data-path]').forEach((a) => a.classList.toggle('on', a.dataset.path === r.path.split('/')[0]));
+  document.querySelector('.site-trigger')?.classList.toggle('on', !!r.site);
   navIndicator(document.querySelector('.nav'), document.querySelector('.nav a.on'));
   document.getElementById('tipsbtn')?.classList.toggle('hide', !['dashboard', 'clientes', 'vendas'].includes(r.path));
   const sl = document.getElementById('searchlbl'); if (sl) sl.textContent = r.search || 'Buscar cliente, lead, venda ou projeto';
